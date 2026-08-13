@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.44.0",
-    "postgres": "^3.4.5"
+    "postgres": "^3.4.5",
+    "uuidv7": "^1.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
