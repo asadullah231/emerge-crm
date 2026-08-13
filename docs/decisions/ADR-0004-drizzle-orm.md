@@ -1,6 +1,6 @@
 # ADR-0004: Drizzle ORM
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-13
 
 ## Decision

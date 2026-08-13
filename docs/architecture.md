@@ -1,17 +1,17 @@
-# Technical Architecture (Proposed)
+# Technical Architecture
 
-> Status: PROPOSED. Each major choice below has an ADR in `docs/decisions/`.
-> Nothing here is final until the roadmap and ADRs are approved.
+> Status: ACCEPTED (13 Aug 2026, with the roadmap). Each major choice below has an ADR in
+> `docs/decisions/`; changes go through new ADRs.
 
 ## Shape of the system
 
 A TypeScript monorepo producing three runtime processes, all shipped via one Docker Compose:
 
-| Process | Role |
-|---|---|
-| `web` | Next.js App Router app: the recruiter app (client-heavy routes), the public career portal (SSR, SEO), and the API routes |
-| `worker` | Node worker running BullMQ queues: parsing, email sync, sequences, notifications, webhooks |
-| Infra | PostgreSQL 16+, Redis, MinIO (S3-compatible). Meilisearch optional later. |
+| Process  | Role                                                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `web`    | Next.js App Router app: the recruiter app (client-heavy routes), the public career portal (SSR, SEO), and the API routes |
+| `worker` | Node worker running BullMQ queues: parsing, email sync, sequences, notifications, webhooks                               |
+| Infra    | PostgreSQL 16+, Redis, MinIO (S3-compatible). Meilisearch optional later.                                                |
 
 Rationale (short version; details in ADRs and the research reports):
 

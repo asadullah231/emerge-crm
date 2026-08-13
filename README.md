@@ -3,8 +3,8 @@
 A modern, open-source Recruitment CRM / Applicant Tracking System for staffing agencies.
 Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agency edition).
 
-> Status: **Planning phase.** No application code exists yet.
-> The roadmap below must be approved before Milestone 0 implementation begins.
+> Status: **Milestone 0 in progress** (v0.1.0: project foundation).
+> Roadmap approved 13 Aug 2026; development runs milestone by milestone.
 
 ## Why this exists
 
@@ -15,16 +15,29 @@ Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agenc
 
 ## Documentation
 
-| Doc | Purpose |
-|---|---|
-| [docs/roadmap.md](docs/roadmap.md) | Full milestone roadmap and versioning plan |
-| [docs/architecture.md](docs/architecture.md) | Proposed technical architecture |
-| [docs/development.md](docs/development.md) | Git workflow, branching, commits, releases, Definition of Done |
-| [docs/database.md](docs/database.md) | Database conventions and entity overview |
-| [docs/api.md](docs/api.md) | API conventions |
-| [docs/decisions.md](docs/decisions.md) | Architecture Decision Record index |
-| [docs/milestones/](docs/milestones/) | One detailed spec per milestone |
+| Doc                                          | Purpose                                                        |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| [docs/roadmap.md](docs/roadmap.md)           | Full milestone roadmap and versioning plan                     |
+| [docs/architecture.md](docs/architecture.md) | Proposed technical architecture                                |
+| [docs/development.md](docs/development.md)   | Git workflow, branching, commits, releases, Definition of Done |
+| [docs/database.md](docs/database.md)         | Database conventions and entity overview                       |
+| [docs/api.md](docs/api.md)                   | API conventions                                                |
+| [docs/decisions.md](docs/decisions.md)       | Architecture Decision Record index                             |
+| [docs/milestones/](docs/milestones/)         | One detailed spec per milestone                                |
 
 ## Current milestone
 
-**None started.** Next up: [Milestone 0 - Project Foundation](docs/milestones/m00-foundation.md), pending roadmap approval.
+**[Milestone 0 - Project Foundation](docs/milestones/m00-foundation.md)** (v0.1.0): monorepo,
+Docker Compose stack, CI quality gates, app shell.
+
+## Quick start (development)
+
+```
+cp .env.example .env
+docker compose up -d postgres redis minio
+pnpm install
+pnpm db:migrate
+pnpm dev
+```
+
+Or boot everything (including web + worker) with `docker compose up`.
