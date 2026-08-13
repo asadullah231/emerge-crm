@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { Button, FormError, Input, Label } from "@/components/form";
 import { trpc } from "@/lib/trpc/client";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const next = useSearchParams().get("next");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const login = trpc.auth.login.useMutation({
     onSuccess: () => {
-      router.push("/dashboard");
+      // Only follow same-app relative paths, never external URLs.
+      router.push(next && next.startsWith("/") ? next : "/dashboard");
       router.refresh();
     }
   });
@@ -68,5 +70,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </form>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
