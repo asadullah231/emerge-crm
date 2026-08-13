@@ -1,7 +1,10 @@
 import { APP_VERSION } from "@emerge/core";
 import { publicProcedure, router } from "../trpc";
 import { authRouter } from "./auth";
+import { companiesRouter } from "./companies";
+import { contactsRouter } from "./contacts";
 import { membersRouter } from "./members";
+import { tagsRouter } from "./tags";
 import { workspaceRouter } from "./workspace";
 
 export const appRouter = router({
@@ -14,7 +17,10 @@ export const appRouter = router({
   }),
   auth: authRouter,
   workspace: workspaceRouter,
-  members: membersRouter
+  members: membersRouter,
+  companies: companiesRouter,
+  contacts: contactsRouter,
+  tags: tagsRouter
 });
 
 export type AppRouter = typeof appRouter;
