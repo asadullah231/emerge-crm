@@ -1,4 +1,4 @@
-# OpenRecruit (working title)
+# Emerge CRM
 
 A modern, open-source Recruitment CRM / Applicant Tracking System for staffing agencies.
 Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agency edition).
