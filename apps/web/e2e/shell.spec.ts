@@ -1,19 +1,32 @@
 import { expect, test } from "@playwright/test";
 
-test("app shell renders with navigation", async ({ page }) => {
+// These specs need no database: they cover the unauthenticated surface.
+
+test("app routes require a session and redirect to login", async ({ page }) => {
   await page.goto("/dashboard");
-  await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Candidates" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+  await page.waitForURL("**/login");
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 });
 
-test("root redirects to dashboard", async ({ page }) => {
+test("root redirects unauthenticated visitors to login", async ({ page }) => {
   await page.goto("/");
-  await page.waitForURL("**/dashboard");
-  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+  await page.waitForURL("**/login");
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 });
 
-test("placeholder route renders", async ({ page }) => {
-  await page.goto("/candidates");
-  await expect(page.getByRole("heading", { name: "Candidates" })).toBeVisible();
+test("login page renders the full form", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expect(page.getByLabel("Password")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Forgot password?" })).toBeVisible();
+});
+
+test("signup page renders account and workspace fields", async ({ page }) => {
+  await page.goto("/signup");
+  await expect(page.getByLabel("Your name")).toBeVisible();
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expect(page.getByLabel("Password")).toBeVisible();
+  await expect(page.getByLabel("Workspace name")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
 });

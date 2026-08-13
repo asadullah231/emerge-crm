@@ -3,8 +3,8 @@
 A modern, open-source Recruitment CRM / Applicant Tracking System for staffing agencies.
 Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agency edition).
 
-> Status: **v0.1.0 released** (Milestone 0: Project Foundation complete).
-> Next up: Milestone 1 - Auth, Workspaces, Users & Roles.
+> Status: **v0.2.0 released** (Milestone 1: Auth, Workspaces, Users & Roles complete).
+> Next up: Milestone 2 - Companies & Contacts.
 
 ## Why this exists
 
@@ -27,17 +27,22 @@ Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agenc
 
 ## Current milestone
 
-**[Milestone 1 - Auth, Workspaces, Users & Roles](docs/milestones/m01-auth-users.md)** (v0.2.0)
-is next. Completed: [M0 - Project Foundation](docs/milestones/m00-foundation.md) (v0.1.0).
+**[Milestone 2 - Companies & Contacts](docs/milestones/m02-companies-contacts.md)** (v0.3.0)
+is next. Completed: [M0 - Project Foundation](docs/milestones/m00-foundation.md) (v0.1.0),
+[M1 - Auth, Workspaces, Users & Roles](docs/milestones/m01-auth-users.md) (v0.2.0).
 
 ## Quick start (development)
 
 ```
 cp .env.example .env
-docker compose up -d postgres redis minio
+docker compose up -d postgres redis minio mailhog
 pnpm install
 pnpm db:migrate
 pnpm dev
 ```
+
+Then open http://localhost:3000, create your account and workspace, and invite your team
+from Settings -> Members. Emails (password reset, invitations) land in MailHog at
+http://localhost:8025 during development.
 
 Or boot everything (including web + worker) with `docker compose up`.

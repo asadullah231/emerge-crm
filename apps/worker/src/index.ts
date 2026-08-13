@@ -1,6 +1,7 @@
 import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { APP_NAME, APP_VERSION } from "@emerge/core";
+import { startEmailWorker } from "./email";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
@@ -26,11 +27,14 @@ worker.on("failed", (job, err) => {
 // Repeatable heartbeat proves the queue infrastructure end to end.
 await queue.upsertJobScheduler("heartbeat-scheduler", { every: 60_000 }, { name: "heartbeat" });
 
-console.log(`[worker] started, queue "${QUEUE_NAME}" on ${redisUrl}`);
+const emailWorker = startEmailWorker(connection);
+
+console.log(`[worker] started, queues "${QUEUE_NAME}" + "email" on ${redisUrl}`);
 
 async function shutdown(signal: string) {
   console.log(`[worker] ${signal} received, shutting down...`);
   await worker.close();
+  await emailWorker.close();
   await queue.close();
   connection.disconnect();
   process.exit(0);
