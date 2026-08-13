@@ -1,6 +1,6 @@
 # ADR-0007: Domain events via transactional outbox + BullMQ consumers
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-13
 
 ## Decision

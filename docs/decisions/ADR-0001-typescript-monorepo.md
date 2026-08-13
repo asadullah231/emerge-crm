@@ -1,6 +1,6 @@
 # ADR-0001: TypeScript monorepo with pnpm workspaces
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-13
 
 ## Decision

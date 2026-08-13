@@ -21,28 +21,28 @@ GitHub release. `v1.0.0` ships at Milestone 19.
 
 ## Milestone overview
 
-| # | Milestone | Version | Depends on | Complexity |
-|---|---|---|---|---|
-| M0 | Project Foundation | v0.1.0 | - | M |
-| M1 | Auth, Workspaces, Users & Roles | v0.2.0 | M0 | L |
-| M2 | Companies & Contacts | v0.3.0 | M1 | M |
-| M3 | Candidates & CV Upload | v0.4.0 | M1 | L |
-| M4 | Jobs | v0.5.0 | M2 | M |
-| M5 | Applications & Pipeline Board | v0.6.0 | M3, M4 | L |
-| M6 | Activity Timeline, Tasks & Notes | v0.7.0 | M2, M3, M4 | L |
-| M7 | Resume Parsing & Document Management | v0.8.0 | M3 | L |
-| M8 | Search, Filters, Saved Views & Custom Fields | v0.9.0 | M2-M5 | XL |
-| M9 | Career Portal & Public Apply | v0.10.0 | M4, M5, M7 | M |
-| M10 | Interviews & Scheduling | v0.11.0 | M5, M6 | L |
-| M11 | Offers & Placements | v0.12.0 | M5, M10 | M |
-| M12 | Email Integration | v0.13.0 | M6 | XL |
-| M13 | Candidate Matching & Semantic Search | v0.14.0 | M7, M8 | L |
-| M14 | Automation: Stage Rules, Sequences & Webhooks | v0.15.0 | M5, M12 | XL |
-| M15 | Reports & Analytics | v0.16.0 | M5, M10, M11 | L |
-| M16 | Candidate Portal | v0.17.0 | M9, M5 | M |
-| M17 | Public API, Import/Export & Integrations | v0.18.0 | M8 | L |
-| M18 | Security, Performance & Production Hardening | v0.19.0 | all | L |
-| M19 | v1.0 Production Release | v1.0.0 | M18 | M |
+| #   | Milestone                                     | Version | Depends on   | Complexity |
+| --- | --------------------------------------------- | ------- | ------------ | ---------- |
+| M0  | Project Foundation                            | v0.1.0  | -            | M          |
+| M1  | Auth, Workspaces, Users & Roles               | v0.2.0  | M0           | L          |
+| M2  | Companies & Contacts                          | v0.3.0  | M1           | M          |
+| M3  | Candidates & CV Upload                        | v0.4.0  | M1           | L          |
+| M4  | Jobs                                          | v0.5.0  | M2           | M          |
+| M5  | Applications & Pipeline Board                 | v0.6.0  | M3, M4       | L          |
+| M6  | Activity Timeline, Tasks & Notes              | v0.7.0  | M2, M3, M4   | L          |
+| M7  | Resume Parsing & Document Management          | v0.8.0  | M3           | L          |
+| M8  | Search, Filters, Saved Views & Custom Fields  | v0.9.0  | M2-M5        | XL         |
+| M9  | Career Portal & Public Apply                  | v0.10.0 | M4, M5, M7   | M          |
+| M10 | Interviews & Scheduling                       | v0.11.0 | M5, M6       | L          |
+| M11 | Offers & Placements                           | v0.12.0 | M5, M10      | M          |
+| M12 | Email Integration                             | v0.13.0 | M6           | XL         |
+| M13 | Candidate Matching & Semantic Search          | v0.14.0 | M7, M8       | L          |
+| M14 | Automation: Stage Rules, Sequences & Webhooks | v0.15.0 | M5, M12      | XL         |
+| M15 | Reports & Analytics                           | v0.16.0 | M5, M10, M11 | L          |
+| M16 | Candidate Portal                              | v0.17.0 | M9, M5       | M          |
+| M17 | Public API, Import/Export & Integrations      | v0.18.0 | M8           | L          |
+| M18 | Security, Performance & Production Hardening  | v0.19.0 | all          | L          |
+| M19 | v1.0 Production Release                       | v1.0.0  | M18          | M          |
 
 Complexity scale: S (days), M (about a week), L (1-2 weeks), XL (2-3 weeks, consider splitting
 into sub-issues aggressively). Estimates assume one primary developer plus AI tooling.
