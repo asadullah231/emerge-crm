@@ -81,11 +81,7 @@ export const authRouter = router({
       const invalid = () =>
         new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
 
-      const [user] = await ctx.db
-        .select()
-        .from(users)
-        .where(eq(users.email, input.email))
-        .limit(1);
+      const [user] = await ctx.db.select().from(users).where(eq(users.email, input.email)).limit(1);
       if (!user || !(await verifyPassword(user.passwordHash, input.password))) {
         await writeAudit({ action: "auth.login_failed", meta: { email: input.email } });
         throw invalid();

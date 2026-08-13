@@ -45,9 +45,7 @@ export default function WorkspaceSettingsPage() {
     >
       <h2 className="text-lg font-semibold">Workspace</h2>
       {!isAdmin ? (
-        <p className="text-sm text-[var(--muted)]">
-          Only admins can change workspace settings.
-        </p>
+        <p className="text-sm text-[var(--muted)]">Only admins can change workspace settings.</p>
       ) : null}
       <FormError message={update.error?.message} />
       <div>

@@ -14,10 +14,7 @@ const TABS = [
 export function SettingsNav() {
   const pathname = usePathname();
   return (
-    <nav
-      className="flex gap-1 border-b border-[var(--border)]"
-      aria-label="Settings sections"
-    >
+    <nav className="flex gap-1 border-b border-[var(--border)]" aria-label="Settings sections">
       {TABS.map((tab) => (
         <Link
           key={tab.href}

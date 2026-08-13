@@ -59,10 +59,7 @@ describe.skipIf(!process.env.DATABASE_URL)("permission matrix (3 roles x operati
   beforeAll(async () => {
     const { createDb, workspaces } = await import("@emerge/db");
     db = createDb();
-    const [ws] = await db
-      .insert(workspaces)
-      .values({ name: "Permission Matrix Test" })
-      .returning();
+    const [ws] = await db.insert(workspaces).values({ name: "Permission Matrix Test" }).returning();
     if (!ws) throw new Error("workspace insert failed");
     workspaceId = ws.id;
   });

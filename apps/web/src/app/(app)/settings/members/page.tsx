@@ -184,10 +184,15 @@ export default function MembersSettingsPage() {
               {members.data?.map((m) => {
                 const isSelf = m.userId === me.data?.user.id;
                 return (
-                  <tr key={m.membershipId} className="border-b border-[var(--border)] last:border-0">
+                  <tr
+                    key={m.membershipId}
+                    className="border-b border-[var(--border)] last:border-0"
+                  >
                     <td className="px-3 py-2">
                       {m.name}
-                      {isSelf ? <span className="ml-1 text-xs text-[var(--muted)]">(you)</span> : null}
+                      {isSelf ? (
+                        <span className="ml-1 text-xs text-[var(--muted)]">(you)</span>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2 text-[var(--muted)]">{m.email}</td>
                     <td className="px-3 py-2">

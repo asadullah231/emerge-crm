@@ -16,7 +16,11 @@ describe.skipIf(!process.env.DATABASE_URL)("session lifecycle", () => {
     db = (await import("../db")).db;
     const [user] = await db
       .insert(dbmod.users)
-      .values({ email: `sessions-${Date.now()}@test.local`, name: "Session User", passwordHash: "x" })
+      .values({
+        email: `sessions-${Date.now()}@test.local`,
+        name: "Session User",
+        passwordHash: "x"
+      })
       .returning();
     const [ws] = await db.insert(dbmod.workspaces).values({ name: "Session Test WS" }).returning();
     if (!user || !ws) throw new Error("seed failed");

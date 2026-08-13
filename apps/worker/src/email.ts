@@ -4,7 +4,13 @@ import nodemailer from "nodemailer";
 
 export type EmailJob =
   | { type: "password-reset"; to: string; resetUrl: string }
-  | { type: "invitation"; to: string; workspaceName: string; inviterName: string; acceptUrl: string };
+  | {
+      type: "invitation";
+      to: string;
+      workspaceName: string;
+      inviterName: string;
+      acceptUrl: string;
+    };
 
 // MailHog in dev/compose; any SMTP provider in production.
 const transporter = nodemailer.createTransport({

@@ -278,9 +278,7 @@ export const membersRouter = router({
       // Access ends immediately: kill this user's sessions for this workspace.
       await ctx.tx
         .delete(sessions)
-        .where(
-          and(eq(sessions.userId, target.userId), eq(sessions.workspaceId, ctx.workspaceId))
-        );
+        .where(and(eq(sessions.userId, target.userId), eq(sessions.workspaceId, ctx.workspaceId)));
       await writeAudit({
         workspaceId: ctx.workspaceId,
         actorUserId: ctx.session.user.id,
@@ -347,7 +345,13 @@ export const membersRouter = router({
         });
       }
 
-      await upsertMembership(ctx.db, ctx.session.user.id, invite.workspaceId, invite.role, invite.id);
+      await upsertMembership(
+        ctx.db,
+        ctx.session.user.id,
+        invite.workspaceId,
+        invite.role,
+        invite.id
+      );
 
       // Switch the session over to the new workspace.
       await invalidateSession(ctx.session.sessionId);

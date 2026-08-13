@@ -17,9 +17,7 @@ export default function AuditLogSettingsPage() {
     return <p className="text-sm text-[var(--muted)]">Loading...</p>;
   }
   if (!isAdmin) {
-    return (
-      <p className="text-sm text-[var(--muted)]">Only admins can view the audit log.</p>
-    );
+    return <p className="text-sm text-[var(--muted)]">Only admins can view the audit log.</p>;
   }
   if (log.isLoading) {
     return <p className="text-sm text-[var(--muted)]">Loading audit log...</p>;
@@ -63,7 +61,9 @@ export default function AuditLogSettingsPage() {
                     <code className="text-xs">{event.action}</code>
                   </td>
                   <td className="px-3 py-2 text-[var(--muted)]">
-                    {event.targetType ? `${event.targetType}${event.targetId ? `: ${event.targetId}` : ""}` : "-"}
+                    {event.targetType
+                      ? `${event.targetType}${event.targetId ? `: ${event.targetId}` : ""}`
+                      : "-"}
                   </td>
                 </tr>
               ))}
