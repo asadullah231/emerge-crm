@@ -8,6 +8,20 @@
       "when": 1786623648524,
       "tag": "0000_unknown_killraven",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786630527619,
+      "tag": "0001_auth_entities",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786630548085,
+      "tag": "0002_rls_policies",
+      "breakpoints": true
     }
   ]
 }

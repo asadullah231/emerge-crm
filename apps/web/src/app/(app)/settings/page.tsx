@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { redirect } from "next/navigation";
 
 export default function SettingsPage() {
-  return <PlaceholderPage title="Settings" milestone="Milestone 1" />;
+  redirect("/settings/profile");
 }

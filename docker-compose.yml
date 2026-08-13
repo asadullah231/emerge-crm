@@ -46,6 +46,12 @@ services:
       timeout: 3s
       retries: 10
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
   web:
     build:
       context: .
@@ -75,11 +81,16 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-emerge}:${POSTGRES_PASSWORD:-emerge_dev_password}@postgres:5432/${POSTGRES_DB:-emerge}
       REDIS_URL: redis://redis:6379
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_FROM: ${SMTP_FROM:-Emerge CRM <no-reply@emerge.local>}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailhog:
+        condition: service_started
 
 volumes:
   postgres_data:

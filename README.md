@@ -34,10 +34,14 @@ is next. Completed: [M0 - Project Foundation](docs/milestones/m00-foundation.md)
 
 ```
 cp .env.example .env
-docker compose up -d postgres redis minio
+docker compose up -d postgres redis minio mailhog
 pnpm install
 pnpm db:migrate
 pnpm dev
 ```
+
+Then open http://localhost:3000, create your account and workspace, and invite your team
+from Settings -> Members. Emails (password reset, invitations) land in MailHog at
+http://localhost:8025 during development.
 
 Or boot everything (including web + worker) with `docker compose up`.
