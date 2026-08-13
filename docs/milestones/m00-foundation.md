@@ -1,7 +1,7 @@
 # Milestone 0 - Project Foundation
 
 - Version on completion: **v0.1.0**
-- Status: **Not started (awaiting roadmap approval)**
+- Status: **Completed (v0.1.0, 13 Aug 2026)**
 - Complexity: **M**
 
 ## Objective

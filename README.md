@@ -3,8 +3,8 @@
 A modern, open-source Recruitment CRM / Applicant Tracking System for staffing agencies.
 Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agency edition).
 
-> Status: **Milestone 0 in progress** (v0.1.0: project foundation).
-> Roadmap approved 13 Aug 2026; development runs milestone by milestone.
+> Status: **v0.1.0 released** (Milestone 0: Project Foundation complete).
+> Next up: Milestone 1 - Auth, Workspaces, Users & Roles.
 
 ## Why this exists
 
@@ -27,8 +27,8 @@ Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agenc
 
 ## Current milestone
 
-**[Milestone 0 - Project Foundation](docs/milestones/m00-foundation.md)** (v0.1.0): monorepo,
-Docker Compose stack, CI quality gates, app shell.
+**[Milestone 1 - Auth, Workspaces, Users & Roles](docs/milestones/m01-auth-users.md)** (v0.2.0)
+is next. Completed: [M0 - Project Foundation](docs/milestones/m00-foundation.md) (v0.1.0).
 
 ## Quick start (development)
 
