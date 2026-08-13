@@ -33,9 +33,12 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
-      - run: pnpm test
       - name: Migrations run clean on a fresh database
         run: pnpm db:migrate
+        env:
+          DATABASE_URL: postgres://emerge:emerge_dev_password@localhost:5432/emerge
+      - name: Tests (unit + DB integration)
+        run: pnpm test
         env:
           DATABASE_URL: postgres://emerge:emerge_dev_password@localhost:5432/emerge
       - run: pnpm build
