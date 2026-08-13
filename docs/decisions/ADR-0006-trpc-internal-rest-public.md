@@ -1,6 +1,6 @@
 # ADR-0006: tRPC internal API, versioned REST public API
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-13
 
 ## Decision

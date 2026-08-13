@@ -1,6 +1,6 @@
 # ADR-0002: Next.js App Router as the single web deployable
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-13
 
 ## Decision

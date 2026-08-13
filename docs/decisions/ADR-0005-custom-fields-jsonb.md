@@ -1,6 +1,6 @@
 # ADR-0005: Custom fields via metadata table + JSONB values, not runtime DDL
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-13
 
 ## Decision
@@ -21,7 +21,7 @@ complexity tax.
 ## Alternatives considered
 
 - Twenty-style runtime DDL + generated schema: 10x machinery for the last 10% of
-  flexibility (custom objects). Deferred; JSONB fields cover custom *fields* now, and the
+  flexibility (custom objects). Deferred; JSONB fields cover custom _fields_ now, and the
   seam allows a custom-objects engine post-1.0 if demand shows.
 - EAV tables (OpenCATS `extra_field`): query complexity explodes, poor indexing.
 - No custom fields: not competitive.
@@ -34,4 +34,4 @@ complexity tax.
 
 Custom fields are weakly typed at the DB level (validated at the API layer with Zod
 generated from field definitions); reporting on custom fields uses JSONB extraction;
-custom *objects* are explicitly out of scope for v1.
+custom _objects_ are explicitly out of scope for v1.

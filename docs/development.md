@@ -2,19 +2,19 @@
 
 ## Repository
 
-GitHub, single monorepo. Repo name and org: **pending decision** (see open questions in
-roadmap approval). The repository must always show which milestone is in progress via
-GitHub Milestones and the pinned project board.
+GitHub, single monorepo: [asadullah231/emerge-crm](https://github.com/asadullah231/emerge-crm)
+(public). The repository must always show which milestone is in progress via GitHub
+Milestones and the pinned project board.
 
 ## Branching model
 
-| Branch | Purpose | Rules |
-|---|---|---|
-| `main` | Production-ready code only | Never commit directly. Only `release/*` and `fix/*` merge here. Every merge is tagged. |
-| `develop` | Integration branch for the current milestone | Only via PR from `feature/*` or `fix/*`. Must always build and pass tests. |
-| `feature/*` | Milestone or feature work | Branched from `develop`. One branch per milestone (sub-branches allowed for big milestones). |
-| `fix/*` | Bug fixes | From `develop` (or `main` for hotfixes, then back-merged). |
-| `release/*` | Release preparation | From `develop` when a milestone hits code-complete. Version bump, changelog, final QA. Merges to `main` and back to `develop`. |
+| Branch      | Purpose                                      | Rules                                                                                                                          |
+| ----------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `main`      | Production-ready code only                   | Never commit directly. Only `release/*` and `fix/*` merge here. Every merge is tagged.                                         |
+| `develop`   | Integration branch for the current milestone | Only via PR from `feature/*` or `fix/*`. Must always build and pass tests.                                                     |
+| `feature/*` | Milestone or feature work                    | Branched from `develop`. One branch per milestone (sub-branches allowed for big milestones).                                   |
+| `fix/*`     | Bug fixes                                    | From `develop` (or `main` for hotfixes, then back-merged).                                                                     |
+| `release/*` | Release preparation                          | From `develop` when a milestone hits code-complete. Version bump, changelog, final QA. Merges to `main` and back to `develop`. |
 
 ### Branch naming
 

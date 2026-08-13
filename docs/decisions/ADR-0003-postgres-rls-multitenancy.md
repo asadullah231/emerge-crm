@@ -1,6 +1,6 @@
 # ADR-0003: Postgres single-schema multi-tenancy with workspace_id + RLS
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-13
 
 ## Decision
