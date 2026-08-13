@@ -1,7 +1,7 @@
 # Milestone 1 - Auth, Workspaces, Users & Roles
 
 - Version on completion: **v0.2.0**
-- Status: In review (feature/m1-authentication)
+- Status: **Completed (v0.2.0, 13 Aug 2026)**
 - Complexity: **L**
 
 ## Objective
