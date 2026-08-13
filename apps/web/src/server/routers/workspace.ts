@@ -1,10 +1,31 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { workspaces } from "@emerge/db";
+import { auditLog, users, workspaces } from "@emerge/db";
 import { writeAudit } from "../audit";
 import { adminProcedure, router } from "../trpc";
 
 export const workspaceRouter = router({
+  auditLog: adminProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(200).default(100) }).default({}))
+    .query(async ({ ctx, input }) => {
+      // RLS scopes rows to the current workspace automatically.
+      return ctx.tx
+        .select({
+          id: auditLog.id,
+          action: auditLog.action,
+          targetType: auditLog.targetType,
+          targetId: auditLog.targetId,
+          meta: auditLog.meta,
+          createdAt: auditLog.createdAt,
+          actorName: users.name,
+          actorEmail: users.email
+        })
+        .from(auditLog)
+        .leftJoin(users, eq(users.id, auditLog.actorUserId))
+        .orderBy(desc(auditLog.createdAt))
+        .limit(input.limit);
+    }),
+
   update: adminProcedure
     .input(
       z.object({
