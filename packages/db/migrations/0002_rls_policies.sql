@@ -30,23 +30,23 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 ALTER TABLE "workspaces" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 CREATE POLICY "workspace_isolation" ON "workspaces"
-  USING ("id" = current_setting('app.workspace_id', true)::uuid)
-  WITH CHECK ("id" = current_setting('app.workspace_id', true)::uuid);
+  USING ("id" = nullif(current_setting('app.workspace_id', true), '')::uuid)
+  WITH CHECK ("id" = nullif(current_setting('app.workspace_id', true), '')::uuid);
 --> statement-breakpoint
 ALTER TABLE "memberships" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 CREATE POLICY "workspace_isolation" ON "memberships"
-  USING ("workspace_id" = current_setting('app.workspace_id', true)::uuid)
-  WITH CHECK ("workspace_id" = current_setting('app.workspace_id', true)::uuid);
+  USING ("workspace_id" = nullif(current_setting('app.workspace_id', true), '')::uuid)
+  WITH CHECK ("workspace_id" = nullif(current_setting('app.workspace_id', true), '')::uuid);
 --> statement-breakpoint
 ALTER TABLE "invitations" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 CREATE POLICY "workspace_isolation" ON "invitations"
-  USING ("workspace_id" = current_setting('app.workspace_id', true)::uuid)
-  WITH CHECK ("workspace_id" = current_setting('app.workspace_id', true)::uuid);
+  USING ("workspace_id" = nullif(current_setting('app.workspace_id', true), '')::uuid)
+  WITH CHECK ("workspace_id" = nullif(current_setting('app.workspace_id', true), '')::uuid);
 --> statement-breakpoint
 ALTER TABLE "audit_log" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 CREATE POLICY "workspace_isolation" ON "audit_log"
-  USING ("workspace_id" = current_setting('app.workspace_id', true)::uuid)
-  WITH CHECK ("workspace_id" = current_setting('app.workspace_id', true)::uuid);
+  USING ("workspace_id" = nullif(current_setting('app.workspace_id', true), '')::uuid)
+  WITH CHECK ("workspace_id" = nullif(current_setting('app.workspace_id', true), '')::uuid);

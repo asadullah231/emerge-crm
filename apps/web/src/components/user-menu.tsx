@@ -22,8 +22,8 @@ export function UserMenu({ name, role }: { name: string; role: string }) {
       >
         {name}
       </Link>
-      <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs capitalize text-[var(--muted)]">
-        {role === "readonly" ? "Read-only" : role}
+      <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted)]">
+        {role === "readonly" ? "Read-only" : role === "admin" ? "Admin" : "Recruiter"}
       </span>
       <button
         onClick={() => logout.mutate()}
