@@ -1,0 +1,19 @@
+[Unit]
+Description=Emerge CRM production stack (docker compose)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/emerge/app
+EnvironmentFile=/opt/emerge/.env
+# Bring the stack up. `restart: always` on each service keeps them alive; this
+# unit only handles boot-time start / manual stop.
+ExecStart=/usr/bin/docker compose -f /opt/emerge/app/compose.prod.yaml --env-file /opt/emerge/.env up -d
+ExecStop=/usr/bin/docker compose -f /opt/emerge/app/compose.prod.yaml --env-file /opt/emerge/.env down
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
