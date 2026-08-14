@@ -10,7 +10,7 @@
  *   emerge-migrate rollback <run-id>
  *   emerge-migrate verify <snapshot-dir> --workspace <uuid>
  */
-import { writeFileSync, readFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { createDb } from "@emerge/db";
 import { readJsonlSync, snapshotSet } from "./snapshot.js";
