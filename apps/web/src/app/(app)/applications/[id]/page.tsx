@@ -6,6 +6,8 @@ import { cn } from "@emerge/ui";
 import { Button, FormError } from "@/components/form";
 import { candidateName } from "@/components/new-candidate-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
+import { NotesPanel } from "@/components/notes-panel";
+import { TimelinePanel } from "@/components/timeline-panel";
 import { STAGE_ACCENT, STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { trpc } from "@/lib/trpc/client";
 
@@ -234,6 +236,13 @@ export default function ApplicationRecordPage() {
             ))}
           </ol>
         )}
+      </RecordSection>
+      <RecordSection title="Notes">
+        <NotesPanel entityType="application" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Timeline">
+        <TimelinePanel entityType="application" entityId={record.id} />
       </RecordSection>
     </RecordShell>
   );

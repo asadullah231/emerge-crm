@@ -8,6 +8,8 @@ import { Button, FormError } from "@/components/form";
 import { CandidateDocuments } from "@/components/candidate-documents";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
+import { NotesPanel } from "@/components/notes-panel";
+import { TimelinePanel } from "@/components/timeline-panel";
 import { candidateName } from "@/components/new-candidate-modal";
 import {
   CANDIDATE_SOURCE_OPTIONS,
@@ -371,6 +373,14 @@ export default function CandidateRecordPage() {
           </div>
         </RecordSection>
       ) : null}
+
+      <RecordSection title="Notes">
+        <NotesPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Timeline">
+        <TimelinePanel entityType="candidate" entityId={record.id} />
+      </RecordSection>
 
       <p className="text-xs text-[var(--muted)]">
         Created {new Date(record.createdAt).toLocaleString()} - Last updated{" "}

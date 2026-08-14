@@ -605,6 +605,103 @@ export const applicationStatusHistory = pgTable(
   (t) => [index("application_status_history_idx").on(t.workspaceId, t.applicationId, t.createdAt)]
 );
 
+// ---------------------------------------------------------------------------
+// M6: notes, @mentions, notifications, note templates
+// Zoho parity: every record has a Notes tab (composer with @mention-to-notify)
+// and a Timeline tab (activity feed). Notes are polymorphic; @mentions fan out
+// to an in-app notification inbox. The per-record timeline is read from the
+// existing audit_log + application_status_history + notes (no M1-M5 changes).
+// ---------------------------------------------------------------------------
+
+/** Polymorphic notes attached to any record (candidate, job, company, ...). */
+export const notes = pgTable(
+  "notes",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
+    body: text("body").notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("notes_entity_idx").on(t.workspaceId, t.entityType, t.entityId, t.deletedAt),
+    index("notes_author_idx").on(t.workspaceId, t.authorId)
+  ]
+);
+
+/** Users @mentioned in a note; drives notifications. */
+export const noteMentions = pgTable(
+  "note_mentions",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    noteId: uuid("note_id")
+      .notNull()
+      .references(() => notes.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt()
+  },
+  (t) => [
+    uniqueIndex("note_mentions_note_user_unique").on(t.noteId, t.userId),
+    index("note_mentions_user_idx").on(t.workspaceId, t.userId)
+  ]
+);
+
+export const notificationKind = pgEnum("notification_kind", ["mention"]);
+export type NotificationKind = (typeof notificationKind.enumValues)[number];
+
+/** In-app notification inbox (the header bell). One row per recipient per event. */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    recipientId: uuid("recipient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: notificationKind("kind").notNull().default("mention"),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    /** The record the notification points at. */
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    noteId: uuid("note_id").references(() => notes.id, { onDelete: "cascade" }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: createdAt()
+  },
+  (t) => [
+    index("notifications_recipient_idx").on(t.workspaceId, t.recipientId, t.createdAt),
+    index("notifications_recipient_unread_idx").on(t.workspaceId, t.recipientId, t.readAt)
+  ]
+);
+
+/** Workspace note templates (Zoho parity: e.g. a default screening-call note). */
+export const noteTemplates = pgTable(
+  "note_templates",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    body: text("body").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: createdAt()
+  },
+  (t) => [uniqueIndex("note_templates_workspace_name_unique").on(t.workspaceId, t.name)]
+);
+
 /** Minimal audit trail: auth events + member/role changes (M1). */
 export const auditLog = pgTable(
   "audit_log",

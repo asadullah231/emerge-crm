@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MobileNav, SidebarNav, type NavItem } from "@/components/app-nav";
 import { LogoFull } from "@/components/logo";
+import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ApiStatus } from "@/components/api-status";
 import { UserMenu } from "@/components/user-menu";
@@ -14,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/contacts", label: "Contacts" },
   { href: "/jobs", label: "Jobs" },
   { href: "/pipeline", label: "Pipeline" },
+  { href: "/activity", label: "Activity" },
   { href: "/tasks", label: "Tasks" },
   { href: "/settings", label: "Settings" }
 ];
@@ -37,7 +39,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileNav items={NAV_ITEMS} />
-        <header className="flex h-14 items-center justify-end gap-4 border-b border-[var(--border)] bg-[var(--card)] px-4">
+        <header className="flex h-14 items-center justify-end gap-3 border-b border-[var(--border)] bg-[var(--card)] px-4">
+          <NotificationBell />
           <UserMenu name={session.user.name} role={session.role} />
           <ThemeToggle />
         </header>

@@ -8,7 +8,10 @@ import { companiesRouter } from "./companies";
 import { contactsRouter } from "./contacts";
 import { jobsRouter } from "./jobs";
 import { membersRouter } from "./members";
+import { notesRouter } from "./notes";
+import { notificationsRouter } from "./notifications";
 import { tagsRouter } from "./tags";
+import { timelineRouter } from "./timeline";
 import { workspaceRouter } from "./workspace";
 
 export const appRouter = router({
@@ -28,7 +31,10 @@ export const appRouter = router({
   jobs: jobsRouter,
   applications: applicationsRouter,
   attachments: attachmentsRouter,
-  tags: tagsRouter
+  tags: tagsRouter,
+  notes: notesRouter,
+  notifications: notificationsRouter,
+  timeline: timelineRouter
 });
 
 export type AppRouter = typeof appRouter;
