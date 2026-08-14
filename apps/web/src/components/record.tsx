@@ -199,6 +199,23 @@ export const COMPANY_STATUS_OPTIONS = [
   { value: "dormant", label: "Dormant" }
 ];
 
+export const CANDIDATE_SOURCE_OPTIONS = [
+  { value: "manual", label: "Manual" },
+  { value: "parser", label: "Resume parser" },
+  { value: "import", label: "Import" },
+  { value: "referral", label: "Referral" },
+  { value: "api", label: "API" }
+];
+
+export function SourceBadge({ source }: { source: string }) {
+  const label = CANDIDATE_SOURCE_OPTIONS.find((o) => o.value === source)?.label ?? source;
+  return (
+    <span className="inline-flex rounded-full bg-[var(--muted)]/10 px-2 py-0.5 text-xs font-medium text-[var(--muted)]">
+      {label}
+    </span>
+  );
+}
+
 export function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     prospect: "bg-amber-500/10 text-amber-600",
