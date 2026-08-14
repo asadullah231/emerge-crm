@@ -21,3 +21,6 @@ Thumbs.db
 
 # Local MCP server config (contains workspace token)
 .mcp.json
+
+# Zoho migration snapshots + reports (real PII - never commit)
+.migration/

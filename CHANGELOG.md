@@ -3,6 +3,45 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.8.0 - Milestone 8: Zoho Migration & Import Engine (2026-08-14)
+
+Pulled ahead of Milestone 7 Resume Parsing on Asad's direction — the switch-
+over risk (1,296 candidates, 762 applications, 1,218 notes to move over) was
+judged bigger than the intake risk. Resume Parsing becomes v0.9.0.
+
+### Added
+
+- New `@emerge/migration` package: transformers, validators, importer,
+  verifier, rollback and CLI (`emerge-migrate`), all decoupled from the web app
+- New tables `external_refs` (idempotent Zoho -> Emerge id map),
+  `import_runs`, `import_records` with row-level security in their creation
+  migration
+- Read-only Zoho snapshot workflow to JSONL under `.migration/snapshot/`
+  (gitignored: contains real PII), and a proposed user-map generator
+  (`build-user-map` CLI) that collapses many Zoho user ids into one Emerge
+  identity per canonical email
+- Full field map, per-entity transformer, and value maps for all 30 Zoho
+  application statuses (both actual_value and display-value keys), plus job
+  status, employment type and candidate source; unknown values preserved as
+  `archived / imported_unknown` and reported
+- Bulk-insert path (200-row multi-value INSERT chunks + batched external_refs
+  and import_records) so 3,500-row imports fit in minutes rather than hours
+  over the VPS's ~340 ms RTT
+- CLI subcommands: `build-user-map`, `dry-run`, `import`, `rollback`,
+  `verify`; the dry-run writes a JSON report with per-entity would-create
+  counts, duplicate names, and unmapped statuses
+- Docs: [`docs/audit/zoho-data-migration-map.md`](docs/audit/zoho-data-migration-map.md)
+  (the API-verified plan) and [`docs/milestones/m08-zoho-migration.md`](docs/milestones/m08-zoho-migration.md)
+- Tests: transformers, mention extraction, HTML sanitizer, status maps,
+  user-map dedup - all on synthetic fixtures (repo is public; no real PII in
+  the repo)
+
+### Notes
+
+- Attachment/CV file migration and historical @mention notifications remain
+  gated follow-ups within this milestone; see the m08 spec for scope details
+- Zoho stays read-only throughout; the engine only writes to Emerge
+
 ## v0.7.0 - Milestone 6: Notes, @Mentions, Timeline & Notifications (2026-08-14)
 
 ### Added

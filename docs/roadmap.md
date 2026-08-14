@@ -19,6 +19,11 @@ start - the roadmap table is authoritative in between.
 > career/candidate portals and automation moved out of the critical path,
 > interviews slimmed to scheduling + outcomes, client sendouts made first-class
 > in Phase 2.
+>
+> Revised 14 Aug 2026: on Asad's direction, the Zoho migration engine was
+> pulled ahead of Resume Parsing and shipped as **v0.8.0**; Resume Parsing
+> becomes **v0.9.0**. The switch-over risk (1,296 candidates + 762
+> applications + 1,218 notes) was judged bigger than the intake risk.
 
 ## Versioning
 
@@ -46,8 +51,8 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 19.
 | M4  | Jobs (client-owned, AM-routed)                     | v0.5.0  | Done    | M2         | M          |
 | M5  | Applications: Pipeline, Statuses & Kanban          | v0.6.0  | Done    | M3, M4     | L          |
 | M6  | Notes, @Mentions, Timeline & Notifications         | v0.7.0  | Done    | M2-M5      | L          |
-| M7  | Resume Parsing & Bulk CV Intake                    | v0.8.0  | Planned | M3         | L          |
-| M8  | Zoho Migration & Import Engine                     | v0.9.0  | Planned | M2-M7      | L          |
+| M8  | Zoho Migration & Import Engine                     | v0.8.0  | Done    | M2-M6      | L          |
+| M7  | Resume Parsing & Bulk CV Intake                    | v0.9.0  | Planned | M3         | L          |
 | M9  | Global Search, Filters, Saved Views & Bulk Actions | v0.10.0 | Planned | M2-M5      | L          |
 | M10 | Client Submissions & Feedback                      | v0.11.0 | Planned | M5, M6     | M          |
 | M11 | Interviews & Tasks (lite)                          | v0.12.0 | Planned | M5, M6     | M          |
