@@ -717,3 +717,118 @@ export const auditLog = pgTable(
   },
   (t) => [index("audit_log_workspace_idx").on(t.workspaceId, t.createdAt)]
 );
+
+// ---------------------------------------------------------------------------
+// M8 - Zoho migration & import engine
+// ---------------------------------------------------------------------------
+
+/**
+ * Cross-system id map: one row per imported record. Upserting through this
+ * table is what makes migration idempotent and lets child records reconnect
+ * to their parents by external id instead of by name.
+ */
+export const externalRefs = pgTable(
+  "external_refs",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Source system, e.g. "zoho" | "csv". */
+    source: text("source").notNull().default("zoho"),
+    /** Emerge entity type: company | contact | candidate | job | application | note | user | attachment. */
+    entityType: text("entity_type").notNull(),
+    /** The id in the source system (Zoho record id). */
+    externalId: text("external_id").notNull(),
+    /** The Emerge row id the external record maps to. */
+    internalId: uuid("internal_id").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    uniqueIndex("external_refs_lookup_unique").on(
+      t.workspaceId,
+      t.source,
+      t.entityType,
+      t.externalId
+    ),
+    index("external_refs_internal_idx").on(t.workspaceId, t.entityType, t.internalId)
+  ]
+);
+
+export const importRunMode = pgEnum("import_run_mode", ["dry_run", "import", "delta"]);
+export type ImportRunMode = (typeof importRunMode.enumValues)[number];
+
+export const importRunStatus = pgEnum("import_run_status", [
+  "running",
+  "completed",
+  "failed",
+  "rolled_back"
+]);
+export type ImportRunStatus = (typeof importRunStatus.enumValues)[number];
+
+/** One row per migration run; powers resume, verification and rollback. */
+export const importRuns = pgTable(
+  "import_runs",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    source: text("source").notNull().default("zoho"),
+    mode: importRunMode("mode").notNull(),
+    /** Comma-separated entity list, or "all". */
+    scope: text("scope").notNull().default("all"),
+    status: importRunStatus("status").notNull().default("running"),
+    /** Per-entity counters (fetched/created/updated/linked/skipped/failed). */
+    stats: jsonb("stats").$type<Record<string, unknown>>(),
+    /** Where the raw source snapshot lives (informational). */
+    snapshotDir: text("snapshot_dir"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt()
+  },
+  (t) => [index("import_runs_workspace_idx").on(t.workspaceId, t.startedAt)]
+);
+
+export const importRecordAction = pgEnum("import_record_action", [
+  "created",
+  "updated",
+  "linked",
+  "skipped",
+  "failed"
+]);
+export type ImportRecordAction = (typeof importRecordAction.enumValues)[number];
+
+/**
+ * Per-record ledger for a run: the queryable log, the resume cursor and the
+ * rollback list in one. preImage stores the pre-update row for action=updated
+ * so rollback can restore it.
+ */
+export const importRecords = pgTable(
+  "import_records",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => importRuns.id, { onDelete: "cascade" }),
+    entityType: text("entity_type").notNull(),
+    externalId: text("external_id").notNull(),
+    action: importRecordAction("action").notNull(),
+    internalId: uuid("internal_id"),
+    error: text("error"),
+    /** sha256 of the transformed payload; unchanged records short-circuit. */
+    payloadHash: text("payload_hash"),
+    /** Pre-update image of the target row (action=updated only). */
+    preImage: jsonb("pre_image").$type<Record<string, unknown>>(),
+    createdAt: createdAt()
+  },
+  (t) => [
+    index("import_records_run_idx").on(t.runId, t.entityType),
+    index("import_records_external_idx").on(t.workspaceId, t.entityType, t.externalId)
+  ]
+);
