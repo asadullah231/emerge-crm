@@ -50,6 +50,20 @@
       "when": 1786676459891,
       "tag": "0006_rls_m3",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786680225032,
+      "tag": "0007_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786680225033,
+      "tag": "0008_rls_m4",
+      "breakpoints": true
     }
   ]
 }

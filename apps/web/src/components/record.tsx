@@ -207,6 +207,47 @@ export const CANDIDATE_SOURCE_OPTIONS = [
   { value: "api", label: "API" }
 ];
 
+export const JOB_STATUS_OPTIONS = [
+  { value: "open", label: "Open" },
+  { value: "on_hold", label: "On hold" },
+  { value: "filled", label: "Filled" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "inactive", label: "Inactive" }
+];
+
+export const JOB_EMPLOYMENT_OPTIONS = [
+  { value: "permanent", label: "Permanent" },
+  { value: "contract", label: "Contract" },
+  { value: "temporary", label: "Temporary" }
+];
+
+export const JOB_WORK_MODE_OPTIONS = [
+  { value: "onsite", label: "On-site" },
+  { value: "hybrid", label: "Hybrid" },
+  { value: "remote", label: "Remote" }
+];
+
+export function JobStatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    open: "bg-green-500/10 text-green-600",
+    on_hold: "bg-amber-500/10 text-amber-600",
+    filled: "bg-blue-500/10 text-blue-600",
+    cancelled: "bg-red-500/10 text-red-600",
+    inactive: "bg-zinc-500/10 text-[var(--muted)]"
+  };
+  const label = JOB_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+        styles[status] ?? "bg-zinc-500/10"
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 export function SourceBadge({ source }: { source: string }) {
   const label = CANDIDATE_SOURCE_OPTIONS.find((o) => o.value === source)?.label ?? source;
   return (

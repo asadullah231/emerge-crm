@@ -4,7 +4,7 @@ import { z } from "zod";
 import { taggings, tags, type Transaction } from "@emerge/db";
 import { router, workspaceProcedure } from "../trpc";
 
-export const TAGGABLE = ["company", "contact", "candidate"] as const;
+export const TAGGABLE = ["company", "contact", "candidate", "job"] as const;
 export type TaggableType = (typeof TAGGABLE)[number];
 
 /** Tags attached to one record (used by record pages). */

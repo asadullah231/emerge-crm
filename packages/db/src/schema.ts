@@ -419,6 +419,83 @@ export const attachments = pgTable(
   (t) => [index("attachments_entity_idx").on(t.workspaceId, t.entityType, t.entityId, t.deletedAt)]
 );
 
+// ---------------------------------------------------------------------------
+// M4: jobs (Zoho "Job Openings", 101 records)
+// A job is what the agency works to fill. It always belongs to a client company
+// and is routed to an account-manager owner. The candidate pipeline hangs off
+// Applications (M5), not here; this is the job record and its lifecycle.
+// ---------------------------------------------------------------------------
+
+export const jobStatus = pgEnum("job_status", [
+  "open",
+  "on_hold",
+  "filled",
+  "cancelled",
+  "inactive"
+]);
+export type JobStatus = (typeof jobStatus.enumValues)[number];
+
+export const jobEmploymentType = pgEnum("job_employment_type", [
+  "permanent",
+  "contract",
+  "temporary"
+]);
+export type JobEmploymentType = (typeof jobEmploymentType.enumValues)[number];
+
+export const jobWorkMode = pgEnum("job_work_mode", ["onsite", "hybrid", "remote"]);
+export type JobWorkMode = (typeof jobWorkMode.enumValues)[number];
+
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Human id e.g. JOB-0001, unique per workspace, from `counters`. */
+    humanId: text("human_id").notNull(),
+    title: text("title").notNull(),
+    /** The client this role is for. Required (a job cannot exist without a client). */
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    /** Optional hiring contact at the client; must belong to `companyId`. */
+    hiringContactId: uuid("hiring_contact_id").references(() => contacts.id, {
+      onDelete: "set null"
+    }),
+    /** The account manager who owns this job. */
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    status: jobStatus("status").notNull().default("open"),
+    employmentType: jobEmploymentType("employment_type").notNull().default("permanent"),
+    workMode: jobWorkMode("work_mode").notNull().default("onsite"),
+    location: text("location"),
+    /** Long-form job description; plain long text for now (M4 scope). */
+    description: text("description"),
+    /** Number of openings for this role. */
+    positions: integer("positions").notNull().default(1),
+    /** Free-text salary preserved verbatim, plus optional structured range. */
+    salaryText: text("salary_text"),
+    salaryMin: integer("salary_min"),
+    salaryMax: integer("salary_max"),
+    salaryCurrency: text("salary_currency"),
+    /** Salary period the range refers to, e.g. "year", "day", "hour". */
+    salaryPeriod: text("salary_period"),
+    openedAt: timestamp("opened_at", { withTimezone: true }).notNull().defaultNow(),
+    targetCloseAt: timestamp("target_close_at", { withTimezone: true }),
+    customFields: jsonb("custom_fields").$type<Record<string, unknown>>(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("jobs_workspace_idx").on(t.workspaceId, t.deletedAt),
+    index("jobs_workspace_status_idx").on(t.workspaceId, t.status),
+    index("jobs_workspace_company_idx").on(t.workspaceId, t.companyId),
+    index("jobs_workspace_title_idx").on(t.workspaceId, t.title),
+    uniqueIndex("jobs_workspace_human_id_unique").on(t.workspaceId, t.humanId)
+  ]
+);
+
 /** Minimal audit trail: auth events + member/role changes (M1). */
 export const auditLog = pgTable(
   "audit_log",
