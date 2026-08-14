@@ -1,7 +1,7 @@
 # Milestone 5 - Applications: Pipeline, Statuses & Kanban
 
 - Version on completion: **v0.6.0**
-- Status: **In progress**
+- Status: **Completed (v0.6.0, 14 Aug 2026)**
 - Complexity: **L**
 - Depends on: M3 (candidates), M4 (jobs)
 
