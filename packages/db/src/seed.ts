@@ -18,6 +18,8 @@ import {
   counters,
   jobs,
   memberships,
+  noteTemplates,
+  notes,
   users,
   workspaces
 } from "./index";
@@ -492,10 +494,40 @@ async function main() {
     .insert(counters)
     .values({ workspaceId: ws.id, entityType: "application", value: appCount });
 
+  // Seed a few notes across candidates so the Notes + Timeline tabs are populated.
+  await db.insert(noteTemplates).values([
+    { workspaceId: ws.id, name: "Screening call", body: "Screening call summary\n- Availability:\n- Salary:\n- Next step:", sortOrder: 1 },
+    { workspaceId: ws.id, name: "Client submission", body: "Submitted to client\n- Why this candidate fits:", sortOrder: 2 }
+  ]);
+  const NOTE_SNIPPETS = [
+    "Left a voicemail, will retry tomorrow.",
+    "Strong communicator, open to relocation.",
+    "Confirmed notice period is 4 weeks.",
+    "Salary expectation aligns with the role.",
+    "Sent CV to the client for review.",
+    "Prefers hybrid, 2 days on-site.",
+    "Great cultural fit, moving to interview.",
+    "Reference check completed, all positive."
+  ];
+  let noteCount = 0;
+  const NOTE_COUNT = Math.min(600, candidateIds.length);
+  for (let offset = 0; offset < NOTE_COUNT; offset += BATCH) {
+    const values = Array.from({ length: Math.min(BATCH, NOTE_COUNT - offset) }, () => ({
+      workspaceId: ws.id,
+      entityType: "candidate",
+      entityId: pick(candidateIds),
+      authorId: owner.id,
+      body: pick(NOTE_SNIPPETS)
+    }));
+    await db.insert(notes).values(values);
+    noteCount += values.length;
+  }
+
   console.log(
     `Seeded workspace "${ws.name}" (${ws.id}) with ${companyIds.length} companies, ` +
-      `${contactCount} contacts, ${candidateCount} candidates, ${jobCount} jobs and ` +
-      `${appCount} applications in ${((Date.now() - started) / 1000).toFixed(1)}s`
+      `${contactCount} contacts, ${candidateCount} candidates, ${jobCount} jobs, ` +
+      `${appCount} applications and ${noteCount} notes in ` +
+      `${((Date.now() - started) / 1000).toFixed(1)}s`
   );
   await db.close();
 }

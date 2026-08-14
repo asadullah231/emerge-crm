@@ -3,8 +3,8 @@
 A modern, open-source Recruitment CRM / Applicant Tracking System for staffing agencies.
 Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agency edition).
 
-> Status: **v0.6.0 released** (Milestone 5: Applications, Pipeline & Kanban complete).
-> Next up: Milestone 6 - Notes, @Mentions, Timeline & Notifications.
+> Status: **v0.7.0 released** (Milestone 6: Notes, @Mentions, Timeline & Notifications complete).
+> Next up: Milestone 7 - Resume Parsing & Bulk CV Intake.
 
 ## Why this exists
 
@@ -27,14 +27,14 @@ Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agenc
 
 ## Current milestone
 
-**[Milestone 6 - Notes, @Mentions, Timeline & Notifications](docs/milestones/m06-notes-timeline.md)**
-(v0.7.0) is next.
+**[Milestone 7 - Resume Parsing & Bulk CV Intake](docs/milestones/m07-parsing.md)** (v0.8.0) is next.
 Completed: [M0 - Project Foundation](docs/milestones/m00-foundation.md) (v0.1.0),
 [M1 - Auth, Workspaces, Users & Roles](docs/milestones/m01-auth-users.md) (v0.2.0),
 [M2 - Companies & Contacts](docs/milestones/m02-companies-contacts.md) (v0.3.0),
 [M3 - Candidates, CV Upload & Dedupe](docs/milestones/m03-candidates.md) (v0.4.0),
 [M4 - Jobs](docs/milestones/m04-jobs.md) (v0.5.0),
-[M5 - Applications: Pipeline, Statuses & Kanban](docs/milestones/m05-applications-pipeline.md) (v0.6.0).
+[M5 - Applications: Pipeline, Statuses & Kanban](docs/milestones/m05-applications-pipeline.md) (v0.6.0),
+[M6 - Notes, @Mentions, Timeline & Notifications](docs/milestones/m06-notes-timeline.md) (v0.7.0).
 
 ## Quick start (development)
 

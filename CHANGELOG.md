@@ -3,6 +3,30 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.7.0 - Milestone 6: Notes, @Mentions, Timeline & Notifications (2026-08-14)
+
+### Added
+
+- Notes on every record (candidate, job, company, contact, application):
+  a composer with inline @-mention autocomplete of workspace members, a note
+  list with author and relative time, recent/oldest sort, and edit/delete of
+  your own notes (admins any)
+- @Mentions fan out to an in-app notification inbox: picking a member inserts
+  "@Name" and notifies them on save (never yourself); removing the text before
+  saving un-notifies them
+- Workspace note templates seeded on first use (Screening call, Client
+  submission, Interview feedback) with an "Insert template" composer picker
+- Per-record Timeline: a merged, newest-first activity feed built from the
+  existing audit log, the application status history, and notes - no earlier
+  milestone code changed
+- Notification bell in the header with a live unread count, a dropdown list,
+  click-to-open the record, and mark-one / mark-all read
+- Org-wide Activity feed at `/activity`, each row linking to its record
+- New tables (`notes`, `note_mentions`, `notifications`, `note_templates`)
+  with row-level security in their creation migration
+- Tests: mention-in-body filtering and templates (unit); notes RLS isolation,
+  mention-to-notification fan-out and notification read state (DB, CI)
+
 ## v0.6.0 - Milestone 5: Applications, Pipeline & Kanban (2026-08-14)
 
 ### Added
