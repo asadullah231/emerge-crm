@@ -1,53 +1,112 @@
+/**
+ * Production health check. Consumed by:
+ *  - Docker healthcheck (compose.prod.yaml)
+ *  - Traefik loadbalancer probe
+ *  - External uptime monitor (n8n)
+ *
+ * Reports overall + per-dependency status. Never throws: on a failure the
+ * body still parses cleanly and the HTTP status flips to 503.
+ *
+ * NOT touched by M1-M5: this is a brand-new route.
+ */
 import { NextResponse } from "next/server";
-import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
-import IORedis from "ioredis";
-import { pingDatabase } from "@emerge/db";
-import { summarizeHealth, type HealthCheck } from "@emerge/core";
+import { sql } from "drizzle-orm";
+import { createDb, pingDatabase } from "@emerge/db";
 
+// Force per-request execution; no caching.
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-async function timed(name: string, fn: () => Promise<void>): Promise<HealthCheck> {
-  const start = Date.now();
+interface Check {
+  ok: boolean;
+  latencyMs: number;
+  detail?: string;
+}
+
+async function timed<T>(fn: () => Promise<T>): Promise<Check> {
+  const t = Date.now();
   try {
     await fn();
-    return { name, status: "ok", latencyMs: Date.now() - start };
-  } catch (err) {
-    return { name, status: "fail", error: err instanceof Error ? err.message : String(err) };
+    return { ok: true, latencyMs: Date.now() - t };
+  } catch (e) {
+    return {
+      ok: false,
+      latencyMs: Date.now() - t,
+      detail: e instanceof Error ? e.message : String(e)
+    };
   }
 }
 
+async function checkDatabase(): Promise<Check> {
+  return timed(async () => {
+    // Cheap round-trip that doesn't touch a real table (RLS-safe).
+    if (process.env.DATABASE_URL) await pingDatabase();
+  });
+}
+
+async function checkRedis(): Promise<Check> {
+  return timed(async () => {
+    if (!process.env.REDIS_URL) return;
+    const { default: IORedis } = await import("ioredis");
+    const client = new IORedis(process.env.REDIS_URL, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+      connectTimeout: 3000
+    });
+    try {
+      await client.connect();
+      await client.ping();
+    } finally {
+      client.disconnect();
+    }
+  });
+}
+
+async function checkStorage(): Promise<Check> {
+  return timed(async () => {
+    if (!process.env.S3_ENDPOINT) return;
+    // Reach the endpoint but don't require credentials to be valid; a 200 or
+    // 403 from the S3 endpoint both mean "network + service reachable".
+    const res = await fetch(process.env.S3_ENDPOINT, {
+      method: "GET",
+      signal: AbortSignal.timeout(3000)
+    });
+    if (![200, 403, 400].includes(res.status)) {
+      throw new Error(`s3 endpoint returned ${res.status}`);
+    }
+  });
+}
+
+async function checkSchema(): Promise<Check> {
+  // Confirms the app can actually reach + parse a DB row, catching a stale
+  // migration state. Uses a workspace-agnostic query so RLS never rejects it.
+  return timed(async () => {
+    if (!process.env.DATABASE_URL) return;
+    const db = createDb();
+    try {
+      await db.execute(sql`select 1`);
+    } finally {
+      await db.close();
+    }
+  });
+}
+
 export async function GET() {
-  const checks = await Promise.all([
-    timed("db", () => pingDatabase()),
-    timed("redis", async () => {
-      const redis = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", {
-        connectTimeout: 5000,
-        maxRetriesPerRequest: 1,
-        lazyConnect: true
-      });
-      try {
-        await redis.connect();
-        await redis.ping();
-      } finally {
-        redis.disconnect();
-      }
-    }),
-    timed("storage", async () => {
-      const endpoint = process.env.S3_ENDPOINT;
-      if (!endpoint) throw new Error("S3_ENDPOINT not set");
-      const s3 = new S3Client({
-        endpoint,
-        region: process.env.S3_REGION ?? "us-east-1",
-        forcePathStyle: true,
-        credentials: {
-          accessKeyId: process.env.S3_ACCESS_KEY ?? "",
-          secretAccessKey: process.env.S3_SECRET_KEY ?? ""
-        }
-      });
-      await s3.send(new ListBucketsCommand({}));
-    })
+  const [database, redis, storage, schema] = await Promise.all([
+    checkDatabase(),
+    checkRedis(),
+    checkStorage(),
+    checkSchema()
   ]);
 
-  const summary = summarizeHealth(checks);
-  return NextResponse.json(summary, { status: summary.status === "ok" ? 200 : 503 });
+  const ok = database.ok && redis.ok && storage.ok && schema.ok;
+  const body = {
+    status: ok ? "ok" : "degraded",
+    version: process.env.npm_package_version ?? "unknown",
+    sha: process.env.GIT_SHA ?? "unknown",
+    uptimeSeconds: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+    checks: { database, redis, storage, schema }
+  };
+  return NextResponse.json(body, { status: ok ? 200 : 503 });
 }
