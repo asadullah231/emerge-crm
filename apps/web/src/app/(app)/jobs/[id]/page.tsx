@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { ApplicationKanban } from "@/components/application-kanban";
+import { AssociateModal } from "@/components/associate-modal";
 import { Button, FormError } from "@/components/form";
+import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { contactName } from "@/components/new-contact-modal";
 import {
   FieldGrid,
@@ -22,6 +26,7 @@ export default function JobRecordPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const utils = trpc.useUtils();
+  const [associating, setAssociating] = useState(false);
 
   const me = trpc.auth.me.useQuery();
   const job = trpc.jobs.get.useQuery({ id: params.id });
@@ -330,12 +335,35 @@ export default function JobRecordPage() {
         </div>
       </RecordSection>
 
-      <RecordSection title="Pipeline">
-        <p className="text-sm text-[var(--muted)]">
-          {record.pipeline.total === 0
-            ? "No candidates in the pipeline yet. Applications arrive in Milestone 5."
-            : `${record.pipeline.total} candidates in the pipeline.`}
-        </p>
+      <RecordSection
+        title={`Pipeline (${record.pipeline.total})`}
+        actions={
+          canEdit ? (
+            <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
+              Add candidate
+            </Button>
+          ) : null
+        }
+      >
+        {record.pipeline.total === 0 ? (
+          <p className="text-sm text-[var(--muted)]">
+            No candidates yet. Add one to start this job&apos;s pipeline.
+          </p>
+        ) : (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {record.pipeline.byStage
+              .filter((s) => s.count > 0)
+              .map((s) => (
+                <span
+                  key={s.stage}
+                  className="rounded-full bg-[var(--background)] px-2.5 py-0.5 text-xs text-[var(--muted)]"
+                >
+                  {STAGE_LABELS[s.stage as ApplicationStageKey]}: {s.count}
+                </span>
+              ))}
+          </div>
+        )}
+        <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
       </RecordSection>
 
       {record.tags.length > 0 ? (
@@ -357,6 +385,16 @@ export default function JobRecordPage() {
         Opened {new Date(record.openedAt).toLocaleDateString()} - Last updated{" "}
         {new Date(record.updatedAt).toLocaleString()}
       </p>
+
+      <AssociateModal
+        open={associating}
+        onClose={() => setAssociating(false)}
+        jobId={record.id}
+        onCreated={() => {
+          utils.applications.board.invalidate({ jobId: record.id });
+          utils.jobs.get.invalidate({ id: record.id });
+        }}
+      />
     </RecordShell>
   );
 }

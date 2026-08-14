@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, count, eq, gte, isNull, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import {
+  applications,
   companies,
   contacts,
   jobEmploymentType,
@@ -10,6 +11,7 @@ import {
   jobs,
   users
 } from "@emerge/db";
+import { APPLICATION_STAGES } from "@/lib/applications";
 import { writeAudit } from "../audit";
 import { humanId, nextCounter } from "../counters";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
@@ -176,9 +178,21 @@ export const jobsRouter = router({
         entityTags(ctx.tx, "job", job.id)
       ]);
 
-      // Pipeline lives on Applications (M5). Until then the summary reads zero;
-      // M5 fills byStatus from the application status machine.
-      const pipeline = { total: 0, byStatus: [] as { status: string; count: number }[] };
+      // Real pipeline summary: live application counts by stage for this job.
+      const stageRows = await ctx.tx
+        .select({ stage: applications.stage, count: count() })
+        .from(applications)
+        .where(and(eq(applications.jobId, job.id), isNull(applications.deletedAt)))
+        .groupBy(applications.stage);
+      const counts = new Map(stageRows.map((r) => [r.stage, r.count]));
+      const byStage = APPLICATION_STAGES.map((stage) => ({
+        stage,
+        count: counts.get(stage) ?? 0
+      }));
+      const pipeline = {
+        total: stageRows.reduce((sum, r) => sum + r.count, 0),
+        byStage
+      };
       return { ...job, hiringContact, tags, pipeline };
     }),
 
