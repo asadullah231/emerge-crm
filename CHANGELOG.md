@@ -3,6 +3,35 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.3.0 - Milestone 2: Companies & Contacts (2026-08-14)
+
+### Added
+
+- Companies (clients): CRUD with website + normalized domain, industry, size,
+  location, phone, description, status (prospect/active/dormant) and an
+  account manager owner; field shape mirrors our Zoho Clients for 1:1 import
+- Contacts: CRUD with primary/secondary email, work/mobile phone, job title,
+  LinkedIn, per-company primary-contact flag (auto-demotes the previous one)
+  and support for independent contacts with no company
+- Tags schema (`tags` + polymorphic `taggings`, unique per workspace); tag
+  management UI deliberately deferred
+- Shared list engine: pagination (50 per page, capped at 200), whitelisted
+  sorting, escaped case-insensitive search, trash filtering
+- Reusable DataTable with server-driven sort/pagination and row navigation;
+  list pages with debounced search and role-gated actions
+- Record pages with inline field editing, owner selection from workspace
+  members, linked-contacts panel and audit-logged mutations
+- Duplicate detection on create (company name/domain, contact email):
+  warns with links to the existing records, never blocks
+- Soft delete with a 30-day trash view and one-click restore
+- Row-level security policies on all four new tables in their creation migration
+- Perf seed script (`pnpm --filter @emerge/db seed`): 1,000 companies +
+  10,000 contacts in a throwaway workspace
+- Tests: list-input validation and domain normalization (unit), RLS isolation,
+  trash retention window and tag uniqueness for the new tables (DB, CI)
+- Product docs: full Zoho Recruit audit, entity model, feature parity matrix,
+  migration plan, and the revised M3-M19 roadmap
+
 ## v0.2.0 - Milestone 1: Auth, Workspaces, Users & Roles (2026-08-13)
 
 ### Added

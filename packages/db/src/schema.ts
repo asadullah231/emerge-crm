@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   jsonb,
   pgEnum,
@@ -147,6 +148,113 @@ export const passwordResetTokens = pgTable(
     createdAt: createdAt()
   },
   (t) => [uniqueIndex("password_reset_tokens_token_hash_unique").on(t.tokenHash)]
+);
+
+// ---------------------------------------------------------------------------
+// M2: companies (clients) and contacts
+// Field shape intentionally mirrors Zoho Recruit's Clients/Contacts modules so
+// existing agency data can be imported 1:1 (owner = Zoho "Account Manager").
+// ---------------------------------------------------------------------------
+
+export const companyStatus = pgEnum("company_status", ["prospect", "active", "dormant"]);
+export type CompanyStatus = (typeof companyStatus.enumValues)[number];
+
+export const companies = pgTable(
+  "companies",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    website: text("website"),
+    /** Lowercased host of `website`, kept in sync by the app; drives duplicate checks. */
+    domain: text("domain"),
+    industry: text("industry"),
+    size: text("size"),
+    location: text("location"),
+    phone: text("phone"),
+    description: text("description"),
+    status: companyStatus("status").notNull().default("prospect"),
+    /** The account manager for this client. */
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    customFields: jsonb("custom_fields").$type<Record<string, unknown>>(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("companies_workspace_idx").on(t.workspaceId, t.deletedAt),
+    index("companies_workspace_name_idx").on(t.workspaceId, t.name),
+    index("companies_workspace_domain_idx").on(t.workspaceId, t.domain)
+  ]
+);
+
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Null = independent contact (explicitly allowed by M2 acceptance criteria). */
+    companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+    firstName: text("first_name"),
+    lastName: text("last_name").notNull(),
+    title: text("title"),
+    email: text("email"),
+    secondaryEmail: text("secondary_email"),
+    workPhone: text("work_phone"),
+    mobile: text("mobile"),
+    linkedinUrl: text("linkedin_url"),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    customFields: jsonb("custom_fields").$type<Record<string, unknown>>(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("contacts_workspace_idx").on(t.workspaceId, t.deletedAt),
+    index("contacts_company_idx").on(t.companyId),
+    index("contacts_workspace_email_idx").on(t.workspaceId, t.email)
+  ]
+);
+
+/** Workspace-level tag dictionary, shared by every taggable object. */
+export const tags = pgTable(
+  "tags",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color"),
+    createdAt: createdAt()
+  },
+  (t) => [uniqueIndex("tags_workspace_name_unique").on(t.workspaceId, t.name)]
+);
+
+/** Polymorphic tag assignments: entityType is "company" or "contact" (more in later milestones). */
+export const taggings = pgTable(
+  "taggings",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    createdAt: createdAt()
+  },
+  (t) => [
+    uniqueIndex("taggings_tag_entity_unique").on(t.tagId, t.entityType, t.entityId),
+    index("taggings_entity_idx").on(t.workspaceId, t.entityType, t.entityId)
+  ]
 );
 
 /** Minimal audit trail: auth events + member/role changes (M1). */

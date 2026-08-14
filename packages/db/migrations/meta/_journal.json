@@ -22,6 +22,20 @@
       "when": 1786630548085,
       "tag": "0002_rls_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786640699562,
+      "tag": "0003_companies_contacts",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786640699563,
+      "tag": "0004_rls_m2",
+      "breakpoints": true
     }
   ]
 }
