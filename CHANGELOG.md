@@ -3,6 +3,31 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.5.0 - Milestone 4: Jobs (2026-08-14)
+
+### Added
+
+- Jobs: CRUD for a role opened against a client company (company required)
+  and routed to an account-manager owner, with an optional hiring contact
+  that must belong to the chosen client
+- Slim status lifecycle (open, on hold, filled, cancelled, inactive) with a
+  quick status control on the record and an audit entry per change
+- Employment type (permanent/contract/temporary), work mode
+  (onsite/hybrid/remote), location, number of positions, opened and target
+  close dates, long-form job description, free-text plus structured salary
+  (min/max/currency/period)
+- Per-workspace human ids (JOB-0001) via the shared counter
+- Job list (search, sort, trash, status + client + owner columns) and a
+  record page with inline editing, client and hiring-contact links, and a
+  pipeline summary placeholder that Applications (M5) will fill
+- New-job modal with a required client picker and a hiring-contact picker
+  scoped to the selected client
+- New `jobs` table (status/employment-type/work-mode enums) with row-level
+  security in its creation migration
+- Perf seed extended with 500 jobs
+- Tests: job input validation and JOB human id (unit); RLS isolation, job
+  counter, company foreign key, hiring-contact scoping and status change (DB)
+
 ## v0.4.0 - Milestone 3: Candidates, CV Upload & Dedupe (2026-08-14)
 
 ### Added
