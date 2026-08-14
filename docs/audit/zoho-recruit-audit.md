@@ -7,21 +7,21 @@ and what our team actually uses; the roadmap derives from it.
 
 ## 1. Org snapshot
 
-| Object | Count | Notes |
-| --- | --- | --- |
-| Clients | 85 | 100% have an Account Manager; almost no other fields filled |
-| Contacts | 12 | Rarely created; 13% of jobs have a hiring contact linked |
-| Candidates | 1,287 | 72% imported via resume parser |
-| Job Openings | 101 | 95 In-progress; every job belongs to a Client |
-| Applications | 756 | The live pipeline; association candidate-to-job |
-| Interviews | 0 | Module never used |
-| Submissions | 0 | Module never used (status flip is used instead) |
-| Reviews | 0 | Module never used |
-| To-Dos / Tasks / Calls / Events | 0 | Module never used |
-| Notes | 200+ | Heavily used; the team's core collaboration artifact |
-| Tags | 0 | Feature unused across all modules |
-| Custom fields | 0 | Stock schema everywhere |
-| Users | 19 active (27 records) | All have the Administrator profile |
+| Object                          | Count                  | Notes                                                       |
+| ------------------------------- | ---------------------- | ----------------------------------------------------------- |
+| Clients                         | 85                     | 100% have an Account Manager; almost no other fields filled |
+| Contacts                        | 12                     | Rarely created; 13% of jobs have a hiring contact linked    |
+| Candidates                      | 1,287                  | 72% imported via resume parser                              |
+| Job Openings                    | 101                    | 95 In-progress; every job belongs to a Client               |
+| Applications                    | 756                    | The live pipeline; association candidate-to-job             |
+| Interviews                      | 0                      | Module never used                                           |
+| Submissions                     | 0                      | Module never used (status flip is used instead)             |
+| Reviews                         | 0                      | Module never used                                           |
+| To-Dos / Tasks / Calls / Events | 0                      | Module never used                                           |
+| Notes                           | 200+                   | Heavily used; the team's core collaboration artifact        |
+| Tags                            | 0                      | Feature unused across all modules                           |
+| Custom fields                   | 0                      | Stock schema everywhere                                     |
+| Users                           | 19 active (27 records) | All have the Administrator profile                          |
 
 Team shape: ~13 sourcers (mostly Philippines pod) who own candidates, applications
 and notes, plus ~6 account managers (UK) who own clients and jobs. One Cairo user.
@@ -55,34 +55,34 @@ rules firing, no email sends, no exports, no offer generation in the log window.
 
 ## 3. Feature areas in the product vs used by us
 
-| Zoho feature area | Exists in Zoho | Used by us | Evidence |
-| --- | --- | --- | --- |
-| Candidates (CRUD, dedupe by unique email) | Yes | Heavy | 1,287 records |
-| Resume parsing (parser import, tabular edu/exp) | Yes | Heavy | Source = "Imported by parser" on 72% |
-| Jobs tied to Clients (mandatory lookup) | Yes | Heavy | 101/101 |
-| Applications with 30-status machine + 7-stage kanban | Yes | Heavy | 756 records; statuses incl. client loop |
-| Notes + @mentions | Yes | Heavy | 200+; 133 titled "Call"; AM mentions |
-| Record timeline / audit history | Yes | Passive but valuable | Timelines populated by usage |
-| Clients & Contacts modules | Yes | Moderate | 85 clients, contacts sparse |
-| Account Manager ownership | Yes | Heavy | The routing field |
-| Interviews module (scheduling, video, verdicts) | Yes | Never | 0 records |
-| Submissions module (formal sendouts to contacts) | Yes | Never | 0 records; status flip instead |
-| Reviews / Assessments (scorecards, questionnaires) | Yes | Never | 0 records |
-| Tasks / Events / Calls (To-Dos) | Yes | Never | 0 records |
-| Tags | Yes | Never | 0 tags in every module |
-| Custom fields | Yes | Never | 0 custom fields |
-| Custom views / advanced search | Yes | Assumed light | Not inspectable via API; list views standard |
-| Career site / job publishing | Yes | Never | Publish=false on all 101 jobs |
-| Candidate portal | Yes | Never | No portal users |
-| Client portal (roles exist) | Yes | Configured, unused | Client Admin/Interviewer roles, 0 users |
-| Campaigns | Yes | Never | Stock config, no data signals |
-| Offers (generate, send, approval flow) | Yes | Never | Absent from activity log |
-| Email sending / templates from Zoho | Yes | Never observed | No mail events in log |
-| Workflow rules / Blueprint / automation | Yes | Never observed | All events "normal user" |
-| Reports & dashboards | Yes | Unknown (not API-inspectable) | - |
-| Job revenue forecasting (per-position revenue) | Yes | Never | Fields empty |
-| Roles/profiles/permissions | Yes | Effectively unused | Everyone is Administrator |
-| GDPR/consent, blocklist, locking | Yes | Not used yet | Fields exist, all false |
+| Zoho feature area                                    | Exists in Zoho | Used by us                    | Evidence                                     |
+| ---------------------------------------------------- | -------------- | ----------------------------- | -------------------------------------------- |
+| Candidates (CRUD, dedupe by unique email)            | Yes            | Heavy                         | 1,287 records                                |
+| Resume parsing (parser import, tabular edu/exp)      | Yes            | Heavy                         | Source = "Imported by parser" on 72%         |
+| Jobs tied to Clients (mandatory lookup)              | Yes            | Heavy                         | 101/101                                      |
+| Applications with 30-status machine + 7-stage kanban | Yes            | Heavy                         | 756 records; statuses incl. client loop      |
+| Notes + @mentions                                    | Yes            | Heavy                         | 200+; 133 titled "Call"; AM mentions         |
+| Record timeline / audit history                      | Yes            | Passive but valuable          | Timelines populated by usage                 |
+| Clients & Contacts modules                           | Yes            | Moderate                      | 85 clients, contacts sparse                  |
+| Account Manager ownership                            | Yes            | Heavy                         | The routing field                            |
+| Interviews module (scheduling, video, verdicts)      | Yes            | Never                         | 0 records                                    |
+| Submissions module (formal sendouts to contacts)     | Yes            | Never                         | 0 records; status flip instead               |
+| Reviews / Assessments (scorecards, questionnaires)   | Yes            | Never                         | 0 records                                    |
+| Tasks / Events / Calls (To-Dos)                      | Yes            | Never                         | 0 records                                    |
+| Tags                                                 | Yes            | Never                         | 0 tags in every module                       |
+| Custom fields                                        | Yes            | Never                         | 0 custom fields                              |
+| Custom views / advanced search                       | Yes            | Assumed light                 | Not inspectable via API; list views standard |
+| Career site / job publishing                         | Yes            | Never                         | Publish=false on all 101 jobs                |
+| Candidate portal                                     | Yes            | Never                         | No portal users                              |
+| Client portal (roles exist)                          | Yes            | Configured, unused            | Client Admin/Interviewer roles, 0 users      |
+| Campaigns                                            | Yes            | Never                         | Stock config, no data signals                |
+| Offers (generate, send, approval flow)               | Yes            | Never                         | Absent from activity log                     |
+| Email sending / templates from Zoho                  | Yes            | Never observed                | No mail events in log                        |
+| Workflow rules / Blueprint / automation              | Yes            | Never observed                | All events "normal user"                     |
+| Reports & dashboards                                 | Yes            | Unknown (not API-inspectable) | -                                            |
+| Job revenue forecasting (per-position revenue)       | Yes            | Never                         | Fields empty                                 |
+| Roles/profiles/permissions                           | Yes            | Effectively unused            | Everyone is Administrator                    |
+| GDPR/consent, blocklist, locking                     | Yes            | Not used yet                  | Fields exist, all false                      |
 
 ## 4. Field-level reference (for schema design)
 
