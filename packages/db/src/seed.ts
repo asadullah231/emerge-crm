@@ -496,8 +496,18 @@ async function main() {
 
   // Seed a few notes across candidates so the Notes + Timeline tabs are populated.
   await db.insert(noteTemplates).values([
-    { workspaceId: ws.id, name: "Screening call", body: "Screening call summary\n- Availability:\n- Salary:\n- Next step:", sortOrder: 1 },
-    { workspaceId: ws.id, name: "Client submission", body: "Submitted to client\n- Why this candidate fits:", sortOrder: 2 }
+    {
+      workspaceId: ws.id,
+      name: "Screening call",
+      body: "Screening call summary\n- Availability:\n- Salary:\n- Next step:",
+      sortOrder: 1
+    },
+    {
+      workspaceId: ws.id,
+      name: "Client submission",
+      body: "Submitted to client\n- Why this candidate fits:",
+      sortOrder: 2
+    }
   ]);
   const NOTE_SNIPPETS = [
     "Left a voicemail, will retry tomorrow.",
