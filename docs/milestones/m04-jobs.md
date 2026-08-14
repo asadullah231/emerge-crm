@@ -1,7 +1,7 @@
 # Milestone 4 - Jobs (client-owned, AM-routed)
 
 - Version on completion: **v0.5.0**
-- Status: **In progress**
+- Status: **Completed (v0.5.0, 14 Aug 2026)**
 - Complexity: **M**
 - Depends on: M1 (auth/RLS), M2 (companies + list engine + record primitives)
 
