@@ -34,7 +34,8 @@ export function buildListClauses(
     defaultSort: string;
   }
 ): { orderBy: SQL; searchWhere: SQL | undefined; limit: number; offset: number } {
-  const sortCol = opts.sortable[input.sortBy ?? opts.defaultSort] ?? opts.sortable[opts.defaultSort];
+  const sortCol =
+    opts.sortable[input.sortBy ?? opts.defaultSort] ?? opts.sortable[opts.defaultSort];
   if (!sortCol) throw new Error(`Unknown default sort column: ${opts.defaultSort}`);
   const orderBy = input.sortDir === "desc" ? desc(sortCol) : asc(sortCol);
   const searchWhere =

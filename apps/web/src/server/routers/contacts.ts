@@ -11,7 +11,14 @@ const contactInput = z.object({
   firstName: z.string().trim().max(125).nullable().optional(),
   lastName: z.string().trim().min(1, "Last name is required").max(125),
   title: z.string().trim().max(120).nullable().optional(),
-  email: z.string().trim().email().max(255).nullable().optional().or(z.literal("").transform(() => null)),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(255)
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
   secondaryEmail: z
     .string()
     .trim()
@@ -55,7 +62,11 @@ async function demoteOtherPrimaries(tx: Transaction, companyId: string, keepCont
     .update(contacts)
     .set({ isPrimary: false })
     .where(
-      and(eq(contacts.companyId, companyId), eq(contacts.isPrimary, true), ne(contacts.id, keepContactId))
+      and(
+        eq(contacts.companyId, companyId),
+        eq(contacts.isPrimary, true),
+        ne(contacts.id, keepContactId)
+      )
     );
 }
 
@@ -93,17 +104,19 @@ export const contactsRouter = router({
     return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
   }),
 
-  get: workspaceProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    const [contact] = await ctx.tx
-      .select(baseCols)
-      .from(contacts)
-      .leftJoin(companies, eq(companies.id, contacts.companyId))
-      .leftJoin(users, eq(users.id, contacts.ownerId))
-      .where(eq(contacts.id, input.id));
-    if (!contact) throw new TRPCError({ code: "NOT_FOUND", message: "Contact not found" });
-    const tags = await entityTags(ctx.tx, "contact", contact.id);
-    return { ...contact, tags };
-  }),
+  get: workspaceProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const [contact] = await ctx.tx
+        .select(baseCols)
+        .from(contacts)
+        .leftJoin(companies, eq(companies.id, contacts.companyId))
+        .leftJoin(users, eq(users.id, contacts.ownerId))
+        .where(eq(contacts.id, input.id));
+      if (!contact) throw new TRPCError({ code: "NOT_FOUND", message: "Contact not found" });
+      const tags = await entityTags(ctx.tx, "contact", contact.id);
+      return { ...contact, tags };
+    }),
 
   /** Pre-create duplicate check by email. Warns, never blocks. */
   duplicates: workspaceProcedure

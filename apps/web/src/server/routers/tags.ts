@@ -60,7 +60,9 @@ export const tagsRouter = router({
     .mutation(async ({ ctx, input }) => {
       await ctx.tx
         .delete(taggings)
-        .where(and(eq(taggings.entityType, input.entityType), eq(taggings.entityId, input.entityId)));
+        .where(
+          and(eq(taggings.entityType, input.entityType), eq(taggings.entityId, input.entityId))
+        );
       if (input.tagIds.length > 0) {
         // Only tags that exist in this workspace (RLS filters the select).
         const valid = await ctx.tx

@@ -69,47 +69,49 @@ export const companiesRouter = router({
     return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
   }),
 
-  get: workspaceProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    const [company] = await ctx.tx
-      .select({
-        id: companies.id,
-        name: companies.name,
-        website: companies.website,
-        domain: companies.domain,
-        industry: companies.industry,
-        size: companies.size,
-        location: companies.location,
-        phone: companies.phone,
-        description: companies.description,
-        status: companies.status,
-        ownerId: companies.ownerId,
-        deletedAt: companies.deletedAt,
-        createdAt: companies.createdAt,
-        updatedAt: companies.updatedAt,
-        ...ownerCols
-      })
-      .from(companies)
-      .leftJoin(users, eq(users.id, companies.ownerId))
-      .where(eq(companies.id, input.id));
-    if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Company not found" });
-
-    const [companyContacts, tags] = await Promise.all([
-      ctx.tx
+  get: workspaceProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const [company] = await ctx.tx
         .select({
-          id: contacts.id,
-          firstName: contacts.firstName,
-          lastName: contacts.lastName,
-          title: contacts.title,
-          email: contacts.email,
-          isPrimary: contacts.isPrimary
+          id: companies.id,
+          name: companies.name,
+          website: companies.website,
+          domain: companies.domain,
+          industry: companies.industry,
+          size: companies.size,
+          location: companies.location,
+          phone: companies.phone,
+          description: companies.description,
+          status: companies.status,
+          ownerId: companies.ownerId,
+          deletedAt: companies.deletedAt,
+          createdAt: companies.createdAt,
+          updatedAt: companies.updatedAt,
+          ...ownerCols
         })
-        .from(contacts)
-        .where(and(eq(contacts.companyId, company.id), isNull(contacts.deletedAt)))
-        .orderBy(desc(contacts.isPrimary), asc(contacts.lastName)),
-      entityTags(ctx.tx, "company", company.id)
-    ]);
-    return { ...company, contacts: companyContacts, tags };
-  }),
+        .from(companies)
+        .leftJoin(users, eq(users.id, companies.ownerId))
+        .where(eq(companies.id, input.id));
+      if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Company not found" });
+
+      const [companyContacts, tags] = await Promise.all([
+        ctx.tx
+          .select({
+            id: contacts.id,
+            firstName: contacts.firstName,
+            lastName: contacts.lastName,
+            title: contacts.title,
+            email: contacts.email,
+            isPrimary: contacts.isPrimary
+          })
+          .from(contacts)
+          .where(and(eq(contacts.companyId, company.id), isNull(contacts.deletedAt)))
+          .orderBy(desc(contacts.isPrimary), asc(contacts.lastName)),
+        entityTags(ctx.tx, "company", company.id)
+      ]);
+      return { ...company, contacts: companyContacts, tags };
+    }),
 
   /** Fuzzy pre-create check. Warns, never blocks (M2 acceptance criterion 4). */
   duplicates: workspaceProcedure
