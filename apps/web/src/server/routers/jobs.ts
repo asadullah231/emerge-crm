@@ -61,11 +61,7 @@ async function assertHiringContact(
     .select({ id: contacts.id })
     .from(contacts)
     .where(
-      and(
-        eq(contacts.id, contactId),
-        eq(contacts.companyId, companyId),
-        isNull(contacts.deletedAt)
-      )
+      and(eq(contacts.id, contactId), eq(contacts.companyId, companyId), isNull(contacts.deletedAt))
     );
   if (!contact) {
     throw new TRPCError({
@@ -306,11 +302,7 @@ export const jobsRouter = router({
         .update(jobs)
         .set({ deletedAt: null })
         .where(
-          and(
-            eq(jobs.id, input.id),
-            isNotNull(jobs.deletedAt),
-            gte(jobs.deletedAt, trashCutoff())
-          )
+          and(eq(jobs.id, input.id), isNotNull(jobs.deletedAt), gte(jobs.deletedAt, trashCutoff()))
         )
         .returning({ id: jobs.id, humanId: jobs.humanId });
       if (!restored) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found in trash" });

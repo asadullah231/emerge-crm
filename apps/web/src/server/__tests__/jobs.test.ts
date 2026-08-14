@@ -7,9 +7,9 @@ describe("jobs input (M4)", () => {
   it("requires a title and a company", () => {
     expect(jobInput.safeParse({ title: "", companyId: crypto.randomUUID() }).success).toBe(false);
     expect(jobInput.safeParse({ title: "Engineer" }).success).toBe(false);
-    expect(
-      jobInput.safeParse({ title: "Engineer", companyId: crypto.randomUUID() }).success
-    ).toBe(true);
+    expect(jobInput.safeParse({ title: "Engineer", companyId: crypto.randomUUID() }).success).toBe(
+      true
+    );
   });
 
   it("rejects an out-of-range status and a non-uuid company", () => {

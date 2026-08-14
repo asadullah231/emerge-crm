@@ -4,10 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, FormError, Input, Label } from "@/components/form";
 import { Modal } from "@/components/modal";
-import {
-  JOB_EMPLOYMENT_OPTIONS,
-  JOB_WORK_MODE_OPTIONS
-} from "@/components/record";
+import { JOB_EMPLOYMENT_OPTIONS, JOB_WORK_MODE_OPTIONS } from "@/components/record";
 import { contactName } from "@/components/new-contact-modal";
 import { trpc } from "@/lib/trpc/client";
 

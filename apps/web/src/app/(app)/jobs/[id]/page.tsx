@@ -35,10 +35,7 @@ export default function JobRecordPage() {
   });
 
   const refresh = () =>
-    Promise.all([
-      utils.jobs.get.invalidate({ id: params.id }),
-      utils.jobs.list.invalidate()
-    ]);
+    Promise.all([utils.jobs.get.invalidate({ id: params.id }), utils.jobs.list.invalidate()]);
 
   const update = trpc.jobs.update.useMutation({ onSuccess: refresh });
   const changeStatus = trpc.jobs.changeStatus.useMutation({ onSuccess: refresh });
