@@ -3,6 +3,30 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.4.0 - Milestone 3: Candidates, CV Upload & Dedupe (2026-08-14)
+
+### Added
+
+- Candidates: full profile CRUD (name, title, employer, primary/secondary
+  email, phone/mobile, city/country, LinkedIn/website, skills, experience
+  years, free-text + structured salary, notice period, source), sourcer owner,
+  per-workspace human ids (CAND-0001), soft delete with a 30-day trash
+- Candidate education and work-experience sub-records (1:N, add/remove),
+  shaped to receive parsed CV data in a later milestone
+- CV and document upload to S3-compatible storage (MinIO in dev): server-proxied
+  multipart upload with MIME and 15 MB limits, presigned download, delete;
+  the primary CV is stored as a `cv`-kind attachment
+- Email duplicate detection on create (non-blocking warning) plus a merge tool
+  that folds one candidate into another, preserving education, experience and
+  attachments and soft-deleting the source
+- CSV import wizard: upload, auto-mapped column mapping, dry-run preview with
+  per-row errors, import with skip-or-update dedupe by email
+- Candidate list (search, sort, trash, source and human-id columns) and a
+  record page with inline profile editing, documents, experience and education
+- New tables (`candidates`, `candidate_education`, `candidate_experience`,
+  `attachments`, `counters`) with row-level security in their creation migration
+- Perf seed extended with 10,000 candidates
+
 ## v0.3.0 - Milestone 2: Companies & Contacts (2026-08-14)
 
 ### Added
