@@ -1,82 +1,163 @@
 # Development Roadmap
 
 Product: modern open-source Recruitment CRM / ATS (agency-first).
-Reference for workflows and entities: OpenCATS. Competitive bar: Zoho Recruit Staffing edition.
+Primary source of truth: the audit of our live Zoho Recruit instance
+(docs/audit/zoho-recruit-audit.md). Functional reference: OpenCATS.
+Competitive bar: Zoho Recruit Staffing edition - functional parity with what we
+actually use, modern UX, never a UI copy.
 
-Every milestone produces a usable, testable increment and leaves the repository in a stable,
-working state. Each milestone has a full spec in `docs/milestones/`.
+Every milestone produces a usable, testable increment and leaves the repository in
+a stable, working state. Each milestone has a full spec in `docs/milestones/`
+(Objective, Features, Database/Backend/Frontend/API changes, Migration
+requirements, Acceptance criteria, Testing, Definition of Done). Specs for future
+milestones are rewritten to match this roadmap when the milestone is approved to
+start - the roadmap table is authoritative in between.
+
+> Revised 13 Aug 2026 after the full Zoho Recruit product audit. M0-M2 history is
+> unchanged. Key shifts: resume parsing moved up (it is our #1 intake), a
+> dedicated Zoho migration milestone added (Phase 1 now ends with switch-over),
+> career/candidate portals and automation moved out of the critical path,
+> interviews slimmed to scheduling + outcomes, client sendouts made first-class
+> in Phase 2.
 
 ## Versioning
 
-Semantic versioning. Each completed milestone bumps the minor version and gets a git tag +
-GitHub release. `v1.0.0` ships at Milestone 19.
+Semantic versioning. Each completed milestone bumps the minor version and gets a
+git tag + GitHub release. `v1.0.0` ships at Milestone 19.
 
 ## Phases
 
-- **Phase 1 - Core ATS (M0-M8):** everything an agency needs to run a desk internally.
-  At the end of M8 the product is a usable MVP for a real recruiter.
-- **Phase 2 - Recruiting depth (M9-M15):** the features that make it competitive with
-  Zoho Recruit: portals, interviews, offers, email, matching, automation, analytics.
-- **Phase 3 - Platform (M16-M19):** candidate portal, public API, hardening, v1.0.
+- **Phase 1 - Core desk + switch-over (M0-M9):** the objects and workflows our
+  team uses daily in Zoho, ending with the Zoho migration engine and search.
+  At the end of Phase 1 the agency switches to Emerge as its daily ATS.
+- **Phase 2 - Client workflow & recruiting depth (M10-M14):** first-class client
+  sendouts, interviews, offers/placements, email, agency analytics.
+- **Phase 3 - Intelligence & platform (M15-M19):** AI matching, public surfaces,
+  API, hardening, v1.0.
 
 ## Milestone overview
 
-| #   | Milestone                                     | Version | Depends on   | Complexity |
-| --- | --------------------------------------------- | ------- | ------------ | ---------- |
-| M0  | Project Foundation                            | v0.1.0  | -            | M          |
-| M1  | Auth, Workspaces, Users & Roles               | v0.2.0  | M0           | L          |
-| M2  | Companies & Contacts                          | v0.3.0  | M1           | M          |
-| M3  | Candidates & CV Upload                        | v0.4.0  | M1           | L          |
-| M4  | Jobs                                          | v0.5.0  | M2           | M          |
-| M5  | Applications & Pipeline Board                 | v0.6.0  | M3, M4       | L          |
-| M6  | Activity Timeline, Tasks & Notes              | v0.7.0  | M2, M3, M4   | L          |
-| M7  | Resume Parsing & Document Management          | v0.8.0  | M3           | L          |
-| M8  | Search, Filters, Saved Views & Custom Fields  | v0.9.0  | M2-M5        | XL         |
-| M9  | Career Portal & Public Apply                  | v0.10.0 | M4, M5, M7   | M          |
-| M10 | Interviews & Scheduling                       | v0.11.0 | M5, M6       | L          |
-| M11 | Offers & Placements                           | v0.12.0 | M5, M10      | M          |
-| M12 | Email Integration                             | v0.13.0 | M6           | XL         |
-| M13 | Candidate Matching & Semantic Search          | v0.14.0 | M7, M8       | L          |
-| M14 | Automation: Stage Rules, Sequences & Webhooks | v0.15.0 | M5, M12      | XL         |
-| M15 | Reports & Analytics                           | v0.16.0 | M5, M10, M11 | L          |
-| M16 | Candidate Portal                              | v0.17.0 | M9, M5       | M          |
-| M17 | Public API, Import/Export & Integrations      | v0.18.0 | M8           | L          |
-| M18 | Security, Performance & Production Hardening  | v0.19.0 | all          | L          |
-| M19 | v1.0 Production Release                       | v1.0.0  | M18          | M          |
+| #   | Milestone                                          | Version | Status      | Depends on | Complexity |
+| --- | -------------------------------------------------- | ------- | ----------- | ---------- | ---------- |
+| M0  | Project Foundation                                 | v0.1.0  | Done        | -          | M          |
+| M1  | Auth, Workspaces, Users & Roles                    | v0.2.0  | Done        | M0         | L          |
+| M2  | Companies & Contacts                               | v0.3.0  | In progress | M1         | M          |
+| M3  | Candidates, CV Upload & Dedupe                     | v0.4.0  | Planned     | M1         | L          |
+| M4  | Jobs (client-owned, AM-routed)                     | v0.5.0  | Planned     | M2         | M          |
+| M5  | Applications: Pipeline, Statuses & Kanban          | v0.6.0  | Planned     | M3, M4     | L          |
+| M6  | Notes, @Mentions, Timeline & Notifications         | v0.7.0  | Planned     | M2-M5      | L          |
+| M7  | Resume Parsing & Bulk CV Intake                    | v0.8.0  | Planned     | M3         | L          |
+| M8  | Zoho Migration & Import Engine                     | v0.9.0  | Planned     | M2-M7      | L          |
+| M9  | Global Search, Filters, Saved Views & Bulk Actions | v0.10.0 | Planned     | M2-M5      | L          |
+| M10 | Client Submissions & Feedback                      | v0.11.0 | Planned     | M5, M6     | M          |
+| M11 | Interviews & Tasks (lite)                          | v0.12.0 | Planned     | M5, M6     | M          |
+| M12 | Offers, Placements & Job Revenue                   | v0.13.0 | Planned     | M5         | M          |
+| M13 | Email Integration                                  | v0.14.0 | Planned     | M6         | L          |
+| M14 | Agency Reports & Analytics                         | v0.15.0 | Planned     | M5, M10    | M          |
+| M15 | Candidate Matching & Semantic Search               | v0.16.0 | Planned     | M7, M9     | L          |
+| M16 | Public API, Webhooks & Career Page                 | v0.17.0 | Planned     | M9         | L          |
+| M17 | Compliance: GDPR, Blocklist & Data Tools           | v0.18.0 | Planned     | M8         | M          |
+| M18 | Security, Performance & Production Hardening       | v0.19.0 | Planned     | all        | L          |
+| M19 | v1.0 Production Release                            | v1.0.0  | Planned     | M18        | M          |
 
-Complexity scale: S (days), M (about a week), L (1-2 weeks), XL (2-3 weeks, consider splitting
-into sub-issues aggressively). Estimates assume one primary developer plus AI tooling.
+Complexity scale: S (days), M (about a week), L (1-2 weeks), XL (2-3 weeks).
+Estimates assume one primary developer plus AI tooling.
+
+## Milestone scope summaries (audit-derived)
+
+- **M2 Companies & Contacts (in progress)**: unchanged scope; field shape already
+  mirrors Zoho Clients/Contacts (owner = account manager) for 1:1 import.
+  Tags schema ships here; tags UI is deferred (feature unused in Zoho).
+- **M3 Candidates**: candidate CRUD with Zoho-parity fields, education/experience
+  sub-records, unique-email dedupe with merge prompt, CV attachment upload
+  (MinIO), sourcer ownership, human ids (CAND-0001), source tracking, list at
+  10k-records performance. Basic CSV import for day-one manual use.
+- **M4 Jobs**: job CRUD; company REQUIRED + optional hiring contact; account
+  manager owner; slim status set (open/on_hold/filled/cancelled/inactive);
+  rich-text JD; free-text salary + optional structured range; location + remote;
+  positions; dates. Record page shows the job's pipeline summary.
+- **M5 Applications**: associate candidate to job (unique pair), two-level
+  stage+status machine seeded from our real Zoho statuses (incl. Submitted to
+  client / Approved by client / Rejected by client loop and rejection reasons),
+  status history events, kanban board per job + global, guards for read-only role.
+  This is the product's heart; the audit's funnel (38 candidates on one Porsche
+  role) is the benchmark scenario.
+- **M6 Notes & Timeline**: polymorphic notes with @mentions, workspace note
+  templates (screening-call template from the audit is the default), in-app
+  notifications inbox, per-record timeline fed by a domain event bus, org-wide
+  activity feed. The sourcer -> account-manager handoff must feel better than
+  Zoho's.
+- **M7 Resume Parsing**: single + bulk CV upload queue, parser (evaluated against
+  our real DACH/EU CV mix), auto-create candidate + education/experience + CV
+  attachment, review/confirm screen, dedupe check against existing emails,
+  parse-failure triage list.
+- **M8 Zoho Migration & Import Engine**: full plan in
+  docs/audit/zoho-migration-plan.md. API-based, idempotent (external_refs),
+  ordered (users -> clients -> contacts -> candidates -> jobs -> applications ->
+  notes -> attachments -> history), delta re-runs, verification report, merge
+  tools for flagged duplicates, generic CSV import. Exit criterion: the agency's
+  full Zoho dataset lives in Emerge with relationships intact and reconciled
+  counts; the team can switch.
+- **M9 Search & Views**: global Cmd+K search across candidates/jobs/companies/
+  contacts/applications, quick filters + filter builder, saved views, column
+  visibility, bulk select + actions (status change, owner change, delete),
+  CSV export. Custom-fields UI explicitly deferred post-1.0 (zero used in Zoho).
+- **M10 Client Submissions**: first-class sendout record layered on the M5
+  statuses (who sent which candidates to which client contact, when, via what),
+  submission history per job/client, client feedback capture (tokened share link,
+  no client login), auto status sync application <-> submission.
+- **M11 Interviews & Tasks (lite)**: interview scheduling on an application
+  (slot, participants, location/meet link, reminder notifications), outcome
+  verdict + feedback, simple tasks with due dates on records. No native video,
+  no picklist round names, no assessments.
+- **M12 Offers & Placements**: offer lifecycle statuses on the application,
+  placement record on hire (start date, fee/revenue actuals), job revenue
+  summary. Lightweight - the audit shows zero current usage, but placements are
+  how an agency measures itself.
+- **M13 Email**: connected mailbox or SMTP send, templates, send from candidate/
+  application/submission, log to timeline. Two-way sync explicitly post-1.0.
+- **M14 Reports**: the agency KPIs the data begs for: submissions per sourcer per
+  week, pipeline funnel + conversion, time-in-stage, time-to-first-submission,
+  client health (jobs open, last submission), AM/sourcer leaderboards. Built on
+  M5/M10 history events.
+- **M15 Matching**: embeddings for candidates and jobs, "find candidates for this
+  job" / "find jobs for this candidate", semantic search on skills. Post-migration
+  so it launches with 1,300+ real profiles.
+- **M16 Platform**: versioned public REST API + API keys, outbound webhooks,
+  optional public careers page + apply form (audit: unused in Zoho, so it ships
+  behind a toggle, off by default).
+- **M17 Compliance**: GDPR data export/delete per candidate, consent + email
+  opt-out flags, blocklist, retention policies, workspace data export.
+- **M18 Hardening**: security review pass, rate limiting, backup/restore drills,
+  performance budget on 10k+ datasets, observability.
+- **M19 v1.0**: docs site, self-host guide (Docker), demo seed, upgrade path,
+  release.
+
+## Post-1.0 backlog (deliberately out of v1.0)
+
+Candidate portal; client portal login (tokened links cover v1); automation rules /
+sequences / Blueprint-style flows; assessments & questionnaires with auto-scoring;
+custom fields UI (jsonb columns already reserved); tags UI (schema shipped in M2);
+formatted/branded CV generator; resume inbox (email-in); two-way email sync;
+job-board multiposting; video interviews; SMS/WhatsApp/CTI telephony; Chrome
+sourcing extension; temp/contract back office (timesheets, pay & bill); native
+mobile apps; granular permission profiles; parent-company hierarchies.
 
 ## Dependency notes
 
-- M2 (Companies & Contacts) precedes M4 (Jobs) because agency jobs belong to client companies
-  and have a contact as hiring contact. This mirrors OpenCATS (joborder -> company, contact).
-- M5 (Applications) is the pipeline-bearing object joining Candidate and Job, modeled after
-  OpenCATS `candidate_joborder` but with proper stage history. Kanban board ships here too:
-  a pipeline without a board is not a usable increment.
-- M6 (Timeline) introduces the domain event bus. Everything after M6 emits events into it,
-  which is why it sits before parsing, interviews, email, and automation.
-- M7 (Parsing) precedes M9 (Career Portal) so public applicants get parsed on arrival, and
-  precedes M13 (Matching) which needs structured profiles.
-- M8 (Search/Views/Custom Fields) closes Phase 1 because filters and saved views need all
-  core objects to exist first.
-- M12 (Email) deliberately sits after the timeline and before automation: sequences (M14)
-  need reply detection from email sync to auto-unenroll candidates.
-- M14 (Automation) depends on M5 (stage-change events) and M12 (email sending/replies).
-- M17 exposes the public REST API. Internal API exists from M1 onward; M17 is versioning,
-  API keys, docs, and CSV import/export at scale. A basic candidate CSV import ships earlier
-  (M3) because migrating recruiters need their data on day one.
-
-## Out of scope for v1.0 (explicitly deferred)
-
-- Temp/contract back office: timesheets, shifts, pay & bill (Vincere territory). Phase 4+.
-- Job board multiposting network (Indeed feed ships in M9; the 75-board network does not).
-- Video interviews, assessments, background-check integrations, e-sign (integration points
-  reserved in M11/M17, implementations post-1.0).
-- Chrome/LinkedIn sourcing extension (post-1.0, high priority).
-- WhatsApp/SMS channels (post-1.0; sequences engine in M14 is built channel-agnostic).
-- Native mobile apps (the web app must be responsive; PWA acceptable).
-- Client portal (post-1.0; formatted CV sharing in M11 covers the near-term agency need).
+- M3 and M4 can proceed in parallel after M2 (candidates depend only on M1 auth,
+  jobs need companies).
+- M5 needs both M3 and M4; M6 layers collaboration on everything before it.
+- M7 (parsing) needs M3's candidate + attachment model. M8 (migration) needs every
+  core object M2-M7, and M6's event history to import status timelines.
+- M9 search closes Phase 1 so the switched-over team can actually live in the app
+  at 1,300+ candidates.
+- M10 formalizes what M5 statuses already track - order chosen so switch-over
+  (M8) never waits on it.
+- M14 reports read M5 status history + M10 submissions - both must emit clean
+  events from day one.
+- M15 sits after migration on purpose: matching is only credible with the real
+  corpus imported.
 
 ## Release process per milestone
 
