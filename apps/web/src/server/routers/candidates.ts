@@ -2,11 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, inArray, isNull, isNotNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import {
+  applications,
   attachments,
   candidateEducation,
   candidateExperience,
   candidateSource,
   candidates,
+  jobs,
   users
 } from "@emerge/db";
 import { writeAudit } from "../audit";
@@ -181,7 +183,31 @@ export const candidatesRouter = router({
           .orderBy(desc(attachments.createdAt)),
         entityTags(ctx.tx, "candidate", candidate.id)
       ]);
-      return { ...candidate, education, experience, attachments: files, tags };
+
+      // Applications this candidate is on (which jobs, what stage). M5.
+      const applicationRows = await ctx.tx
+        .select({
+          id: applications.id,
+          humanId: applications.humanId,
+          stage: applications.stage,
+          statusKey: applications.statusKey,
+          jobId: applications.jobId,
+          jobTitle: jobs.title,
+          jobHumanId: jobs.humanId,
+          stageEnteredAt: applications.stageEnteredAt
+        })
+        .from(applications)
+        .innerJoin(jobs, eq(jobs.id, applications.jobId))
+        .where(and(eq(applications.candidateId, candidate.id), isNull(applications.deletedAt)))
+        .orderBy(desc(applications.stageEnteredAt));
+      return {
+        ...candidate,
+        education,
+        experience,
+        attachments: files,
+        tags,
+        applications: applicationRows
+      };
     }),
 
   /** Pre-create duplicate check by email. Warns, never blocks. */

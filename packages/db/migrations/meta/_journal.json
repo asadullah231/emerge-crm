@@ -64,6 +64,20 @@
       "when": 1786680225033,
       "tag": "0008_rls_m4",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786692712395,
+      "tag": "0009_applications",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786692712396,
+      "tag": "0010_rls_m5",
+      "breakpoints": true
     }
   ]
 }

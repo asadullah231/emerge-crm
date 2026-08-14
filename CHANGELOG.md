@@ -3,6 +3,39 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.6.0 - Milestone 5: Applications, Pipeline & Kanban (2026-08-14)
+
+### Added
+
+- Applications: the candidate-to-job junction (unique pair per workspace),
+  with a coarse 7-stage pipeline (screening, submitted, interview, offered,
+  hired, rejected, archived) and a finer, workspace-configurable status
+  dictionary seeded with the 13 Zoho statuses we use, including the
+  submitted / approved-by-client / rejected-by-client loop
+- Kanban board with native drag-and-drop between stages (optimistic move with
+  rollback), a global pipeline page with a job filter, a per-job board, and a
+  read-only guard that shows the board but blocks moves
+- Append-only application status history (from/to status and stage, actor,
+  note) with time-in-stage on the cards and record; per-workspace human ids
+  (APP-0001)
+- Associate flows from either side (add a candidate to a job, add a job to a
+  candidate) with duplicate pairs blocked; a trashed pair is restored rather
+  than duplicated
+- Application record with a status control (rejections capture a reason),
+  owner and rating, and a transition timeline; real pipeline counts on the job
+  record and an applications list on the candidate record
+- New tables (`applications`, `application_statuses`,
+  `application_status_history`) with row-level security in their creation
+  migration; the status dictionary seeds lazily on first use
+- Perf seed extended with 800 applications across the pipeline
+
+### Changed
+
+- EmergeTech brand foundation: two official brand colours (navy + teal)
+  centralized as theme tokens, official logo and favicon, light theme as the
+  default (dark still available), and brand-consistent buttons, links,
+  navigation and badges
+
 ## v0.5.0 - Milestone 4: Jobs (2026-08-14)
 
 ### Added

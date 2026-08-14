@@ -231,7 +231,7 @@ export function JobStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     open: "bg-green-500/10 text-green-600",
     on_hold: "bg-amber-500/10 text-amber-600",
-    filled: "bg-blue-500/10 text-blue-600",
+    filled: "bg-[var(--brand-secondary)]/10 text-[var(--brand-secondary)]",
     cancelled: "bg-red-500/10 text-red-600",
     inactive: "bg-zinc-500/10 text-[var(--muted)]"
   };

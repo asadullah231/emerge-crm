@@ -1,5 +1,6 @@
 import { APP_VERSION } from "@emerge/core";
 import { publicProcedure, router } from "../trpc";
+import { applicationsRouter } from "./applications";
 import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
 import { candidatesRouter } from "./candidates";
@@ -25,6 +26,7 @@ export const appRouter = router({
   contacts: contactsRouter,
   candidates: candidatesRouter,
   jobs: jobsRouter,
+  applications: applicationsRouter,
   attachments: attachmentsRouter,
   tags: tagsRouter
 });
