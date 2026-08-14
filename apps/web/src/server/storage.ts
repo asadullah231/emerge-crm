@@ -16,6 +16,29 @@ export const ALLOWED_UPLOAD_MIME: Record<string, string> = {
   "text/plain": "txt"
 };
 
+/** Pure upload gate shared by the route handler and its tests. */
+export function checkUploadConstraints(
+  mime: string,
+  size: number
+): { ok: true } | { ok: false; status: number; error: string } {
+  if (size <= 0) return { ok: false, status: 400, error: "File is empty" };
+  if (size > MAX_UPLOAD_BYTES) {
+    return {
+      ok: false,
+      status: 413,
+      error: `File exceeds the ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MB limit`
+    };
+  }
+  if (!ALLOWED_UPLOAD_MIME[mime]) {
+    return {
+      ok: false,
+      status: 415,
+      error: "Unsupported file type. Allowed: PDF, DOC, DOCX, RTF, TXT"
+    };
+  }
+  return { ok: true };
+}
+
 type StorageConfig = {
   endpoint: string;
   region: string;

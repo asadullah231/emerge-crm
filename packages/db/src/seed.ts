@@ -7,10 +7,20 @@
  * Every run creates a fresh "Perf Seed" workspace; drop it by deleting the
  * workspace row (tenant rows cascade).
  */
-import { createDb, companies, contacts, memberships, users, workspaces } from "./index";
+import {
+  createDb,
+  candidates,
+  companies,
+  contacts,
+  counters,
+  memberships,
+  users,
+  workspaces
+} from "./index";
 
 const COMPANY_COUNT = 1_000;
 const CONTACT_COUNT = 10_000;
+const CANDIDATE_COUNT = 10_000;
 const BATCH = 1_000;
 
 const FIRST = [
@@ -219,9 +229,46 @@ async function main() {
     console.log(`contacts: ${contactCount}/${CONTACT_COUNT}`);
   }
 
+  let candidateCount = 0;
+  const sources = ["parser", "manual", "import", "referral"] as const;
+  for (let offset = 0; offset < CANDIDATE_COUNT; offset += BATCH) {
+    const values = Array.from({ length: Math.min(BATCH, CANDIDATE_COUNT - offset) }, (_, i) => {
+      const n = offset + i;
+      const firstName = pick(FIRST);
+      const lastName = pick(LAST);
+      return {
+        workspaceId: ws.id,
+        humanId: `CAND-${String(n + 1).padStart(5, "0")}`,
+        firstName,
+        lastName,
+        title: pick(TITLES),
+        currentEmployer: `${pick(COMPANY_A)} ${pick(COMPANY_B)}`,
+        // ~30% have no email, mirroring the real Zoho data (parser gaps).
+        email:
+          rand() < 0.3
+            ? null
+            : `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${n}@cand.example.com`,
+        city: pick(CITIES).split(",")[0] ?? null,
+        country: pick(CITIES).split(", ")[1] ?? null,
+        experienceYears: Math.floor(rand() * 25),
+        // Parser-heavy intake, mirroring the audit (72% parser).
+        source: rand() < 0.72 ? "parser" : pick(sources),
+        ownerId: owner.id
+      };
+    });
+    await db.insert(candidates).values(values);
+    candidateCount += values.length;
+    console.log(`candidates: ${candidateCount}/${CANDIDATE_COUNT}`);
+  }
+  // Advance the human-id counter past the seeded block.
+  await db
+    .insert(counters)
+    .values({ workspaceId: ws.id, entityType: "candidate", value: candidateCount });
+
   console.log(
-    `Seeded workspace "${ws.name}" (${ws.id}) with ${companyIds.length} companies and ` +
-      `${contactCount} contacts in ${((Date.now() - started) / 1000).toFixed(1)}s`
+    `Seeded workspace "${ws.name}" (${ws.id}) with ${companyIds.length} companies, ` +
+      `${contactCount} contacts and ${candidateCount} candidates in ` +
+      `${((Date.now() - started) / 1000).toFixed(1)}s`
   );
   await db.close();
 }

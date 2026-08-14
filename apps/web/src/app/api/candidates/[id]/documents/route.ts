@@ -4,12 +4,7 @@ import { attachments, candidates, withWorkspace } from "@emerge/db";
 import { getCurrentSession } from "@/server/auth/current";
 import { db } from "@/server/db";
 import { roleAtLeast } from "@/server/trpc";
-import {
-  ALLOWED_UPLOAD_MIME,
-  MAX_UPLOAD_BYTES,
-  isStorageConfigured,
-  putObject
-} from "@/server/storage";
+import { checkUploadConstraints, isStorageConfigured, putObject } from "@/server/storage";
 
 /**
  * Multipart CV/document upload for a candidate. Kept out of tRPC because tRPC's
@@ -35,20 +30,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!(file instanceof File)) {
     return Response.json({ error: "No file provided" }, { status: 400 });
   }
-  if (file.size === 0) {
-    return Response.json({ error: "File is empty" }, { status: 400 });
-  }
-  if (file.size > MAX_UPLOAD_BYTES) {
-    return Response.json(
-      { error: `File exceeds the ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MB limit` },
-      { status: 413 }
-    );
-  }
-  if (!ALLOWED_UPLOAD_MIME[file.type]) {
-    return Response.json(
-      { error: "Unsupported file type. Allowed: PDF, DOC, DOCX, RTF, TXT" },
-      { status: 415 }
-    );
+  const check = checkUploadConstraints(file.type, file.size);
+  if (!check.ok) {
+    return Response.json({ error: check.error }, { status: check.status });
   }
   const kindParam = form.get("kind");
   const kind = kindParam === "cv" ? "cv" : "other";
