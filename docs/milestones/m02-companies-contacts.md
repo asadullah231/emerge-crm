@@ -1,7 +1,7 @@
 # Milestone 2 - Companies & Contacts
 
 - Version on completion: **v0.3.0**
-- Status: Not started
+- Status: **Completed (v0.3.0, 14 Aug 2026)**
 - Complexity: **M**
 
 ## Objective

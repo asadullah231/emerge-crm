@@ -37,35 +37,35 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 19.
 
 ## Milestone overview
 
-| #   | Milestone                                          | Version | Status      | Depends on | Complexity |
-| --- | -------------------------------------------------- | ------- | ----------- | ---------- | ---------- |
-| M0  | Project Foundation                                 | v0.1.0  | Done        | -          | M          |
-| M1  | Auth, Workspaces, Users & Roles                    | v0.2.0  | Done        | M0         | L          |
-| M2  | Companies & Contacts                               | v0.3.0  | In progress | M1         | M          |
-| M3  | Candidates, CV Upload & Dedupe                     | v0.4.0  | Planned     | M1         | L          |
-| M4  | Jobs (client-owned, AM-routed)                     | v0.5.0  | Planned     | M2         | M          |
-| M5  | Applications: Pipeline, Statuses & Kanban          | v0.6.0  | Planned     | M3, M4     | L          |
-| M6  | Notes, @Mentions, Timeline & Notifications         | v0.7.0  | Planned     | M2-M5      | L          |
-| M7  | Resume Parsing & Bulk CV Intake                    | v0.8.0  | Planned     | M3         | L          |
-| M8  | Zoho Migration & Import Engine                     | v0.9.0  | Planned     | M2-M7      | L          |
-| M9  | Global Search, Filters, Saved Views & Bulk Actions | v0.10.0 | Planned     | M2-M5      | L          |
-| M10 | Client Submissions & Feedback                      | v0.11.0 | Planned     | M5, M6     | M          |
-| M11 | Interviews & Tasks (lite)                          | v0.12.0 | Planned     | M5, M6     | M          |
-| M12 | Offers, Placements & Job Revenue                   | v0.13.0 | Planned     | M5         | M          |
-| M13 | Email Integration                                  | v0.14.0 | Planned     | M6         | L          |
-| M14 | Agency Reports & Analytics                         | v0.15.0 | Planned     | M5, M10    | M          |
-| M15 | Candidate Matching & Semantic Search               | v0.16.0 | Planned     | M7, M9     | L          |
-| M16 | Public API, Webhooks & Career Page                 | v0.17.0 | Planned     | M9         | L          |
-| M17 | Compliance: GDPR, Blocklist & Data Tools           | v0.18.0 | Planned     | M8         | M          |
-| M18 | Security, Performance & Production Hardening       | v0.19.0 | Planned     | all        | L          |
-| M19 | v1.0 Production Release                            | v1.0.0  | Planned     | M18        | M          |
+| #   | Milestone                                          | Version | Status  | Depends on | Complexity |
+| --- | -------------------------------------------------- | ------- | ------- | ---------- | ---------- |
+| M0  | Project Foundation                                 | v0.1.0  | Done    | -          | M          |
+| M1  | Auth, Workspaces, Users & Roles                    | v0.2.0  | Done    | M0         | L          |
+| M2  | Companies & Contacts                               | v0.3.0  | Done    | M1         | M          |
+| M3  | Candidates, CV Upload & Dedupe                     | v0.4.0  | Planned | M1         | L          |
+| M4  | Jobs (client-owned, AM-routed)                     | v0.5.0  | Planned | M2         | M          |
+| M5  | Applications: Pipeline, Statuses & Kanban          | v0.6.0  | Planned | M3, M4     | L          |
+| M6  | Notes, @Mentions, Timeline & Notifications         | v0.7.0  | Planned | M2-M5      | L          |
+| M7  | Resume Parsing & Bulk CV Intake                    | v0.8.0  | Planned | M3         | L          |
+| M8  | Zoho Migration & Import Engine                     | v0.9.0  | Planned | M2-M7      | L          |
+| M9  | Global Search, Filters, Saved Views & Bulk Actions | v0.10.0 | Planned | M2-M5      | L          |
+| M10 | Client Submissions & Feedback                      | v0.11.0 | Planned | M5, M6     | M          |
+| M11 | Interviews & Tasks (lite)                          | v0.12.0 | Planned | M5, M6     | M          |
+| M12 | Offers, Placements & Job Revenue                   | v0.13.0 | Planned | M5         | M          |
+| M13 | Email Integration                                  | v0.14.0 | Planned | M6         | L          |
+| M14 | Agency Reports & Analytics                         | v0.15.0 | Planned | M5, M10    | M          |
+| M15 | Candidate Matching & Semantic Search               | v0.16.0 | Planned | M7, M9     | L          |
+| M16 | Public API, Webhooks & Career Page                 | v0.17.0 | Planned | M9         | L          |
+| M17 | Compliance: GDPR, Blocklist & Data Tools           | v0.18.0 | Planned | M8         | M          |
+| M18 | Security, Performance & Production Hardening       | v0.19.0 | Planned | all        | L          |
+| M19 | v1.0 Production Release                            | v1.0.0  | Planned | M18        | M          |
 
 Complexity scale: S (days), M (about a week), L (1-2 weeks), XL (2-3 weeks).
 Estimates assume one primary developer plus AI tooling.
 
 ## Milestone scope summaries (audit-derived)
 
-- **M2 Companies & Contacts (in progress)**: unchanged scope; field shape already
+- **M2 Companies & Contacts (done, v0.3.0)**: unchanged scope; field shape already
   mirrors Zoho Clients/Contacts (owner = account manager) for 1:1 import.
   Tags schema ships here; tags UI is deferred (feature unused in Zoho).
 - **M3 Candidates**: candidate CRUD with Zoho-parity fields, education/experience
