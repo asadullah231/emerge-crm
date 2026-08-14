@@ -5,6 +5,7 @@ import { authRouter } from "./auth";
 import { candidatesRouter } from "./candidates";
 import { companiesRouter } from "./companies";
 import { contactsRouter } from "./contacts";
+import { jobsRouter } from "./jobs";
 import { membersRouter } from "./members";
 import { tagsRouter } from "./tags";
 import { workspaceRouter } from "./workspace";
@@ -23,6 +24,7 @@ export const appRouter = router({
   companies: companiesRouter,
   contacts: contactsRouter,
   candidates: candidatesRouter,
+  jobs: jobsRouter,
   attachments: attachmentsRouter,
   tags: tagsRouter
 });
