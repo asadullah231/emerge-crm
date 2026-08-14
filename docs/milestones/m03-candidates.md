@@ -1,7 +1,7 @@
 # Milestone 3 - Candidates, CV Upload & Dedupe
 
 - Version on completion: **v0.4.0**
-- Status: In progress
+- Status: **Completed (v0.4.0, 14 Aug 2026)**
 - Complexity: **L**
 - Depends on: M1 (auth/RLS), M2 (list engine + record primitives)
 

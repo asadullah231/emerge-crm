@@ -3,8 +3,8 @@
 A modern, open-source Recruitment CRM / Applicant Tracking System for staffing agencies.
 Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agency edition).
 
-> Status: **v0.3.0 released** (Milestone 2: Companies & Contacts complete).
-> Next up: Milestone 3 - Candidates, CV Upload & Dedupe.
+> Status: **v0.4.0 released** (Milestone 3: Candidates, CV Upload & Dedupe complete).
+> Next up: Milestone 4 - Jobs.
 
 ## Why this exists
 
@@ -27,10 +27,11 @@ Functional reference: OpenCATS. Competitive target: Zoho Recruit (Staffing Agenc
 
 ## Current milestone
 
-**[Milestone 3 - Candidates, CV Upload & Dedupe](docs/milestones/m03-candidates.md)** (v0.4.0)
-is next. Completed: [M0 - Project Foundation](docs/milestones/m00-foundation.md) (v0.1.0),
+**[Milestone 4 - Jobs](docs/milestones/m04-jobs.md)** (v0.5.0) is next.
+Completed: [M0 - Project Foundation](docs/milestones/m00-foundation.md) (v0.1.0),
 [M1 - Auth, Workspaces, Users & Roles](docs/milestones/m01-auth-users.md) (v0.2.0),
-[M2 - Companies & Contacts](docs/milestones/m02-companies-contacts.md) (v0.3.0).
+[M2 - Companies & Contacts](docs/milestones/m02-companies-contacts.md) (v0.3.0),
+[M3 - Candidates, CV Upload & Dedupe](docs/milestones/m03-candidates.md) (v0.4.0).
 
 ## Quick start (development)
 

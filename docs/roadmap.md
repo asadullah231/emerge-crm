@@ -42,7 +42,7 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 19.
 | M0  | Project Foundation                                 | v0.1.0  | Done    | -          | M          |
 | M1  | Auth, Workspaces, Users & Roles                    | v0.2.0  | Done    | M0         | L          |
 | M2  | Companies & Contacts                               | v0.3.0  | Done    | M1         | M          |
-| M3  | Candidates, CV Upload & Dedupe                     | v0.4.0  | Planned | M1         | L          |
+| M3  | Candidates, CV Upload & Dedupe                     | v0.4.0  | Done    | M1         | L          |
 | M4  | Jobs (client-owned, AM-routed)                     | v0.5.0  | Planned | M2         | M          |
 | M5  | Applications: Pipeline, Statuses & Kanban          | v0.6.0  | Planned | M3, M4     | L          |
 | M6  | Notes, @Mentions, Timeline & Notifications         | v0.7.0  | Planned | M2-M5      | L          |
