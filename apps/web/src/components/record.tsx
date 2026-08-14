@@ -180,7 +180,8 @@ export function InlineField({
             {canEdit ? (
               <button
                 onClick={() => setEditing(true)}
-                className="invisible text-xs text-[var(--accent)] hover:underline group-hover:visible"
+                aria-label={`Edit ${label}`}
+                className="text-xs text-[var(--muted)] opacity-50 transition-opacity hover:text-[var(--accent)] hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
               >
                 Edit
               </button>
