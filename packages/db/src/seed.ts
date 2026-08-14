@@ -13,6 +13,7 @@ import {
   companies,
   contacts,
   counters,
+  jobs,
   memberships,
   users,
   workspaces
@@ -21,6 +22,7 @@ import {
 const COMPANY_COUNT = 1_000;
 const CONTACT_COUNT = 10_000;
 const CANDIDATE_COUNT = 10_000;
+const JOB_COUNT = 500;
 const BATCH = 1_000;
 
 const FIRST = [
@@ -148,6 +150,23 @@ const TITLES = [
   "Plant Manager"
 ];
 const STATUSES = ["prospect", "active", "dormant"] as const;
+const JOB_TITLES = [
+  "Process Engineer",
+  "Mechanical Design Engineer",
+  "Project Manager",
+  "Production Supervisor",
+  "Quality Manager",
+  "Automation Engineer",
+  "Maintenance Technician",
+  "Plant Manager",
+  "Supply Chain Analyst",
+  "Electrical Engineer",
+  "R&D Chemist",
+  "Site Manager"
+];
+const JOB_STATUSES = ["open", "on_hold", "filled", "cancelled", "inactive"] as const;
+const EMPLOYMENT = ["permanent", "contract", "temporary"] as const;
+const WORK_MODES = ["onsite", "hybrid", "remote"] as const;
 
 // Deterministic PRNG so repeated runs produce comparable data shapes.
 function mulberry32(seed: number) {
@@ -265,9 +284,34 @@ async function main() {
     .insert(counters)
     .values({ workspaceId: ws.id, entityType: "candidate", value: candidateCount });
 
+  let jobCount = 0;
+  for (let offset = 0; offset < JOB_COUNT; offset += BATCH) {
+    const values = Array.from({ length: Math.min(BATCH, JOB_COUNT - offset) }, (_, i) => {
+      const n = offset + i;
+      // Open-heavy distribution, mirroring a live desk.
+      const status = rand() < 0.55 ? "open" : pick(JOB_STATUSES);
+      return {
+        workspaceId: ws.id,
+        humanId: `JOB-${String(n + 1).padStart(4, "0")}`,
+        title: pick(JOB_TITLES),
+        companyId: pick(companyIds),
+        ownerId: owner.id,
+        status,
+        employmentType: pick(EMPLOYMENT),
+        workMode: pick(WORK_MODES),
+        location: pick(CITIES),
+        positions: 1 + Math.floor(rand() * 3)
+      };
+    });
+    await db.insert(jobs).values(values);
+    jobCount += values.length;
+    console.log(`jobs: ${jobCount}/${JOB_COUNT}`);
+  }
+  await db.insert(counters).values({ workspaceId: ws.id, entityType: "job", value: jobCount });
+
   console.log(
     `Seeded workspace "${ws.name}" (${ws.id}) with ${companyIds.length} companies, ` +
-      `${contactCount} contacts and ${candidateCount} candidates in ` +
+      `${contactCount} contacts, ${candidateCount} candidates and ${jobCount} jobs in ` +
       `${((Date.now() - started) / 1000).toFixed(1)}s`
   );
   await db.close();
