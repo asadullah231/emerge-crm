@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, isNull, isNotNull, ne, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, isNotNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import {
   attachments,
@@ -10,7 +10,7 @@ import {
   users
 } from "@emerge/db";
 import { writeAudit } from "../audit";
-import { humanId, nextCounter } from "../counters";
+import { bumpCounter, humanId, nextCounter } from "../counters";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
 import { entityTags } from "./tags";
@@ -427,6 +427,150 @@ export const candidatesRouter = router({
         meta: { mergedFrom: source.humanId, filledFields: Object.keys(patch) }
       });
       return { id: target.id, filledFields: Object.keys(patch) };
+    }),
+
+  /**
+   * Day-one CSV import of candidates. Rows are pre-mapped on the client to
+   * candidate fields; this validates, dedupes by lowercased email, and either
+   * skips or updates existing matches. `dryRun` returns the same report without
+   * writing. The heavy streaming/relationship importer is M8.
+   */
+  importCandidates: workspaceProcedure
+    .input(
+      z.object({
+        rows: z
+          .array(z.record(z.string(), z.string()))
+          .max(5000, "Import is limited to 5,000 rows per run"),
+        dedupeMode: z.enum(["skip", "update"]).default("skip"),
+        dryRun: z.boolean().default(false)
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const errors: { row: number; message: string }[] = [];
+      const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      const seenEmails = new Set<string>();
+
+      type Prepared = {
+        row: number;
+        email: string | null;
+        values: {
+          firstName: string | null;
+          lastName: string;
+          email: string | null;
+          phone: string | null;
+          mobile: string | null;
+          title: string | null;
+          currentEmployer: string | null;
+          city: string | null;
+          country: string | null;
+          skills: string | null;
+        };
+      };
+      const prepared: Prepared[] = [];
+
+      input.rows.forEach((raw, i) => {
+        const rowNum = i + 1;
+        const pick = (k: string) => {
+          const v = raw[k]?.trim();
+          return v ? v : null;
+        };
+        const lastName = raw.lastName?.trim();
+        if (!lastName) {
+          errors.push({ row: rowNum, message: "Missing last name" });
+          return;
+        }
+        const email = raw.email ? raw.email.trim().toLowerCase() : null;
+        if (email && !emailRe.test(email)) {
+          errors.push({ row: rowNum, message: `Invalid email "${raw.email}"` });
+          return;
+        }
+        if (email && seenEmails.has(email)) {
+          errors.push({ row: rowNum, message: `Duplicate email within file: ${email}` });
+          return;
+        }
+        if (email) seenEmails.add(email);
+        prepared.push({
+          row: rowNum,
+          email,
+          values: {
+            firstName: pick("firstName"),
+            lastName,
+            email,
+            phone: pick("phone"),
+            mobile: pick("mobile"),
+            title: pick("title"),
+            currentEmployer: pick("currentEmployer"),
+            city: pick("city"),
+            country: pick("country"),
+            skills: pick("skills")
+          }
+        });
+      });
+
+      // Match against existing candidates by email (candidates.email is stored lowercased).
+      const emails = prepared.map((p) => p.email).filter((e): e is string => e !== null);
+      const existing =
+        emails.length > 0
+          ? await ctx.tx
+              .select({ id: candidates.id, email: candidates.email })
+              .from(candidates)
+              .where(and(isNull(candidates.deletedAt), inArray(candidates.email, emails)))
+          : [];
+      const existingByEmail = new Map(existing.map((e) => [e.email, e.id] as const));
+
+      const toCreate = prepared.filter((p) => !p.email || !existingByEmail.has(p.email));
+      const toMatch = prepared.filter((p) => p.email && existingByEmail.has(p.email));
+      const willUpdate = input.dedupeMode === "update" ? toMatch.length : 0;
+      const willSkip = input.dedupeMode === "skip" ? toMatch.length : 0;
+
+      const report = {
+        total: input.rows.length,
+        valid: prepared.length,
+        created: toCreate.length,
+        updated: willUpdate,
+        skipped: willSkip,
+        errors,
+        dryRun: input.dryRun
+      };
+      if (input.dryRun) return report;
+
+      // Allocate a contiguous human-id block for the new candidates.
+      if (toCreate.length > 0) {
+        const top = await bumpCounter(ctx.tx, ctx.workspaceId, "candidate", toCreate.length);
+        const base = top - toCreate.length;
+        await ctx.tx.insert(candidates).values(
+          toCreate.map((p, idx) => ({
+            workspaceId: ctx.workspaceId,
+            humanId: humanId("CAND", base + idx + 1),
+            ...p.values,
+            source: "import" as const,
+            ownerId: ctx.session.user.id
+          }))
+        );
+      }
+
+      if (input.dedupeMode === "update") {
+        for (const p of toMatch) {
+          const targetId = existingByEmail.get(p.email!)!;
+          // Only overwrite with non-empty imported values.
+          const patch: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(p.values)) {
+            if (v !== null && k !== "email") patch[k] = v;
+          }
+          if (Object.keys(patch).length > 0) {
+            await ctx.tx.update(candidates).set(patch).where(eq(candidates.id, targetId));
+          }
+        }
+      }
+
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "candidate.imported",
+        targetType: "candidate",
+        meta: { created: report.created, updated: report.updated, skipped: report.skipped }
+      });
+      return report;
     }),
 
   // --- Education sub-records ----------------------------------------------

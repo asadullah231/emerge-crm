@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
 import { Button, FormError, Input } from "@/components/form";
@@ -121,7 +122,12 @@ export default function CandidatesPage() {
             {showTrash ? "Back to candidates" : "Trash"}
           </Button>
           {canWrite && !showTrash ? (
-            <Button onClick={() => setCreating(true)}>New candidate</Button>
+            <>
+              <Link href="/candidates/import">
+                <Button variant="outline">Import CSV</Button>
+              </Link>
+              <Button onClick={() => setCreating(true)}>New candidate</Button>
+            </>
           ) : null}
         </div>
       </div>
