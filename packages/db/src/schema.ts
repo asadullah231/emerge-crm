@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -255,6 +256,167 @@ export const taggings = pgTable(
     uniqueIndex("taggings_tag_entity_unique").on(t.tagId, t.entityType, t.entityId),
     index("taggings_entity_idx").on(t.workspaceId, t.entityType, t.entityId)
   ]
+);
+
+// ---------------------------------------------------------------------------
+// M3: candidates, their parsed education/experience, attachments, counters
+// Candidate is the product's most-used object (Zoho: 1,287 records, unique
+// lowercased email = dedupe key). The field shape is the target for the M7
+// parser and the M8 Zoho import; pipeline lives on Applications (M5), not here.
+// ---------------------------------------------------------------------------
+
+export const candidateSource = pgEnum("candidate_source", [
+  "parser",
+  "manual",
+  "import",
+  "referral",
+  "api"
+]);
+export type CandidateSource = (typeof candidateSource.enumValues)[number];
+
+/**
+ * Per-workspace monotonic counters for human-friendly ids (CAND-0001). One row
+ * per (workspace, entity_type); allocated with an atomic upsert-returning.
+ */
+export const counters = pgTable(
+  "counters",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    entityType: text("entity_type").notNull(),
+    value: integer("value").notNull().default(0)
+  },
+  (t) => [uniqueIndex("counters_workspace_entity_unique").on(t.workspaceId, t.entityType)]
+);
+
+export const candidates = pgTable(
+  "candidates",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Human id e.g. CAND-0001, unique per workspace, from `counters`. */
+    humanId: text("human_id").notNull(),
+    firstName: text("first_name"),
+    lastName: text("last_name").notNull(),
+    /** Current/most-recent title, e.g. "Senior Process Engineer". */
+    title: text("title"),
+    currentEmployer: text("current_employer"),
+    /** Lowercased; the dedupe key (nullable: ~30% of Zoho candidates have none). */
+    email: text("email"),
+    secondaryEmail: text("secondary_email"),
+    phone: text("phone"),
+    mobile: text("mobile"),
+    city: text("city"),
+    country: text("country"),
+    linkedinUrl: text("linkedin_url"),
+    websiteUrl: text("website_url"),
+    /** Free-text skills for v1; structured taxonomy is post-1.0. */
+    skills: text("skills"),
+    experienceYears: integer("experience_years"),
+    /** Free-text salary preserved verbatim, plus optional structured range. */
+    salaryText: text("salary_text"),
+    salaryMin: integer("salary_min"),
+    salaryMax: integer("salary_max"),
+    salaryCurrency: text("salary_currency"),
+    noticePeriod: text("notice_period"),
+    source: candidateSource("source").notNull().default("manual"),
+    /** The sourcer who owns this candidate. */
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    customFields: jsonb("custom_fields").$type<Record<string, unknown>>(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("candidates_workspace_idx").on(t.workspaceId, t.deletedAt),
+    index("candidates_workspace_name_idx").on(t.workspaceId, t.lastName),
+    index("candidates_workspace_email_idx").on(t.workspaceId, t.email),
+    uniqueIndex("candidates_workspace_human_id_unique").on(t.workspaceId, t.humanId)
+  ]
+);
+
+/** Parsed/entered education history; 1:N under a candidate. */
+export const candidateEducation = pgTable(
+  "candidate_education",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => candidates.id, { onDelete: "cascade" }),
+    institution: text("institution"),
+    degree: text("degree"),
+    fieldOfStudy: text("field_of_study"),
+    startYear: integer("start_year"),
+    endYear: integer("end_year"),
+    /** Manual ordering within a candidate's list. */
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [index("candidate_education_candidate_idx").on(t.candidateId)]
+);
+
+/** Parsed/entered work history; 1:N under a candidate. */
+export const candidateExperience = pgTable(
+  "candidate_experience",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => candidates.id, { onDelete: "cascade" }),
+    company: text("company"),
+    title: text("title"),
+    startDate: text("start_date"),
+    endDate: text("end_date"),
+    isCurrent: boolean("is_current").notNull().default(false),
+    summary: text("summary"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [index("candidate_experience_candidate_idx").on(t.candidateId)]
+);
+
+export const attachmentKind = pgEnum("attachment_kind", ["cv", "formatted_cv", "other"]);
+export type AttachmentKind = (typeof attachmentKind.enumValues)[number];
+
+/**
+ * Polymorphic file attachments in S3-compatible storage (MinIO in dev). The
+ * candidate's primary CV is an attachment with kind=cv. entityType is
+ * "candidate" for now; more subjects (application, note) arrive in later
+ * milestones.
+ */
+export const attachments = pgTable(
+  "attachments",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    kind: attachmentKind("kind").notNull().default("other"),
+    /** Storage bucket + object key; the app never trusts a client-supplied key. */
+    bucket: text("bucket").notNull(),
+    objectKey: text("object_key").notNull(),
+    filename: text("filename").notNull(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(),
+    uploadedById: uuid("uploaded_by_id").references(() => users.id, { onDelete: "set null" }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt()
+  },
+  (t) => [index("attachments_entity_idx").on(t.workspaceId, t.entityType, t.entityId, t.deletedAt)]
 );
 
 /** Minimal audit trail: auth events + member/role changes (M1). */

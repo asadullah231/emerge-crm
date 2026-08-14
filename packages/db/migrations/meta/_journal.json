@@ -36,6 +36,20 @@
       "when": 1786640699563,
       "tag": "0004_rls_m2",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786676459890,
+      "tag": "0005_young_raider",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786676459891,
+      "tag": "0006_rls_m3",
+      "breakpoints": true
     }
   ]
 }
