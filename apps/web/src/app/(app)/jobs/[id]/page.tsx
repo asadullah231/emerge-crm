@@ -18,6 +18,8 @@ import {
   RecordSection,
   RecordShell
 } from "@/components/record";
+import { NotesPanel } from "@/components/notes-panel";
+import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
 
 type JobPatch = RouterInputs["jobs"]["update"]["patch"];
@@ -395,6 +397,13 @@ export default function JobRecordPage() {
           utils.jobs.get.invalidate({ id: record.id });
         }}
       />
+      <RecordSection title="Notes">
+        <NotesPanel entityType="job" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Timeline">
+        <TimelinePanel entityType="job" entityId={record.id} />
+      </RecordSection>
     </RecordShell>
   );
 }

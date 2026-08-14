@@ -13,6 +13,8 @@ import {
   RecordShell,
   StatusBadge
 } from "@/components/record";
+import { NotesPanel } from "@/components/notes-panel";
+import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
 
 type CompanyPatch = RouterInputs["companies"]["update"]["patch"];
@@ -265,6 +267,13 @@ export default function CompanyRecordPage() {
         onClose={() => setAddingContact(false)}
         defaultCompanyId={record.id}
       />
+      <RecordSection title="Notes">
+        <NotesPanel entityType="company" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Timeline">
+        <TimelinePanel entityType="company" entityId={record.id} />
+      </RecordSection>
     </RecordShell>
   );
 }

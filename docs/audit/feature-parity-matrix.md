@@ -5,6 +5,14 @@ credible product soon after) / NICE (valuable, not urgent) / NOT (deliberately n
 copied). "Migration" = does switching from Zoho require importing this data.
 Milestones reference the updated roadmap (docs/roadmap.md).
 
+**Delivered so far:** M0 (v0.1.0) foundation, M1 (v0.2.0) auth/RLS/roles,
+M2 (v0.3.0) Companies & Contacts, M3 (v0.4.0) Candidates + CV + dedupe,
+M4 (v0.5.0) Jobs, M5 (v0.6.0) Applications pipeline + kanban + status history,
+**M6 (v0.7.0) Notes + @mentions + notifications + per-record timeline +
+org-wide activity feed + note templates** (matrix rows 36-40). Next: M7 resume
+parsing. The Timeline reads existing events (audit_log + status history + notes),
+so it is populated without a separate event-bus write path for now.
+
 ## Core objects
 
 | Zoho feature                               | Priority | Our equivalent                                          | Data | UI              | Backend            | Migration           | Milestone        |

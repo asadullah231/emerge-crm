@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Button, FormError } from "@/components/form";
 import { contactName } from "@/components/new-contact-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
+import { NotesPanel } from "@/components/notes-panel";
+import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
 
 type ContactPatch = RouterInputs["contacts"]["update"]["patch"];
@@ -257,6 +259,13 @@ export default function ContactRecordPage() {
         Created {new Date(record.createdAt).toLocaleString()} - Last updated{" "}
         {new Date(record.updatedAt).toLocaleString()}
       </p>
+      <RecordSection title="Notes">
+        <NotesPanel entityType="contact" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Timeline">
+        <TimelinePanel entityType="contact" entityId={record.id} />
+      </RecordSection>
     </RecordShell>
   );
 }
