@@ -9,6 +9,9 @@
  */
 import {
   createDb,
+  applicationStatusHistory,
+  applicationStatuses,
+  applications,
   candidates,
   companies,
   contacts,
@@ -167,6 +170,108 @@ const JOB_TITLES = [
 const JOB_STATUSES = ["open", "on_hold", "filled", "cancelled", "inactive"] as const;
 const EMPLOYMENT = ["permanent", "contract", "temporary"] as const;
 const WORK_MODES = ["onsite", "hybrid", "remote"] as const;
+const APPLICATION_COUNT = 800;
+// The 13 seeded application statuses (key, label, stage, order, entry, terminal).
+// Kept in sync with apps/web/src/lib/applications.ts (that module is web-only).
+const APP_STATUSES = [
+  {
+    key: "associated",
+    label: "Associated",
+    stage: "screening",
+    sortOrder: 1,
+    isEntry: true,
+    isTerminal: false
+  },
+  {
+    key: "in_review",
+    label: "In Review",
+    stage: "screening",
+    sortOrder: 2,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "submitted_to_client",
+    label: "Submitted to client",
+    stage: "submitted",
+    sortOrder: 3,
+    isEntry: true,
+    isTerminal: false
+  },
+  {
+    key: "approved_by_client",
+    label: "Approved by client",
+    stage: "submitted",
+    sortOrder: 4,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "interview_to_be_scheduled",
+    label: "Interview to be scheduled",
+    stage: "interview",
+    sortOrder: 5,
+    isEntry: true,
+    isTerminal: false
+  },
+  {
+    key: "interview_scheduled",
+    label: "Interview scheduled",
+    stage: "interview",
+    sortOrder: 6,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "interview_in_progress",
+    label: "Interview in progress",
+    stage: "interview",
+    sortOrder: 7,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "offer_made",
+    label: "Offer made",
+    stage: "offered",
+    sortOrder: 8,
+    isEntry: true,
+    isTerminal: false
+  },
+  { key: "hired", label: "Hired", stage: "hired", sortOrder: 9, isEntry: true, isTerminal: true },
+  {
+    key: "unqualified",
+    label: "Unqualified",
+    stage: "rejected",
+    sortOrder: 10,
+    isEntry: false,
+    isTerminal: true
+  },
+  {
+    key: "rejected_by_client",
+    label: "Rejected by client",
+    stage: "rejected",
+    sortOrder: 11,
+    isEntry: false,
+    isTerminal: true
+  },
+  {
+    key: "rejected",
+    label: "Rejected",
+    stage: "rejected",
+    sortOrder: 12,
+    isEntry: true,
+    isTerminal: true
+  },
+  {
+    key: "archived",
+    label: "Archived",
+    stage: "archived",
+    sortOrder: 13,
+    isEntry: true,
+    isTerminal: true
+  }
+] as const;
 
 // Deterministic PRNG so repeated runs produce comparable data shapes.
 function mulberry32(seed: number) {
@@ -249,6 +354,7 @@ async function main() {
   }
 
   let candidateCount = 0;
+  const candidateIds: string[] = [];
   const sources = ["parser", "manual", "import", "referral"] as const;
   for (let offset = 0; offset < CANDIDATE_COUNT; offset += BATCH) {
     const values = Array.from({ length: Math.min(BATCH, CANDIDATE_COUNT - offset) }, (_, i) => {
@@ -275,7 +381,9 @@ async function main() {
         ownerId: owner.id
       };
     });
-    await db.insert(candidates).values(values);
+    const rows = await db.insert(candidates).values(values).returning({ id: candidates.id });
+    // Keep a bounded sample of ids for seeding applications.
+    if (candidateIds.length < 3000) candidateIds.push(...rows.map((r) => r.id));
     candidateCount += values.length;
     console.log(`candidates: ${candidateCount}/${CANDIDATE_COUNT}`);
   }
@@ -285,6 +393,7 @@ async function main() {
     .values({ workspaceId: ws.id, entityType: "candidate", value: candidateCount });
 
   let jobCount = 0;
+  const jobIds: string[] = [];
   for (let offset = 0; offset < JOB_COUNT; offset += BATCH) {
     const values = Array.from({ length: Math.min(BATCH, JOB_COUNT - offset) }, (_, i) => {
       const n = offset + i;
@@ -303,16 +412,90 @@ async function main() {
         positions: 1 + Math.floor(rand() * 3)
       };
     });
-    await db.insert(jobs).values(values);
+    const rows = await db.insert(jobs).values(values).returning({ id: jobs.id });
+    jobIds.push(...rows.map((r) => r.id));
     jobCount += values.length;
     console.log(`jobs: ${jobCount}/${JOB_COUNT}`);
   }
   await db.insert(counters).values({ workspaceId: ws.id, entityType: "job", value: jobCount });
 
+  // Seed the application status dictionary + a pipeline of applications.
+  await db.insert(applicationStatuses).values(
+    APP_STATUSES.map((s) => ({
+      workspaceId: ws.id,
+      key: s.key,
+      label: s.label,
+      stage: s.stage,
+      sortOrder: s.sortOrder,
+      isEntry: s.isEntry,
+      isTerminal: s.isTerminal
+    }))
+  );
+  const entryFor = (stage: string) =>
+    APP_STATUSES.find((s) => s.stage === stage && s.isEntry)?.key ?? "associated";
+  // Weighted stage mix: most applications sit early in the funnel.
+  const stageMix = [
+    "screening",
+    "screening",
+    "screening",
+    "submitted",
+    "submitted",
+    "interview",
+    "interview",
+    "offered",
+    "hired",
+    "rejected",
+    "rejected",
+    "archived"
+  ] as const;
+  let appCount = 0;
+  const seenPairs = new Set<string>();
+  for (let offset = 0; offset < APPLICATION_COUNT && candidateIds.length > 0; offset += BATCH) {
+    const batch: (typeof applications.$inferInsert)[] = [];
+    const historyBatch: (typeof applicationStatusHistory.$inferInsert)[] = [];
+    for (let i = 0; i < BATCH && offset + i < APPLICATION_COUNT; i++) {
+      const candidateId = pick(candidateIds);
+      const jobId = pick(jobIds);
+      const key = `${candidateId}:${jobId}`;
+      if (seenPairs.has(key)) continue;
+      seenPairs.add(key);
+      const stage = pick(stageMix);
+      const statusKey = entryFor(stage);
+      const n = appCount + batch.length + 1;
+      const id = crypto.randomUUID();
+      batch.push({
+        id,
+        workspaceId: ws.id,
+        humanId: `APP-${String(n).padStart(4, "0")}`,
+        candidateId,
+        jobId,
+        stage,
+        statusKey,
+        ownerId: owner.id
+      });
+      historyBatch.push({
+        workspaceId: ws.id,
+        applicationId: id,
+        toStatusKey: statusKey,
+        toStage: stage,
+        actorUserId: owner.id
+      });
+    }
+    if (batch.length > 0) {
+      await db.insert(applications).values(batch);
+      await db.insert(applicationStatusHistory).values(historyBatch);
+      appCount += batch.length;
+    }
+    console.log(`applications: ${appCount}/${APPLICATION_COUNT}`);
+  }
+  await db
+    .insert(counters)
+    .values({ workspaceId: ws.id, entityType: "application", value: appCount });
+
   console.log(
     `Seeded workspace "${ws.name}" (${ws.id}) with ${companyIds.length} companies, ` +
-      `${contactCount} contacts, ${candidateCount} candidates and ${jobCount} jobs in ` +
-      `${((Date.now() - started) / 1000).toFixed(1)}s`
+      `${contactCount} contacts, ${candidateCount} candidates, ${jobCount} jobs and ` +
+      `${appCount} applications in ${((Date.now() - started) / 1000).toFixed(1)}s`
   );
   await db.close();
 }
