@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { MobileNav, SidebarNav, type NavItem } from "@/components/app-nav";
+import { LogoFull } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ApiStatus } from "@/components/api-status";
 import { UserMenu } from "@/components/user-menu";
 import { getCurrentSession } from "@/server/auth/current";
 
-const NAV_ITEMS = [
+const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/candidates", label: "Candidates" },
   { href: "/companies", label: "Companies" },
@@ -22,29 +24,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-56 flex-col border-r border-[var(--border)] bg-[var(--card)]">
-        <div className="flex h-14 items-center gap-2 border-b border-[var(--border)] px-4">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent)] text-sm font-bold text-white">
-            E
-          </span>
-          <span className="font-semibold">Emerge CRM</span>
+      <aside className="hidden w-56 flex-col border-r border-[var(--border)] bg-[var(--card)] md:flex">
+        <div className="flex h-14 items-center border-b border-[var(--border)] px-4">
+          <Link href="/dashboard" aria-label="Emerge CRM home">
+            <LogoFull />
+          </Link>
         </div>
-        <nav className="flex-1 space-y-1 p-2" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-md px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--background)] hover:text-[var(--foreground)]"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav items={NAV_ITEMS} />
         <div className="border-t border-[var(--border)] p-3">
           <ApiStatus />
         </div>
       </aside>
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <MobileNav items={NAV_ITEMS} />
         <header className="flex h-14 items-center justify-end gap-4 border-b border-[var(--border)] bg-[var(--card)] px-4">
           <UserMenu name={session.user.name} role={session.role} />
           <ThemeToggle />

@@ -2,13 +2,38 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * EmergeTech brand foundation.
+ * Two official brand colors only: navy (--brand-primary) and teal
+ * (--brand-secondary), both sampled from the official EmergeTech logo/deck.
+ * Everything interactive derives from these two tokens - do not hardcode brand
+ * hexes in components. Backgrounds, text, borders and surfaces stay neutral.
+ */
 :root {
+  /* Neutral surfaces + text (light is the default theme). */
   --background: #fafafa;
   --foreground: #18181b;
   --muted: #71717a;
   --border: #e4e4e7;
   --card: #ffffff;
-  --accent: #2563eb;
+
+  /* Brand - navy (primary). */
+  --brand-primary: #0b2149;
+  --brand-primary-strong: #060f2e;
+  --brand-primary-hover: #14315f;
+  --brand-primary-soft: #eef1f8;
+
+  /* Brand - teal (secondary / accent). Interactive shade is text-safe on light. */
+  --brand-secondary: #0c7c71;
+  --brand-secondary-hover: #0a655c;
+  --brand-secondary-emphasis: #12a594;
+  --brand-secondary-soft: #e1f4f0;
+
+  /* Text/icon color that sits on top of a filled brand color. */
+  --brand-on: #ffffff;
+
+  /* Interactive accent alias used across the app (links, focus, selected). */
+  --accent: var(--brand-secondary);
 }
 
 .dark {
@@ -17,7 +42,22 @@
   --muted: #a1a1aa;
   --border: #27272a;
   --card: #18181b;
-  --accent: #3b82f6;
+
+  /* Navy is lifted for legibility on dark surfaces; same hue family. */
+  --brand-primary: #2e4e96;
+  --brand-primary-strong: #24407f;
+  --brand-primary-hover: #395cac;
+  --brand-primary-soft: #141b2e;
+
+  /* Teal brightens on dark so links and accents keep contrast. */
+  --brand-secondary: #2fbba6;
+  --brand-secondary-hover: #45c9b4;
+  --brand-secondary-emphasis: #2fbba6;
+  --brand-secondary-soft: #10312c;
+
+  --brand-on: #ffffff;
+
+  --accent: var(--brand-secondary);
 }
 
 body {

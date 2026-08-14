@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { AssociateModal } from "@/components/associate-modal";
 import { Button, FormError } from "@/components/form";
 import { CandidateDocuments } from "@/components/candidate-documents";
+import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
 import { candidateName } from "@/components/new-candidate-modal";
 import {
@@ -21,6 +25,7 @@ export default function CandidateRecordPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const utils = trpc.useUtils();
+  const [associating, setAssociating] = useState(false);
 
   const me = trpc.auth.me.useQuery();
   const candidate = trpc.candidates.get.useQuery({ id: params.id });
@@ -313,6 +318,45 @@ export default function CandidateRecordPage() {
         />
       </RecordSection>
 
+      <RecordSection
+        title={`Applications (${record.applications.length})`}
+        actions={
+          canEdit ? (
+            <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
+              Add to job
+            </Button>
+          ) : null
+        }
+      >
+        {record.applications.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">Not on any job pipeline yet.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--border)]">
+            {record.applications.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <Link
+                  href={`/jobs/${a.jobId}`}
+                  className="font-medium hover:text-[var(--accent)] hover:underline"
+                >
+                  {a.jobTitle}
+                </Link>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-[var(--muted)]">
+                    {STAGE_LABELS[a.stage as ApplicationStageKey] ?? a.stage}
+                  </span>
+                  <Link
+                    href={`/applications/${a.id}`}
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    Open
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </RecordSection>
+
       {record.tags.length > 0 ? (
         <RecordSection title="Tags">
           <div className="flex flex-wrap gap-2">
@@ -332,6 +376,13 @@ export default function CandidateRecordPage() {
         Created {new Date(record.createdAt).toLocaleString()} - Last updated{" "}
         {new Date(record.updatedAt).toLocaleString()}
       </p>
+
+      <AssociateModal
+        open={associating}
+        onClose={() => setAssociating(false)}
+        candidateId={record.id}
+        onCreated={() => utils.candidates.get.invalidate({ id: record.id })}
+      />
     </RecordShell>
   );
 }

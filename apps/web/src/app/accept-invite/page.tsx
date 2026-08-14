@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Button, FormError, Input, Label } from "@/components/form";
+import { LogoFull } from "@/components/logo";
 import { trpc } from "@/lib/trpc/client";
 
 function AcceptInviteCard() {
@@ -127,11 +128,8 @@ export default function AcceptInvitePage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--background)] p-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--accent)] text-sm font-bold text-white">
-            E
-          </span>
-          <span className="text-lg font-semibold">Emerge CRM</span>
+        <div className="mb-6 flex items-center justify-center">
+          <LogoFull />
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-6">
           <Suspense>

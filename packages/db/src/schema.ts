@@ -496,6 +496,115 @@ export const jobs = pgTable(
   ]
 );
 
+// ---------------------------------------------------------------------------
+// M5: applications (candidate x job) - the pipeline
+// The Application is the product's heart (Zoho: 756 records). Coarse 7-value
+// stage drives the kanban; a finer, workspace-configurable status dictionary
+// (13 seeded Zoho values incl. the client-submission loop) carries detail; an
+// append-only history records every transition for funnels + migration (M8).
+// ---------------------------------------------------------------------------
+
+export const applicationStage = pgEnum("application_stage", [
+  "screening",
+  "submitted",
+  "interview",
+  "offered",
+  "hired",
+  "rejected",
+  "archived"
+]);
+export type ApplicationStage = (typeof applicationStage.enumValues)[number];
+
+/** Per-workspace status dictionary; seeded with the Zoho values we use. */
+export const applicationStatuses = pgTable(
+  "application_statuses",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Stable machine key, e.g. "submitted_to_client". */
+    key: text("key").notNull(),
+    label: text("label").notNull(),
+    stage: applicationStage("stage").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    /** The default status a new application (or a kanban drop into a stage) lands on. */
+    isEntry: boolean("is_entry").notNull().default(false),
+    /** A resting/end status (hired, rejected, archived, ...). */
+    isTerminal: boolean("is_terminal").notNull().default(false),
+    createdAt: createdAt()
+  },
+  (t) => [uniqueIndex("application_statuses_workspace_key_unique").on(t.workspaceId, t.key)]
+);
+
+export const applications = pgTable(
+  "applications",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Human id e.g. APP-0001, unique per workspace, from `counters`. */
+    humanId: text("human_id").notNull(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => candidates.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    /** Coarse pipeline stage (kanban column); kept in sync with `statusKey`. */
+    stage: applicationStage("stage").notNull().default("screening"),
+    /** Fine status key into `application_statuses` for this workspace. */
+    statusKey: text("status_key").notNull().default("associated"),
+    rejectionReason: text("rejection_reason"),
+    /** 1-5 recruiter rating, optional. */
+    rating: integer("rating"),
+    /** The sourcer who owns this application. */
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    source: text("source"),
+    /** When the application entered its current stage (time-in-stage). */
+    stageEnteredAt: timestamp("stage_entered_at", { withTimezone: true }).notNull().defaultNow(),
+    customFields: jsonb("custom_fields").$type<Record<string, unknown>>(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("applications_workspace_idx").on(t.workspaceId, t.deletedAt),
+    index("applications_job_stage_idx").on(t.workspaceId, t.jobId, t.stage),
+    index("applications_workspace_stage_idx").on(t.workspaceId, t.stage),
+    index("applications_candidate_idx").on(t.workspaceId, t.candidateId),
+    uniqueIndex("applications_workspace_candidate_job_unique").on(
+      t.workspaceId,
+      t.candidateId,
+      t.jobId
+    ),
+    uniqueIndex("applications_workspace_human_id_unique").on(t.workspaceId, t.humanId)
+  ]
+);
+
+/** Append-only transition log for every application status/stage change. */
+export const applicationStatusHistory = pgTable(
+  "application_status_history",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    fromStatusKey: text("from_status_key"),
+    toStatusKey: text("to_status_key").notNull(),
+    fromStage: applicationStage("from_stage"),
+    toStage: applicationStage("to_stage").notNull(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    note: text("note"),
+    createdAt: createdAt()
+  },
+  (t) => [index("application_status_history_idx").on(t.workspaceId, t.applicationId, t.createdAt)]
+);
+
 /** Minimal audit trail: auth events + member/role changes (M1). */
 export const auditLog = pgTable(
   "audit_log",
