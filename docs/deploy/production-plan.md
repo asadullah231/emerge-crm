@@ -1,6 +1,6 @@
 # Production Deployment Plan — Emerge CRM
 
-Target: **https://emergeautomation.tech**
+Target: **https://crm.emergeautomation.tech**
 Status: **DECISIONS LOCKED 14 Aug 2026** — Option A + Hostinger DNS + Resend
 SMTP + Cloudflare R2 backup. Review PR opened with compose/health/runbook.
 Rule: M1–M5 functionality, DB schema, and completed milestones stay untouched.
@@ -150,7 +150,7 @@ public internet; internal containers keep using the aliases.
   - **Resend** or **Postmark** for transactional (mention notifications,
     invitations) — cheapest, easy DKIM. Adds `SMTP_HOST/PORT/USER/PASS/FROM`.
   - Or SES if you already have AWS.
-- `NEXT_PUBLIC_APP_URL=https://emergeautomation.tech`.
+- `NEXT_PUBLIC_APP_URL=https://crm.emergeautomation.tech`.
 
 ### 4.5 Database
 
@@ -252,7 +252,7 @@ public internet; internal containers keep using the aliases.
      `.env` to match; restart web + worker.
    - `docker compose up -d web worker`.
 6. Wait for Let's Encrypt to issue certs (usually < 60 s).
-7. `curl https://emergeautomation.tech/api/health` → expect 200.
+7. `curl https://crm.crm.emergeautomation.tech/api/health` → expect 200.
 8. Log in as Asad, spot-check the imported dataset renders (Porsche
    Consulting benchmark chain from Phase B).
 9. Enable the backup cron; run one manual dump to confirm it lands in the

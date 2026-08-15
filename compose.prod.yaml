@@ -62,7 +62,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_SECURE: ${SMTP_SECURE:-}
       SMTP_FROM: ${SMTP_FROM:-no-reply@emergeautomation.tech}
-      NEXT_PUBLIC_APP_URL: https://emergeautomation.tech
+      NEXT_PUBLIC_APP_URL: https://crm.emergeautomation.tech
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 15s
@@ -70,20 +70,17 @@ services:
       retries: 10
       start_period: 60s
     labels:
+      # CRM lives on the crm subdomain so the apex stays free for other
+      # emergeautomation.tech services.
       - traefik.enable=true
       - traefik.docker.network=root_traefik_network
-      - traefik.http.routers.emerge-web.rule=Host(`emergeautomation.tech`) || Host(`www.emergeautomation.tech`)
+      - traefik.http.routers.emerge-web.rule=Host(`crm.emergeautomation.tech`)
       - traefik.http.routers.emerge-web.entrypoints=websecure
       - traefik.http.routers.emerge-web.tls=true
       - traefik.http.routers.emerge-web.tls.certresolver=myresolver
       - traefik.http.services.emerge-web.loadbalancer.server.port=3000
       - traefik.http.services.emerge-web.loadbalancer.healthcheck.path=/api/health
       - traefik.http.services.emerge-web.loadbalancer.healthcheck.interval=30s
-      # www.emergeautomation.tech -> emergeautomation.tech
-      - traefik.http.middlewares.www-redirect.redirectregex.regex=^https?://www\.emergeautomation\.tech/(.*)
-      - traefik.http.middlewares.www-redirect.redirectregex.replacement=https://emergeautomation.tech/$$1
-      - traefik.http.middlewares.www-redirect.redirectregex.permanent=true
-      - traefik.http.routers.emerge-web.middlewares=www-redirect
     networks:
       - root_traefik_network
       - emerge_net

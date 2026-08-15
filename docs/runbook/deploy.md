@@ -18,7 +18,7 @@ docker compose -f compose.prod.yaml --env-file /opt/emerge/.env exec web \
   pnpm --filter @emerge/db migrate
 
 # Verify
-curl -sSf https://emergeautomation.tech/api/health | jq
+curl -sSf https://crm.crm.emergeautomation.tech/api/health | jq
 ```
 
 ## Zero-downtime notes

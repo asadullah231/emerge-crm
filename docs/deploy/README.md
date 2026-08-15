@@ -1,6 +1,6 @@
 # Emerge CRM — production deploy runbook
 
-Domain: **https://emergeautomation.tech**
+Domain: **https://crm.emergeautomation.tech**
 Host: Hostinger VPS `187.127.75.106`
 DB: Postgres 16 (bind-mounted `/opt/emerge/data/postgres`)
 Queue: Redis 7 with AOF (`/opt/emerge/data/redis`)
@@ -135,11 +135,11 @@ systemctl enable emerge-crm
 
 ```bash
 # From anywhere on the internet:
-curl -sSf https://emergeautomation.tech/api/health | jq
+curl -sSf https://crm.crm.emergeautomation.tech/api/health | jq
 # Expect {"status":"ok", ...} with all four checks true.
 
 # Cert issued?
-curl -sI https://emergeautomation.tech | head -1  # HTTP/2 200
+curl -sI https://crm.emergeautomation.tech | head -1  # HTTP/2 200
 
 # Log in as Asad via the browser, spot-check the imported Porsche Consulting
 # benchmark chain (client -> job -> 38 applications).
@@ -157,7 +157,7 @@ docker exec emerge-backup /usr/local/bin/minio-mirror.sh
 
 ### 1.10 Uptime monitor
 
-Add a check in the n8n uptime workflow: `GET https://emergeautomation.tech/api/health`,
+Add a check in the n8n uptime workflow: `GET https://crm.crm.emergeautomation.tech/api/health`,
 every 5 minutes. Alert channel: WhatsApp channel (per project conventions).
 
 ---

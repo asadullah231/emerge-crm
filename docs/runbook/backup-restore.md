@@ -64,7 +64,7 @@ docker compose -f /opt/emerge/app/compose.prod.yaml run --rm web \
 
 # 5. Start the app again.
 docker compose -f /opt/emerge/app/compose.prod.yaml start web worker
-curl -sSf https://emergeautomation.tech/api/health
+curl -sSf https://crm.crm.emergeautomation.tech/api/health
 ```
 
 ## Restore — MinIO attachments

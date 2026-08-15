@@ -10,7 +10,7 @@ git fetch --tags
 git checkout v0.7.0             # or whatever the last-good tag is
 docker compose -f compose.prod.yaml --env-file /opt/emerge/.env build web worker
 docker compose -f compose.prod.yaml --env-file /opt/emerge/.env up -d web worker
-curl -sSf https://emergeautomation.tech/api/health
+curl -sSf https://crm.crm.emergeautomation.tech/api/health
 ```
 
 Traefik keeps serving the old cert; DNS unchanged.
