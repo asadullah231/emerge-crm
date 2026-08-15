@@ -13,6 +13,7 @@ import { membersRouter } from "./members";
 import { notesRouter } from "./notes";
 import { notificationsRouter } from "./notifications";
 import { parsingRouter } from "./parsing";
+import { searchRouter } from "./search";
 import { tagsRouter } from "./tags";
 import { timelineRouter } from "./timeline";
 import { workspaceRouter } from "./workspace";
@@ -40,6 +41,7 @@ export const appRouter = router({
   notes: notesRouter,
   notifications: notificationsRouter,
   parsing: parsingRouter,
+  search: searchRouter,
   timeline: timelineRouter
 });
 

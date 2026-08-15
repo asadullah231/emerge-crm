@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@emerge/ui";
+import { CommandPalette } from "./command-palette";
 
 const STORAGE_KEY = "emerge:sidebar:collapsed";
 
@@ -92,10 +93,19 @@ export function AppShell({
               </span>
             </button>
           ) : null}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event("emerge:search"))}
+            className="hidden items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] sm:flex"
+          >
+            <span>Search</span>
+            <kbd className="rounded bg-[var(--card)] px-1.5 py-0.5 text-xs">Ctrl K</kbd>
+          </button>
           <div className="ml-auto flex items-center gap-3">{headerRight}</div>
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>
+      <CommandPalette />
     </div>
   );
 }
