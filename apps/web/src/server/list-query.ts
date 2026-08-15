@@ -12,6 +12,8 @@ export const listInput = z.object({
   sortBy: z.string().max(50).optional(),
   sortDir: z.enum(["asc", "desc"]).default("asc"),
   search: z.string().trim().max(200).optional(),
+  /** Restrict to records carrying every one of these tags (AND semantics). */
+  tagIds: z.array(z.string().uuid()).max(20).optional(),
   /** true = trash view (soft-deleted rows only). */
   deleted: z.boolean().default(false)
 });

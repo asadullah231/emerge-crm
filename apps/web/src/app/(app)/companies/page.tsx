@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn, type SortState } from "@/components/da
 import { Button, FormError, Input, Label } from "@/components/form";
 import { Modal } from "@/components/modal";
 import { COMPANY_STATUS_OPTIONS, DuplicateWarning, StatusBadge } from "@/components/record";
+import { TagFilter } from "@/components/tag-editor";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
 
@@ -135,6 +136,7 @@ export default function CompaniesPage() {
   const [sort, setSort] = useState<SortState>({ by: "name", dir: "asc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [tagIds, setTagIds] = useState<string[]>([]);
   const debouncedSearch = useDebounced(search.trim());
 
   const list = trpc.companies.list.useQuery({
@@ -143,6 +145,7 @@ export default function CompaniesPage() {
     sortBy: sort.by,
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
     deleted: showTrash
   });
 
@@ -234,6 +237,16 @@ export default function CompaniesPage() {
         className="max-w-md"
         aria-label="Search companies"
       />
+
+      {!showTrash ? (
+        <TagFilter
+          selected={tagIds}
+          onChange={(ids) => {
+            setTagIds(ids);
+            setPage(1);
+          }}
+        />
+      ) : null}
 
       <FormError message={list.error?.message ?? restore.error?.message} />
 

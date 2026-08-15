@@ -19,6 +19,7 @@ import {
   RecordShell
 } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
+import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
 
@@ -368,20 +369,15 @@ export default function JobRecordPage() {
         <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
       </RecordSection>
 
-      {record.tags.length > 0 ? (
-        <RecordSection title="Tags">
-          <div className="flex flex-wrap gap-2">
-            {record.tags.map((t) => (
-              <span
-                key={t.id}
-                className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-xs"
-              >
-                {t.name}
-              </span>
-            ))}
-          </div>
-        </RecordSection>
-      ) : null}
+      <RecordSection title="Tags">
+        <TagEditor
+          entityType="job"
+          entityId={record.id}
+          tags={record.tags}
+          canWrite={canEdit}
+          onChanged={() => utils.jobs.get.invalidate({ id: record.id })}
+        />
+      </RecordSection>
 
       <p className="text-xs text-[var(--muted)]">
         Opened {new Date(record.openedAt).toLocaleDateString()} - Last updated{" "}

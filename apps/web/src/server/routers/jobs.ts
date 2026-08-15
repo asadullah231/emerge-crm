@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, eq, gte, isNull, isNotNull } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, isNull, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import {
   applications,
@@ -16,7 +16,7 @@ import { writeAudit } from "../audit";
 import { humanId, nextCounter } from "../counters";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
-import { entityTags } from "./tags";
+import { entityTags, taggedEntityIds } from "./tags";
 import type { Transaction } from "@emerge/db";
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
@@ -91,7 +91,11 @@ export const jobsRouter = router({
     const deletedWhere = input.deleted
       ? and(isNotNull(jobs.deletedAt), gte(jobs.deletedAt, trashCutoff()))
       : isNull(jobs.deletedAt);
-    const where = and(deletedWhere, searchWhere);
+    const tagWhere =
+      input.tagIds && input.tagIds.length > 0
+        ? inArray(jobs.id, taggedEntityIds(ctx.tx, "job", input.tagIds))
+        : undefined;
+    const where = and(deletedWhere, searchWhere, tagWhere);
 
     const [rows, [totalRow]] = await Promise.all([
       ctx.tx

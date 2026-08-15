@@ -6,6 +6,7 @@ import { Button, FormError } from "@/components/form";
 import { contactName } from "@/components/new-contact-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
+import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
 
@@ -240,20 +241,15 @@ export default function ContactRecordPage() {
         </FieldGrid>
       </RecordSection>
 
-      {record.tags.length > 0 ? (
-        <RecordSection title="Tags">
-          <div className="flex flex-wrap gap-2">
-            {record.tags.map((t) => (
-              <span
-                key={t.id}
-                className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-xs"
-              >
-                {t.name}
-              </span>
-            ))}
-          </div>
-        </RecordSection>
-      ) : null}
+      <RecordSection title="Tags">
+        <TagEditor
+          entityType="contact"
+          entityId={record.id}
+          tags={record.tags}
+          canWrite={canEdit}
+          onChanged={() => utils.contacts.get.invalidate({ id: record.id })}
+        />
+      </RecordSection>
 
       <p className="text-xs text-[var(--muted)]">
         Created {new Date(record.createdAt).toLocaleString()} - Last updated{" "}

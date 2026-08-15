@@ -1,11 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, ilike, isNull, isNotNull, ne, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, isNotNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { companies, companyStatus, contacts, users } from "@emerge/db";
 import { writeAudit } from "../audit";
 import { buildListClauses, listInput, normalizeDomain, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
-import { entityTags } from "./tags";
+import { entityTags, taggedEntityIds } from "./tags";
 
 const companyInput = z.object({
   name: z.string().trim().min(1, "Company name is required").max(255),
@@ -38,7 +38,11 @@ export const companiesRouter = router({
     const deletedWhere = input.deleted
       ? and(isNotNull(companies.deletedAt), gte(companies.deletedAt, trashCutoff()))
       : isNull(companies.deletedAt);
-    const where = and(deletedWhere, searchWhere);
+    const tagWhere =
+      input.tagIds && input.tagIds.length > 0
+        ? inArray(companies.id, taggedEntityIds(ctx.tx, "company", input.tagIds))
+        : undefined;
+    const where = and(deletedWhere, searchWhere, tagWhere);
 
     const [rows, [totalRow]] = await Promise.all([
       ctx.tx

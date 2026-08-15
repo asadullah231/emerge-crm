@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn, type SortState } from "@/components/da
 import { Button, FormError, Input } from "@/components/form";
 import { NewJobModal } from "@/components/new-job-modal";
 import { JobStatusBadge } from "@/components/record";
+import { TagFilter } from "@/components/tag-editor";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
 
@@ -22,6 +23,7 @@ export default function JobsPage() {
   const [sort, setSort] = useState<SortState>({ by: "openedAt", dir: "desc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [tagIds, setTagIds] = useState<string[]>([]);
   const debouncedSearch = useDebounced(search.trim());
 
   const list = trpc.jobs.list.useQuery({
@@ -30,6 +32,7 @@ export default function JobsPage() {
     sortBy: sort.by,
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
     deleted: showTrash
   });
 
@@ -133,6 +136,16 @@ export default function JobsPage() {
         className="max-w-md"
         aria-label="Search jobs"
       />
+
+      {!showTrash ? (
+        <TagFilter
+          selected={tagIds}
+          onChange={(ids) => {
+            setTagIds(ids);
+            setPage(1);
+          }}
+        />
+      ) : null}
 
       <FormError message={list.error?.message ?? restore.error?.message} />
 

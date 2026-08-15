@@ -1,11 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, eq, gte, isNull, isNotNull, ne, or } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, isNull, isNotNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { companies, contacts, users, type Transaction } from "@emerge/db";
 import { writeAudit } from "../audit";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
-import { entityTags } from "./tags";
+import { entityTags, taggedEntityIds } from "./tags";
 
 const contactInput = z.object({
   firstName: z.string().trim().max(125).nullable().optional(),
@@ -87,7 +87,11 @@ export const contactsRouter = router({
     const deletedWhere = input.deleted
       ? and(isNotNull(contacts.deletedAt), gte(contacts.deletedAt, trashCutoff()))
       : isNull(contacts.deletedAt);
-    const where = and(deletedWhere, searchWhere);
+    const tagWhere =
+      input.tagIds && input.tagIds.length > 0
+        ? inArray(contacts.id, taggedEntityIds(ctx.tx, "contact", input.tagIds))
+        : undefined;
+    const where = and(deletedWhere, searchWhere, tagWhere);
 
     const [rows, [totalRow]] = await Promise.all([
       ctx.tx

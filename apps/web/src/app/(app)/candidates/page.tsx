@@ -7,6 +7,7 @@ import { DataTable, type DataTableColumn, type SortState } from "@/components/da
 import { Button, FormError, Input } from "@/components/form";
 import { NewCandidateModal, candidateName } from "@/components/new-candidate-modal";
 import { SourceBadge } from "@/components/record";
+import { TagFilter } from "@/components/tag-editor";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
 
@@ -23,6 +24,7 @@ export default function CandidatesPage() {
   const [sort, setSort] = useState<SortState>({ by: "lastName", dir: "asc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [tagIds, setTagIds] = useState<string[]>([]);
   const debouncedSearch = useDebounced(search.trim());
 
   const list = trpc.candidates.list.useQuery({
@@ -31,6 +33,7 @@ export default function CandidatesPage() {
     sortBy: sort.by,
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
     deleted: showTrash
   });
 
@@ -146,6 +149,16 @@ export default function CandidatesPage() {
         className="max-w-md"
         aria-label="Search candidates"
       />
+
+      {!showTrash ? (
+        <TagFilter
+          selected={tagIds}
+          onChange={(ids) => {
+            setTagIds(ids);
+            setPage(1);
+          }}
+        />
+      ) : null}
 
       <FormError message={list.error?.message ?? restore.error?.message} />
 
