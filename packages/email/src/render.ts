@@ -24,33 +24,20 @@ export function escapeHtml(value: string): string {
 }
 
 /**
- * Brand lockup for the header: a rounded navy tile with three teal bars (a nod
- * to the EmergeTech mark, drawn with bgcolor cells so Outlook renders it) next
- * to the "Emerge CRM" wordmark. No image = never blocked, identical everywhere.
+ * Brand lockup for the header: the official EmergeTech mark (a hosted PNG, since
+ * Gmail/Outlook do not reliably render SVG) next to the "EmergeTech" wordmark.
+ * The `alt` text carries the brand name so it still reads if images are blocked.
  */
 export function logoLockup(): string {
-  const bar = (w: number) =>
-    `<tr><td style="padding:0 0 3px 0;line-height:0;font-size:0;">` +
-    `<div style="width:${w}px;height:4px;background-color:${brand.teal};border-radius:2px;line-height:4px;font-size:0;">&nbsp;</div>` +
-    `</td></tr>`;
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
     <tr>
-      <td width="44" style="width:44px;vertical-align:middle;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="44" height="44"
-          style="width:44px;height:44px;background-color:${brand.navy};border-radius:11px;">
-          <tr>
-            <td align="center" valign="middle" style="padding:0;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                ${bar(22)}${bar(16)}${bar(19)}
-              </table>
-            </td>
-          </tr>
-        </table>
+      <td width="44" style="width:44px;vertical-align:middle;line-height:0;">
+        <img src="${company.logoUrl}" width="44" height="44" alt="${escapeHtml(company.brand)}"
+          style="display:block;width:44px;height:44px;border:0;outline:none;text-decoration:none;border-radius:11px;" />
       </td>
       <td style="padding-left:12px;vertical-align:middle;">
-        <span style="font-family:${fontStack};font-size:19px;font-weight:700;letter-spacing:-0.2px;color:${brand.navy};">Emerge</span>
-        <span style="font-family:${fontStack};font-size:19px;font-weight:700;letter-spacing:-0.2px;color:${brand.teal};">&nbsp;CRM</span>
+        <span style="font-family:${fontStack};font-size:19px;font-weight:700;letter-spacing:-0.2px;color:${brand.navy};">Emerge</span><span style="font-family:${fontStack};font-size:19px;font-weight:700;letter-spacing:-0.2px;color:${brand.teal};">Tech</span>
       </td>
     </tr>
   </table>`;
@@ -123,7 +110,7 @@ export function button(opts: { href: string; label: string }): string {
       <![endif]-->
       <!--[if !mso]><!-- -->
       <a href="${href}" target="_blank"
-        style="display:inline-block;padding:15px 34px;font-family:${fontStack};font-size:16px;font-weight:600;line-height:20px;color:#ffffff;text-decoration:none;border-radius:10px;background-color:${brand.navy};">${label}</a>
+        style="display:inline-block;padding:15px 34px;font-family:${fontStack};font-size:16px;font-weight:600;line-height:20px;color:#ffffff;text-decoration:none;border-radius:10px;background-color:${brand.navy};mso-padding-alt:0;"><span style="color:#ffffff;text-decoration:none;">${label}</span></a>
       <!--<![endif]-->
     </td></tr>
   </table>`;
@@ -215,18 +202,18 @@ export function layout(opts: { previewText: string; contentHtml: string }): stri
           <tr><td class="px" style="padding:26px 8px 8px 8px;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
               <tr><td style="padding:0 0 8px 0;font-family:${fontStack};font-size:14px;font-weight:600;color:${brand.text};">
-                ${escapeHtml(company.product)}
+                ${escapeHtml(company.brand)}
               </td></tr>
-              <tr><td style="padding:0 0 14px 0;font-family:${fontStack};font-size:13px;line-height:20px;color:${brand.textSubtle};">
-                <a href="${company.siteUrl}" target="_blank" style="color:${brand.textSubtle};text-decoration:none;">${escapeHtml(
-                  company.domain
+              <tr><td style="padding:0 0 14px 0;font-family:${fontStack};font-size:13px;line-height:20px;">
+                <a href="${company.website}" target="_blank" style="color:${brand.teal};text-decoration:none;">${escapeHtml(
+                  company.websiteLabel
                 )}</a>
               </td></tr>
               <tr><td style="padding:0;font-family:${fontStack};font-size:12px;line-height:18px;color:${brand.textSubtle};">
                 You received this email because someone invited you to or requested access on ${escapeHtml(
                   company.product
                 )}. If this wasn't you, you can safely ignore it.
-                <br />&copy; ${year} ${escapeHtml(company.product)}.
+                <br />&copy; ${year} ${escapeHtml(company.brand)}.
               </td></tr>
             </table>
           </td></tr>

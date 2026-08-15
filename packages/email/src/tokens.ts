@@ -31,8 +31,14 @@ export const fontStack =
 /** The product/company identity shown in every email. */
 export const company = {
   product: "Emerge CRM",
+  brand: "EmergeTech",
   domain: "emergeautomation.tech",
-  siteUrl: "https://emergeautomation.tech"
+  siteUrl: "https://emergeautomation.tech",
+  /** Company marketing site, shown in the footer. */
+  website: "https://www.emergetech.co.uk",
+  websiteLabel: "emergetech.co.uk",
+  /** Hosted PNG of the official EmergeTech mark (SVG is unreliable in email). */
+  logoUrl: "https://crm.emergeautomation.tech/email/emergetech-logo.png"
 } as const;
 
 /** Fixed content width - the safe, universally-supported email column. */

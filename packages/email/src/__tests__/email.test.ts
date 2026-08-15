@@ -30,7 +30,8 @@ describe("renderInvitationEmail", () => {
     expect(r.html).toContain(base.acceptUrl);
     expect(r.html).toContain("expires in");
     expect(r.html).toContain("Copy and paste this link"); // fallback
-    expect(r.html).toContain("emergeautomation.tech"); // footer
+    expect(r.html).toContain("emergetech-logo.png"); // official EmergeTech logo image
+    expect(r.html).toContain("emergetech.co.uk"); // company website in footer
   });
 
   it("shows workspace + inviter in the info card and heading strongly", () => {
