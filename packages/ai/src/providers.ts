@@ -113,9 +113,10 @@ export const AI_PROVIDERS: AiProviderPreset[] = [
   }
 ];
 
-export const AI_PROVIDER_BY_KEY = Object.fromEntries(
-  AI_PROVIDERS.map((p) => [p.key, p])
-) as Record<AiProviderKey, AiProviderPreset>;
+export const AI_PROVIDER_BY_KEY = Object.fromEntries(AI_PROVIDERS.map((p) => [p.key, p])) as Record<
+  AiProviderKey,
+  AiProviderPreset
+>;
 
 /** A resolved, ready-to-call provider configuration. */
 export interface AiConfig {

@@ -158,9 +158,10 @@ export const dashboardRouter = router({
       ]);
 
       // Stage counts, all stages present (0 when absent).
-      const stageCounts = Object.fromEntries(
-        APPLICATION_STAGES.map((s) => [s, 0])
-      ) as Record<ApplicationStageKey, number>;
+      const stageCounts = Object.fromEntries(APPLICATION_STAGES.map((s) => [s, 0])) as Record<
+        ApplicationStageKey,
+        number
+      >;
       for (const r of stageRows) stageCounts[r.stage as ApplicationStageKey] = Number(r.c);
 
       const pipeline = APPLICATION_STAGES.map((stage) => ({
@@ -172,7 +173,8 @@ export const dashboardRouter = router({
       // Time-to-hire: days between application creation and reaching hired.
       const hiredAtById = new Map<string, number>();
       for (const h of hiredHistRows) {
-        if (h.applicationId && h.hiredAt) hiredAtById.set(h.applicationId, new Date(h.hiredAt).getTime());
+        if (h.applicationId && h.hiredAt)
+          hiredAtById.set(h.applicationId, new Date(h.hiredAt).getTime());
       }
       const hireDurations: number[] = [];
       const earliestHireByJob = new Map<string, number>();

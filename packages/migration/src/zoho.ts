@@ -133,7 +133,11 @@ export class ZohoClient {
       `&grant_type=refresh_token`;
     const res = await this.fetchImpl(url, { method: "POST" });
     if (!res.ok) throw new Error(`Zoho token refresh failed: HTTP ${res.status}`);
-    const body = (await res.json()) as { access_token?: string; expires_in?: number; error?: string };
+    const body = (await res.json()) as {
+      access_token?: string;
+      expires_in?: number;
+      error?: string;
+    };
     if (!body.access_token) throw new Error(`Zoho token refresh: no access_token (${body.error})`);
     this.token = {
       value: body.access_token,
@@ -202,7 +206,8 @@ export class ZohoClient {
       "binary",
       { retryClientError: true }
     );
-    if (!res.ok) throw new Error(`download ${module}/${recordId}/${attachmentId}: HTTP ${res.status}`);
+    if (!res.ok)
+      throw new Error(`download ${module}/${recordId}/${attachmentId}: HTTP ${res.status}`);
     const bytes = Buffer.from(await res.arrayBuffer());
     return { bytes, contentType: res.headers.get("Content-Type") };
   }

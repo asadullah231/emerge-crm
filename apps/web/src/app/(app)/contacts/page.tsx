@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
+import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { NewContactModal, contactName } from "@/components/new-contact-modal";
 import { TagFilter } from "@/components/tag-editor";
+import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
+import { useRowSelection } from "@/lib/use-row-selection";
 
 type ContactRow = RouterOutputs["contacts"]["list"]["rows"][number];
 
@@ -24,6 +27,7 @@ export default function ContactsPage() {
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const debouncedSearch = useDebounced(search.trim());
+  const sel = useRowSelection();
 
   const list = trpc.contacts.list.useQuery({
     page,
@@ -34,6 +38,26 @@ export default function ContactsPage() {
     tagIds: tagIds.length > 0 ? tagIds : undefined,
     deleted: showTrash
   });
+
+  useEffect(
+    () => sel.clear(),
+    [debouncedSearch, tagIds, showTrash, page, sort.by, sort.dir, sel.clear]
+  );
+
+  const CSV_COLUMNS: CsvColumn<ContactRow>[] = [
+    { label: "First name", value: (r) => r.firstName },
+    { label: "Last name", value: (r) => r.lastName },
+    { label: "Title", value: (r) => r.title },
+    { label: "Email", value: (r) => r.email },
+    { label: "Secondary email", value: (r) => r.secondaryEmail },
+    { label: "Work phone", value: (r) => r.workPhone },
+    { label: "Mobile", value: (r) => r.mobile },
+    { label: "Company", value: (r) => r.companyName }
+  ];
+  const exportSelected = () => {
+    const chosen = (list.data?.rows ?? []).filter((r) => sel.selectedIds.has(r.id));
+    downloadCsv(`contacts-${chosen.length}.csv`, toCsv(chosen, CSV_COLUMNS));
+  };
 
   const restore = trpc.contacts.restore.useMutation({
     onSuccess: () => utils.contacts.list.invalidate()
@@ -144,6 +168,16 @@ export default function ContactsPage() {
 
       <FormError message={list.error?.message ?? restore.error?.message} />
 
+      <BulkBar
+        entityType="contact"
+        selectedIds={sel.ids}
+        canWrite={canWrite}
+        showTrash={showTrash}
+        onClear={sel.clear}
+        onDone={() => utils.contacts.list.invalidate()}
+        onExport={exportSelected}
+      />
+
       <DataTable
         columns={columns}
         rows={list.data?.rows ?? []}
@@ -159,6 +193,11 @@ export default function ContactsPage() {
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/contacts/${row.id}`)}
         isLoading={list.isLoading}
+        selection={{
+          selectedIds: sel.selectedIds,
+          onToggleRow: sel.toggleRow,
+          onTogglePage: sel.togglePage
+        }}
         emptyMessage={
           showTrash
             ? "Trash is empty. Deleted contacts stay here for 30 days."

@@ -20,7 +20,7 @@ const PROMPT = [
   "- skills: a single comma-separated string of the candidate's skills/technologies.",
   "- experienceYears: total years of professional experience if stated or clearly computable, else null.",
   "- education[]: institution/degree/fieldOfStudy/startYear/endYear (years as integers or null).",
-  "- experience[]: company/title/startDate/endDate (free text like \"Mar 2019\"), isCurrent, summary.",
+  '- experience[]: company/title/startDate/endDate (free text like "Mar 2019"), isCurrent, summary.',
   "- Preserve the CV's language for free-text values; do not translate."
 ].join("\n");
 
@@ -107,8 +107,7 @@ export async function parseResume(cfg: AiConfig, file: CvFile): Promise<ParsedRe
   const native = AI_PROVIDER_BY_KEY[cfg.provider]?.native ?? "openai";
   const input = await prepareInput(file.buffer, file.mime, file.filename, native);
 
-  const raw =
-    native === "anthropic" ? await viaAnthropic(cfg, input) : await viaOpenAI(cfg, input);
+  const raw = native === "anthropic" ? await viaAnthropic(cfg, input) : await viaOpenAI(cfg, input);
   return parsedResumeSchema.parse(raw);
 }
 
@@ -126,17 +125,29 @@ async function viaAnthropic(
           },
           { type: "text", text: PROMPT }
         ]
-      : [{ type: "text", text: `${PROMPT}\n\n--- CV TEXT ---\n${input.text.slice(0, MAX_TEXT_CHARS)}` }];
+      : [
+          {
+            type: "text",
+            text: `${PROMPT}\n\n--- CV TEXT ---\n${input.text.slice(0, MAX_TEXT_CHARS)}`
+          }
+        ];
 
   const message = await client.messages.create({
     model: cfg.model,
     max_tokens: 4096,
-    tools: [{ name: TOOL_NAME, description: "Emit structured CV data.", input_schema: JSON_SCHEMA as unknown as Anthropic.Tool.InputSchema }],
+    tools: [
+      {
+        name: TOOL_NAME,
+        description: "Emit structured CV data.",
+        input_schema: JSON_SCHEMA as unknown as Anthropic.Tool.InputSchema
+      }
+    ],
     tool_choice: { type: "tool", name: TOOL_NAME },
     messages: [{ role: "user", content }]
   });
   const toolUse = message.content.find((b) => b.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") throw new Error("parser returned no structured output");
+  if (!toolUse || toolUse.type !== "tool_use")
+    throw new Error("parser returned no structured output");
   return toolUse.input;
 }
 
@@ -155,7 +166,11 @@ async function viaOpenAI(
     tools: [
       {
         type: "function",
-        function: { name: TOOL_NAME, description: "Emit structured CV data.", parameters: JSON_SCHEMA }
+        function: {
+          name: TOOL_NAME,
+          description: "Emit structured CV data.",
+          parameters: JSON_SCHEMA
+        }
       }
     ],
     tool_choice: { type: "function", function: { name: TOOL_NAME } }

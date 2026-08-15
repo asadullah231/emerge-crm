@@ -20,6 +20,7 @@ map (source of truth for schema decisions); section 4 is what has to happen for
 each gap to close; section 5 is the recommended build order.
 
 **Prior work this audit supersedes/extends:**
+
 - `docs/audit/zoho-data-migration-map.md` (2026-08-14) - data + field map. Still
   correct for data; extended here with feature parity.
 - `docs/milestones/*.md` - completed M1-M6 + M8.
@@ -28,14 +29,14 @@ each gap to close; section 5 is the recommended build order.
 
 ## 0. Live counts (2026-08-15 home tile)
 
-| Tile         | Zoho | Emerge staging (Emergetech workspace, post-cutover) |
-| ------------ | ---: | --------------------------------------------------: |
-| Active Jobs  |   96 |                                                  95 (open) + 1 filled + 2 inactive + 2 cancelled + 1 on_hold - matches Zoho |
-| Applicants   |  767 |                                              1,298 candidates (Zoho tile counts pipeline applicants only, not sourced) |
-| Interviews   |    0 |                                                   - (module not built) |
-| Submissions  |    0 |                                                   - (folded into application_status_history) |
-| Hires        |    0 |                                                    0 (matches) |
-| Notes        |  n/a |                                              1,218 notes migrated (712/460/40/6 by parent type) |
+| Tile        | Zoho |                        Emerge staging (Emergetech workspace, post-cutover) |
+| ----------- | ---: | -------------------------------------------------------------------------: |
+| Active Jobs |   96 | 95 (open) + 1 filled + 2 inactive + 2 cancelled + 1 on_hold - matches Zoho |
+| Applicants  |  767 |  1,298 candidates (Zoho tile counts pipeline applicants only, not sourced) |
+| Interviews  |    0 |                                                       - (module not built) |
+| Submissions |    0 |                                 - (folded into application_status_history) |
+| Hires       |    0 |                                                                0 (matches) |
+| Notes       |  n/a |                         1,218 notes migrated (712/460/40/6 by parent type) |
 
 Pipeline view visible on Zoho home matches Emerge kanban: **Screening,
 Submissions, Interview, Offered, Hired, Rejected, Archived** - same 7 stages,
@@ -51,27 +52,27 @@ or disabled; "config" = template/setting exists, no records.
 
 ### 1.1 Modules (from `GET /settings/modules`, all 19 tabs)
 
-| # | api_name | Plural | parent | Global search | Creatable | Filter | Scoring | Blueprint | Presence sub-menu | Used? |
-| - | -------- | ------ | ------ | :-----------: | :-------: | :----: | :-----: | :-------: | :---------------: | :---: |
-| 1 | Home | Home | - | | | | | | | yes |
-| 2 | Job_Openings | Job Openings | - | ✓ | ✓ | ✓ | ✓ | via status | ✓ | yes (101) |
-| 3 | Candidates | Candidates | - | ✓ | ✓ | ✓ | ✓ | | ✓ | yes (1,298) |
-| 4 | Applications | Applications | Candidates | ✓ | ✓ | ✓ | | via status | ✓ | yes (763) |
-| 5 | Interviews | Interviews | - | ✓ | ✓ | ✓ | | ✓ (`Interview_Status`) | ✓ | no (0) |
-| 6 | Clients | Clients | - | ✓ | ✓ | ✓ | ✓ | | ✓ | yes (86) |
-| 7 | Contacts | Contacts | - | ✓ | ✓ | ✓ | ✓ | | ✓ | yes (12) |
-| 8 | Analytics | Analytics | - | | | | | | | tab |
-| 9 | Reports | Reports | Analytics | | | | | | | tab |
-| 10 | Dashboards | Dashboards | Analytics | | | | | | | tab |
-| 11 | Metrics | Metrics | Analytics | | | | | | | tab |
-| 12 | Campaigns | Campaigns | - | ✓ | ✓ | ✓ | | | ✓ | no (0) |
-| 13 | Assessments | Assessments | - | | ✓ | ✓ | | | ✓ | config (4 templates, 0 answered) |
-| 14 | To_Dos | To-Dos | - | | ✓ | ✓ | | | | no (0) |
-| 15 | RecruiterInbox | RecruiterInbox | - | | | ✓ | | | | inbox integration |
-| 16 | Documents | Documents | - | | | | | | | file cabinet |
-| 17 | Reviews | Reviews | Candidates | | ✓ | ✓ | | | ✓ | no (0) |
-| 18 | Submissions | Submissions | Candidates | | ✓ | ✓ | | | ✓ | no (0 - replaced by app-status "Submitted-to-client") |
-| 19 | Documents (dup label) | - | - | | | | | | | - |
+| #   | api_name              | Plural         | parent     | Global search | Creatable | Filter | Scoring |       Blueprint        | Presence sub-menu |                         Used?                         |
+| --- | --------------------- | -------------- | ---------- | :-----------: | :-------: | :----: | :-----: | :--------------------: | :---------------: | :---------------------------------------------------: |
+| 1   | Home                  | Home           | -          |               |           |        |         |                        |                   |                          yes                          |
+| 2   | Job_Openings          | Job Openings   | -          |       ✓       |     ✓     |   ✓    |    ✓    |       via status       |         ✓         |                       yes (101)                       |
+| 3   | Candidates            | Candidates     | -          |       ✓       |     ✓     |   ✓    |    ✓    |                        |         ✓         |                      yes (1,298)                      |
+| 4   | Applications          | Applications   | Candidates |       ✓       |     ✓     |   ✓    |         |       via status       |         ✓         |                       yes (763)                       |
+| 5   | Interviews            | Interviews     | -          |       ✓       |     ✓     |   ✓    |         | ✓ (`Interview_Status`) |         ✓         |                        no (0)                         |
+| 6   | Clients               | Clients        | -          |       ✓       |     ✓     |   ✓    |    ✓    |                        |         ✓         |                       yes (86)                        |
+| 7   | Contacts              | Contacts       | -          |       ✓       |     ✓     |   ✓    |    ✓    |                        |         ✓         |                       yes (12)                        |
+| 8   | Analytics             | Analytics      | -          |               |           |        |         |                        |                   |                          tab                          |
+| 9   | Reports               | Reports        | Analytics  |               |           |        |         |                        |                   |                          tab                          |
+| 10  | Dashboards            | Dashboards     | Analytics  |               |           |        |         |                        |                   |                          tab                          |
+| 11  | Metrics               | Metrics        | Analytics  |               |           |        |         |                        |                   |                          tab                          |
+| 12  | Campaigns             | Campaigns      | -          |       ✓       |     ✓     |   ✓    |         |                        |         ✓         |                        no (0)                         |
+| 13  | Assessments           | Assessments    | -          |               |     ✓     |   ✓    |         |                        |         ✓         |           config (4 templates, 0 answered)            |
+| 14  | To_Dos                | To-Dos         | -          |               |     ✓     |   ✓    |         |                        |                   |                        no (0)                         |
+| 15  | RecruiterInbox        | RecruiterInbox | -          |               |           |   ✓    |         |                        |                   |                   inbox integration                   |
+| 16  | Documents             | Documents      | -          |               |           |        |         |                        |                   |                     file cabinet                      |
+| 17  | Reviews               | Reviews        | Candidates |               |     ✓     |   ✓    |         |                        |         ✓         |                        no (0)                         |
+| 18  | Submissions           | Submissions    | Candidates |               |     ✓     |   ✓    |         |                        |         ✓         | no (0 - replaced by app-status "Submitted-to-client") |
+| 19  | Documents (dup label) | -              | -          |               |           |        |         |                        |                   |                           -                           |
 
 Notable: **`presence_sub_menu` is not a phone-number field** - it means Zoho
 shows real-time collaborator presence dots on that module (WhatsApp-tick style).
@@ -179,6 +180,7 @@ status field instead of creating separate submission records.
 
 **To-Dos (Activities = Tasks/Calls/Events) - ~40 fields.** One physical
 module, three logical types keyed by `Activity_Type`:
+
 - Task: `Subject`, `Due_Date`, `Status` (Not Started/Deferred/In Progress/
   Completed/Waiting), `Priority` (High/Highest/Low/Lowest/Normal), `Reminder`,
   `Send_Notification_Email`.
@@ -188,8 +190,8 @@ module, three logical types keyed by `Activity_Type`:
 - Event: `Meeting_Venue` (Client Location/Business Location/Online), `Venue`,
   `Start_DateTime` / `End_DateTime`, `All_day`, `Recurring_Activity` (RRULE),
   `Participants` (jsonarray), `Meeting_Provider`, latitude/longitude.
-Polymorphic lookups: `Who_Id` (Contact) + `What_Id` / `Rel_SEID` (Related-to,
-any parent module). **Zero rows** - activities aren't used.
+  Polymorphic lookups: `Who_Id` (Contact) + `What_Id` / `Rel_SEID` (Related-to,
+  any parent module). **Zero rows** - activities aren't used.
 
 ### 1.3 Users, roles, profiles (from `/users`, `/settings/roles`, `/settings/profiles/{id}`)
 
@@ -208,13 +210,12 @@ any parent module). **Zero rows** - activities aren't used.
     Calls/Competitors/Users/ActivityLog, `Manage_Users/Roles/Profiles`,
     `Customize_Zoho_CRM`, `Zoho_People/CRM/Workerly_Integ`,
     `Manage_ClientPortal/ClientPortal_Users`, `Manage_Compliance/Sandbox/
-    Subscription/CalendarBooking`, `View_Storage_Usage`, `Data_Migration`,
+Subscription/CalendarBooking`, `View_Storage_Usage`, `Data_Migration`,
     `Formatted_Resume_Config`, `Custom_From_Address_Config`, `Career_website`,
     `Invite_Candidate`, `Apply_With_LinkedIn`, `Social_Admin`, `Delete_Emails`,
     `Delete_Events/Calls/Tasks/Docs`.
   - `Candidate` (89142000000346005) - candidate-portal only (self-service).
-  - `Client Interviewer` / `Client Administrator` (89142000000466845 /
-    89142000000466839) - client-portal profiles.
+  - `Client Interviewer` / `Client Administrator` (89142000000466845 / 89142000000466839) - client-portal profiles.
 - **Tabs visibility per profile** (from the mystery permission entry in
   `permissions_details`): Administrator sees all 20 tabs (Home, Job Openings,
   Candidates, Applications, Interviews, Clients, Contacts, Campaigns,
@@ -230,7 +231,7 @@ snapshot; the domains that matter for Emerge parity:
 - Record lifecycle: Added / Updated / Deleted / Restored (+ bulk variants) +
   Merged.
 - Status changes: general Status Changed (+ bulk, + Single Module, + via API,
-  + bulk-via-API - 8 variants).
+  - bulk-via-API - 8 variants).
 - Ownership: Owner Changed (+ bulk).
 - Association: Associated / Unassociated (+ bulk).
 - Emails: Sent, Sent-Bulk, Mail-Merge, Mail-Merge-Bulk, Opt-out.
@@ -337,7 +338,7 @@ list on the Administrator profile is a **complete capability index**. Grouped:
   module row visible; no data seen.
 - **Client Portal / Vendor Portal / Candidate Portal / Custom Portal** -
   `Manage_ClientPortal / Manage_ClientPortal_Users / Vendor_Portal /
-  Invite_Candidate` + `Client_Portal_User_Status` field on Contacts & Clients +
+Invite_Candidate` + `Client_Portal_User_Status` field on Contacts & Clients +
   candidate & vendor profiles. Timeline activities 149-152, 168, 195-196,
   198-206 cover the flows.
 - **Social publishing** - `Social_Admin / Social_Integration` + timeline
@@ -350,6 +351,7 @@ list on the Administrator profile is a **complete capability index**. Grouped:
 ### 1.6 Reports / Analytics / Dashboards / Forecasts (module tabs, from profiles)
 
 Zoho Recruit ships:
+
 - **Reports** module: standard folders (Sales Reports = Recruiter Reports),
   custom reports (Tabular, Summary, Matrix, Chart). Filters on any field.
   Scheduled email delivery. Permissions: `Manage_Reports_Dashboards`,
@@ -385,7 +387,7 @@ Standard profile has view/manage permissions, so any user could create).
 - Bulk operations per module: Mass Transfer / Mass Update / Mass Delete / Mass
   Convert / Mass Email / Mass SMS (permissions catalog exhaustive).
 - Import (CSV): `Import_My_*`, `Import_MyOrg_*`, `Import_History`, `Import_
-  Resume`.
+Resume`.
 - Export (CSV): per module + activity log + users + competitors.
 - Data Migration UI (from Zoho CRM or another Zoho product).
 - Find & Merge (per Candidates / Contacts / Clients).
@@ -404,57 +406,57 @@ Zoho ships it but no evidence of use in this org, safe to defer).
 
 ### 2.1 HIGH - build these next to reach parity for daily use
 
-| # | Feature | Emerge status | Why it matters |
-| --- | ------- | ------------- | -------------- |
-| H1 | **Interviews module** (schedule / list / calendar / feedback) | not built | Zoho has 30 fields + blueprint status FSM; team currently uses "Interview-*" application statuses as a proxy. Missing: interviewer assignment, calendar link, meeting provider, feedback capture. Required for Michelle + Ryan + Luke etc. to run the client interview loop. |
-| H2 | **Attachments per candidate → CV download** | schema exists (`attachments`, MinIO), 0 files migrated yet | Zoho: 1,293 candidates flagged Is_Attachment_Present. Migration engine can pull them via the per-record attachment endpoint; not yet run. Without this, recruiters can't send CVs. |
-| H3 | **Global search across all modules** | per-module search only | Zoho's top-bar search hits Candidates + Jobs + Clients + Contacts in one box. Emerge has per-list-page search. |
-| H4 | **Send email from a record** (Email tab) | not built | Zoho ships `Send Email` permission + Zoho Mail integration + IMAP + `Last_Mailed_Time` field on every module. Email is the daily comms channel; Emerge has to at least log-outbound before recruiters will switch. Resend SMTP already wired for transactional. |
-| H5 | **Career site + web-to-candidate form** | not built | Team doesn't currently publish via career site (no records show `Origin=CareerSite`) so LOW-priority for the sales pitch, but if Emerge is going to replace Zoho fully this is the missing candidate acquisition path. Downgrade to MEDIUM if agency mostly sources actively. |
-| H6 | **Resume parser + Resume Inbox** | not built (M7 milestone open) | 1,034 candidates in Zoho got in via parser. Without this the team hand-types every candidate - a dealbreaker for switching. |
-| H7 | **Multi-status offer flow** (Offer_Made / Offer_Accepted / Offer_Withdrawn + expiry + resend) | modelled as application-statuses only | Zoho has a full Offers sub-flow (14 timeline activities). Currently Emerge covers via `application_stage=offered`. Enough for now, but as soon as any offer is issued, need offer letter template + expiry countdown. |
-| H8 | **Client portal (Contacts login → review submissions)** | not built | Two profiles (Client Administrator, Client Interviewer) exist in Zoho; permission tree covers invite → review → download attachment → comment. Emergetech has 12 contacts, of which at least some have client-portal user status ready. Without this, sending "submitted-to-client" candidates outside the CRM is manual (email/PDF). |
+| #   | Feature                                                                                       | Emerge status                                              | Why it matters                                                                                                                                                                                                                                                                                                                        |
+| --- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1  | **Interviews module** (schedule / list / calendar / feedback)                                 | not built                                                  | Zoho has 30 fields + blueprint status FSM; team currently uses "Interview-*" application statuses as a proxy. Missing: interviewer assignment, calendar link, meeting provider, feedback capture. Required for Michelle + Ryan + Luke etc. to run the client interview loop.                                                          |
+| H2  | **Attachments per candidate → CV download**                                                   | schema exists (`attachments`, MinIO), 0 files migrated yet | Zoho: 1,293 candidates flagged Is_Attachment_Present. Migration engine can pull them via the per-record attachment endpoint; not yet run. Without this, recruiters can't send CVs.                                                                                                                                                    |
+| H3  | **Global search across all modules**                                                          | per-module search only                                     | Zoho's top-bar search hits Candidates + Jobs + Clients + Contacts in one box. Emerge has per-list-page search.                                                                                                                                                                                                                        |
+| H4  | **Send email from a record** (Email tab)                                                      | not built                                                  | Zoho ships `Send Email` permission + Zoho Mail integration + IMAP + `Last_Mailed_Time` field on every module. Email is the daily comms channel; Emerge has to at least log-outbound before recruiters will switch. Resend SMTP already wired for transactional.                                                                       |
+| H5  | **Career site + web-to-candidate form**                                                       | not built                                                  | Team doesn't currently publish via career site (no records show `Origin=CareerSite`) so LOW-priority for the sales pitch, but if Emerge is going to replace Zoho fully this is the missing candidate acquisition path. Downgrade to MEDIUM if agency mostly sources actively.                                                         |
+| H6  | **Resume parser + Resume Inbox**                                                              | not built (M7 milestone open)                              | 1,034 candidates in Zoho got in via parser. Without this the team hand-types every candidate - a dealbreaker for switching.                                                                                                                                                                                                           |
+| H7  | **Multi-status offer flow** (Offer_Made / Offer_Accepted / Offer_Withdrawn + expiry + resend) | modelled as application-statuses only                      | Zoho has a full Offers sub-flow (14 timeline activities). Currently Emerge covers via `application_stage=offered`. Enough for now, but as soon as any offer is issued, need offer letter template + expiry countdown.                                                                                                                 |
+| H8  | **Client portal (Contacts login → review submissions)**                                       | not built                                                  | Two profiles (Client Administrator, Client Interviewer) exist in Zoho; permission tree covers invite → review → download attachment → comment. Emergetech has 12 contacts, of which at least some have client-portal user status ready. Without this, sending "submitted-to-client" candidates outside the CRM is manual (email/PDF). |
 
 ### 2.2 MEDIUM - useful, add after HIGH
 
-| # | Feature | Emerge status | Notes |
-| --- | ------- | ------------- | ----- |
-| M1 | **Tags** (per module, filter by tag, tag record counts) | schema exists (`tags` + `taggings`), UI absent | Zoho: 0 tags anywhere in this org - no data to migrate. Emerge already has the plumbing (`taggings.entityType` polymorphic). Just needs the composer & filter chips. |
-| M2 | **Custom views (saved filters + column configs) per module** | list pages have static columns/filters | Zoho: `Manage_CustomViews`. Recruiters use custom views heavily in Zoho (default view = "My Open Candidates" etc.). Emerge needs at minimum: view chooser + save current filters + share view. |
-| M3 | **Custom fields per module** | schema stores in `custom_fields` jsonb | Zoho org has 0 custom fields (verified) - no data need. But Emerge should give admins an "add field" UI eventually. Post-1.0. |
-| M4 | **Layouts / page-config per module** | fixed layout | Zoho: page layouts per profile. Deferrable - nothing bespoke in this org's config. |
-| M5 | **Assessments** (question bank + candidate answers + scoring) | not built | Zoho: 4 templates, 0 responses. Not used in the org yet - safe to postpone until first customer asks. Full field-set already mapped in section 1.2. |
-| M6 | **Reviews** (recruiter/interviewer/client review of a candidate) | not built | Zoho: 0 records. Modelled around Interviews + Assessments. Postpone alongside Interviews. |
-| M7 | **Approval Process** (multi-step approvals with delegation/resubmit) | not built | Zoho has 10 timeline activity types for it (181-190). No approval records in this org's usage pattern. Postpone. |
-| M8 | **Blueprint (finite-state machine on any picklist)** | applications have hard-coded status → stage map | Zoho: only Interview_Status is a blueprint here. Emerge already gets you the same effect via `application_statuses.stage`. Generalise later. |
-| M9 | **Mail Merge** (personalised bulk emails from a template + record fields) | not built | Zoho: `Mail_Merge` permission on. Deferable - SMTP+Resend is wired but no bulk send UI. |
-| M10 | **Job publishing to career site + free/paid job boards** | not built | Zoho: `Publish/JobBoards_Free/JobBoards_Paid`. Only meaningful if H5 (career site) is built. Postpone. |
-| M11 | **Formatted / branded resume** (generate a client-branded CV) | not built | Zoho: config + generate permissions; timeline activities 34/35/255. Common recruiter deliverable. Post-1.0. |
-| M12 | **Calendar booking** (public link for candidates to self-book calls) | not built | Zoho: `Manage_CalendarBooking`. Nice-to-have. |
-| M13 | **Zia matching** (AI candidate → job / job → candidate) | not built | Zoho: 4 endpoints. Requires embedding pipeline; post-1.0. |
-| M14 | **Reports + dashboards module** | not built (only home cards) | Zoho: full Report builder + dashboard builder. Emerge has: pipeline kanban + notification bell + nothing else. Build a scoped "reports" surface. |
-| M15 | **Forecasts** (revenue from `Revenue_per_Position` × filled jobs) | data preserved in `custom_fields.zoho.revenue.*`, no UI | Post-1.0. |
-| M16 | **Candidate portal** (candidate logs in → sees applications) | not built | Zoho: `Candidate` profile + Candidate_Portal_User_Status. Only needed if we want candidates to self-service; skip unless a client requests. |
-| M17 | **Vendor portal** (agency vendor submits candidates) | not built | Same - skip unless requested. |
-| M18 | **Compliance / GDPR module** (consent capture, right-to-erase, auto-delete) | schema stores flags; no workflow | UK org, likely needed. Post-1.0 unless a client asks. |
-| M19 | **Sandbox** | not applicable (already have dev + staging DBs) | - |
-| M20 | **Custom buttons / custom functions (Deluge)** | not built | Zoho: `Advanced_Dev_Access` - this is the whole extensibility surface. Post-1.0 (or "never" if we ship a proper webhook + workflow engine ourselves). |
-| M21 | **Marketplace extensions** | not applicable | - |
+| #   | Feature                                                                     | Emerge status                                           | Notes                                                                                                                                                                                          |
+| --- | --------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1  | **Tags** (per module, filter by tag, tag record counts)                     | schema exists (`tags` + `taggings`), UI absent          | Zoho: 0 tags anywhere in this org - no data to migrate. Emerge already has the plumbing (`taggings.entityType` polymorphic). Just needs the composer & filter chips.                           |
+| M2  | **Custom views (saved filters + column configs) per module**                | list pages have static columns/filters                  | Zoho: `Manage_CustomViews`. Recruiters use custom views heavily in Zoho (default view = "My Open Candidates" etc.). Emerge needs at minimum: view chooser + save current filters + share view. |
+| M3  | **Custom fields per module**                                                | schema stores in `custom_fields` jsonb                  | Zoho org has 0 custom fields (verified) - no data need. But Emerge should give admins an "add field" UI eventually. Post-1.0.                                                                  |
+| M4  | **Layouts / page-config per module**                                        | fixed layout                                            | Zoho: page layouts per profile. Deferrable - nothing bespoke in this org's config.                                                                                                             |
+| M5  | **Assessments** (question bank + candidate answers + scoring)               | not built                                               | Zoho: 4 templates, 0 responses. Not used in the org yet - safe to postpone until first customer asks. Full field-set already mapped in section 1.2.                                            |
+| M6  | **Reviews** (recruiter/interviewer/client review of a candidate)            | not built                                               | Zoho: 0 records. Modelled around Interviews + Assessments. Postpone alongside Interviews.                                                                                                      |
+| M7  | **Approval Process** (multi-step approvals with delegation/resubmit)        | not built                                               | Zoho has 10 timeline activity types for it (181-190). No approval records in this org's usage pattern. Postpone.                                                                               |
+| M8  | **Blueprint (finite-state machine on any picklist)**                        | applications have hard-coded status → stage map         | Zoho: only Interview_Status is a blueprint here. Emerge already gets you the same effect via `application_statuses.stage`. Generalise later.                                                   |
+| M9  | **Mail Merge** (personalised bulk emails from a template + record fields)   | not built                                               | Zoho: `Mail_Merge` permission on. Deferable - SMTP+Resend is wired but no bulk send UI.                                                                                                        |
+| M10 | **Job publishing to career site + free/paid job boards**                    | not built                                               | Zoho: `Publish/JobBoards_Free/JobBoards_Paid`. Only meaningful if H5 (career site) is built. Postpone.                                                                                         |
+| M11 | **Formatted / branded resume** (generate a client-branded CV)               | not built                                               | Zoho: config + generate permissions; timeline activities 34/35/255. Common recruiter deliverable. Post-1.0.                                                                                    |
+| M12 | **Calendar booking** (public link for candidates to self-book calls)        | not built                                               | Zoho: `Manage_CalendarBooking`. Nice-to-have.                                                                                                                                                  |
+| M13 | **Zia matching** (AI candidate → job / job → candidate)                     | not built                                               | Zoho: 4 endpoints. Requires embedding pipeline; post-1.0.                                                                                                                                      |
+| M14 | **Reports + dashboards module**                                             | not built (only home cards)                             | Zoho: full Report builder + dashboard builder. Emerge has: pipeline kanban + notification bell + nothing else. Build a scoped "reports" surface.                                               |
+| M15 | **Forecasts** (revenue from `Revenue_per_Position` × filled jobs)           | data preserved in `custom_fields.zoho.revenue.*`, no UI | Post-1.0.                                                                                                                                                                                      |
+| M16 | **Candidate portal** (candidate logs in → sees applications)                | not built                                               | Zoho: `Candidate` profile + Candidate_Portal_User_Status. Only needed if we want candidates to self-service; skip unless a client requests.                                                    |
+| M17 | **Vendor portal** (agency vendor submits candidates)                        | not built                                               | Same - skip unless requested.                                                                                                                                                                  |
+| M18 | **Compliance / GDPR module** (consent capture, right-to-erase, auto-delete) | schema stores flags; no workflow                        | UK org, likely needed. Post-1.0 unless a client asks.                                                                                                                                          |
+| M19 | **Sandbox**                                                                 | not applicable (already have dev + staging DBs)         | -                                                                                                                                                                                              |
+| M20 | **Custom buttons / custom functions (Deluge)**                              | not built                                               | Zoho: `Advanced_Dev_Access` - this is the whole extensibility surface. Post-1.0 (or "never" if we ship a proper webhook + workflow engine ourselves).                                          |
+| M21 | **Marketplace extensions**                                                  | not applicable                                          | -                                                                                                                                                                                              |
 
 ### 2.3 LOW - Zoho ships it but zero-data in this org
 
-| Feature | Note |
-| ------- | ---- |
-| Campaigns module | 0 records; team runs GTM outside the ATS. Skip. |
-| To-Dos (Tasks/Calls/Events) | 0 records; team uses external calendar + Zoho Mail. If needed, ship a minimal Tasks module post-1.0. |
-| SMS templates + sending | 0 SMS sent/received in timeline; not used. |
-| Social publishing (LinkedIn/FB/X/Google+) | Not used. |
-| Job board integrations (Indeed/Monster/…) | Zoho activity codes present but 0 imports from any of them in this org's timeline. |
-| Territories | Empty on every user. |
-| Recruiter Inbox / Zoho Sheet View / Zoho Chat Bar | Not used. |
-| Video interviews (Live / Recorded / Google Meet / Teams providers) | 0 interview records anywhere. |
-| Sandbox / Manage Subscription / Storage Usage | Admin-only, one-shot. |
-| Convert-as-Employee / Convert-as-Temp | Zoho People / Workerly integrations required; not licensed here. |
+| Feature                                                            | Note                                                                                                 |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Campaigns module                                                   | 0 records; team runs GTM outside the ATS. Skip.                                                      |
+| To-Dos (Tasks/Calls/Events)                                        | 0 records; team uses external calendar + Zoho Mail. If needed, ship a minimal Tasks module post-1.0. |
+| SMS templates + sending                                            | 0 SMS sent/received in timeline; not used.                                                           |
+| Social publishing (LinkedIn/FB/X/Google+)                          | Not used.                                                                                            |
+| Job board integrations (Indeed/Monster/…)                          | Zoho activity codes present but 0 imports from any of them in this org's timeline.                   |
+| Territories                                                        | Empty on every user.                                                                                 |
+| Recruiter Inbox / Zoho Sheet View / Zoho Chat Bar                  | Not used.                                                                                            |
+| Video interviews (Live / Recorded / Google Meet / Teams providers) | 0 interview records anywhere.                                                                        |
+| Sandbox / Manage Subscription / Storage Usage                      | Admin-only, one-shot.                                                                                |
+| Convert-as-Employee / Convert-as-Temp                              | Zoho People / Workerly integrations required; not licensed here.                                     |
 
 ---
 
@@ -579,7 +581,7 @@ Each item lists: **new schema (if any)**, **new API (tRPC)**, **new UI**,
     reviewed_at, video_stage enum). `interview_status_history` for the FSM
     (blueprint parity).
   - tRPC: `interviews.{create,update,cancel,reschedule,list,byApplication,
-    calendar}`.
+calendar}`.
   - UI: interview form (dialog inside application detail); interview list; a
     week/day calendar view under a new `/interviews` route.
   - Zoho fields: all 30 from section 1.2.

@@ -4,6 +4,7 @@ import { aiRouter } from "./ai";
 import { applicationsRouter } from "./applications";
 import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
+import { bulkRouter } from "./bulk";
 import { candidatesRouter } from "./candidates";
 import { companiesRouter } from "./companies";
 import { contactsRouter } from "./contacts";
@@ -28,6 +29,7 @@ export const appRouter = router({
   }),
   auth: authRouter,
   ai: aiRouter,
+  bulk: bulkRouter,
   workspace: workspaceRouter,
   members: membersRouter,
   companies: companiesRouter,

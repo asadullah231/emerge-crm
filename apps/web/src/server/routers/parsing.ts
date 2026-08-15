@@ -195,10 +195,7 @@ export const parsingRouter = router({
         .update(parseJobs)
         .set({ status: "queued", error: null, updatedAt: new Date() })
         .where(
-          and(
-            eq(parseJobs.id, input.id),
-            sql`${parseJobs.status} in ('failed','parsed','parsing')`
-          )
+          and(eq(parseJobs.id, input.id), sql`${parseJobs.status} in ('failed','parsed','parsing')`)
         )
         .returning({ id: parseJobs.id });
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Parse job not found" });

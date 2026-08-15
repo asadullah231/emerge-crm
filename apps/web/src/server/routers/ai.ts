@@ -69,9 +69,7 @@ export const aiRouter = router({
         .set(values)
         .where(eq(workspaceAiSettings.id, existing.id));
     } else {
-      await ctx.tx
-        .insert(workspaceAiSettings)
-        .values({ workspaceId: ctx.workspaceId, ...values });
+      await ctx.tx.insert(workspaceAiSettings).values({ workspaceId: ctx.workspaceId, ...values });
     }
 
     await writeAudit({

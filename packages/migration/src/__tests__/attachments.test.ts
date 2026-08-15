@@ -165,7 +165,9 @@ describe("ZohoClient.listAttachments", () => {
 
   it("returns [] on 204 (no attachments)", async () => {
     const fetchImpl: FetchLike = vi.fn(async (url: string) =>
-      url.includes("/oauth/") ? jsonRes(200, { access_token: "t", expires_in: 3600 }) : jsonRes(204, {})
+      url.includes("/oauth/")
+        ? jsonRes(200, { access_token: "t", expires_in: 3600 })
+        : jsonRes(204, {})
     );
     const client = new ZohoClient(cfg, { fetchImpl });
     expect(await client.listAttachments("Candidates", "rec1")).toEqual([]);

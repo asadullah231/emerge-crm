@@ -122,7 +122,9 @@ export default function ParseCandidatesPage() {
           }}
         />
         <p className="text-sm text-[var(--foreground)]">Drag and drop CV files here</p>
-        <p className="mt-1 text-xs text-[var(--muted)]">PDF, DOC, DOCX, RTF, TXT — up to 50 at once</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          PDF, DOC, DOCX, RTF, TXT — up to 50 at once
+        </p>
         <Button
           variant="outline"
           className="mt-4 px-4"
@@ -192,9 +194,7 @@ export default function ParseCandidatesPage() {
                     View candidate
                   </Link>
                 ) : null}
-                {row.status === "failed" ? (
-                  <RetryDiscard id={row.id} onDone={refreshAll} />
-                ) : null}
+                {row.status === "failed" ? <RetryDiscard id={row.id} onDone={refreshAll} /> : null}
               </div>
             </li>
           ))}
@@ -286,11 +286,13 @@ function ReviewModal({
   const confirm = trpc.parsing.confirm.useMutation();
 
   // Initialise the form from the parsed data once loaded.
-  const data = form ?? (() => {
-    if (!job.data) return null;
-    const parsed = parsedResumeSchema.safeParse(job.data.parsed);
-    return parsed.success ? parsed.data : EMPTY;
-  })();
+  const data =
+    form ??
+    (() => {
+      if (!job.data) return null;
+      const parsed = parsedResumeSchema.safeParse(job.data.parsed);
+      return parsed.success ? parsed.data : EMPTY;
+    })();
 
   const dupes = trpc.candidates.duplicates.useQuery(
     { email: data?.email ?? undefined },
@@ -340,7 +342,9 @@ function ReviewModal({
                   <span className="text-xs text-[var(--muted)]">{f.label}</span>
                   <input
                     value={(data[f.key] as string | null) ?? ""}
-                    onChange={(e) => set({ [f.key]: e.target.value || null } as Partial<ParsedResume>)}
+                    onChange={(e) =>
+                      set({ [f.key]: e.target.value || null } as Partial<ParsedResume>)
+                    }
                     className="mt-0.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm"
                   />
                 </label>

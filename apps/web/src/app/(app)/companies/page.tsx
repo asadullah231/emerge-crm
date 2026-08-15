@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
+import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input, Label } from "@/components/form";
 import { Modal } from "@/components/modal";
 import { COMPANY_STATUS_OPTIONS, DuplicateWarning, StatusBadge } from "@/components/record";
 import { TagFilter } from "@/components/tag-editor";
+import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
+import { useRowSelection } from "@/lib/use-row-selection";
 
 type CompanyRow = RouterOutputs["companies"]["list"]["rows"][number];
 
@@ -138,6 +141,7 @@ export default function CompaniesPage() {
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const debouncedSearch = useDebounced(search.trim());
+  const sel = useRowSelection();
 
   const list = trpc.companies.list.useQuery({
     page,
@@ -148,6 +152,26 @@ export default function CompaniesPage() {
     tagIds: tagIds.length > 0 ? tagIds : undefined,
     deleted: showTrash
   });
+
+  useEffect(
+    () => sel.clear(),
+    [debouncedSearch, tagIds, showTrash, page, sort.by, sort.dir, sel.clear]
+  );
+
+  const CSV_COLUMNS: CsvColumn<CompanyRow>[] = [
+    { label: "Name", value: (r) => r.name },
+    { label: "Website", value: (r) => r.website },
+    { label: "Domain", value: (r) => r.domain },
+    { label: "Industry", value: (r) => r.industry },
+    { label: "Size", value: (r) => r.size },
+    { label: "Location", value: (r) => r.location },
+    { label: "Phone", value: (r) => r.phone },
+    { label: "Status", value: (r) => r.status }
+  ];
+  const exportSelected = () => {
+    const chosen = (list.data?.rows ?? []).filter((r) => sel.selectedIds.has(r.id));
+    downloadCsv(`companies-${chosen.length}.csv`, toCsv(chosen, CSV_COLUMNS));
+  };
 
   const restore = trpc.companies.restore.useMutation({
     onSuccess: () => utils.companies.list.invalidate()
@@ -250,6 +274,16 @@ export default function CompaniesPage() {
 
       <FormError message={list.error?.message ?? restore.error?.message} />
 
+      <BulkBar
+        entityType="company"
+        selectedIds={sel.ids}
+        canWrite={canWrite}
+        showTrash={showTrash}
+        onClear={sel.clear}
+        onDone={() => utils.companies.list.invalidate()}
+        onExport={exportSelected}
+      />
+
       <DataTable
         columns={columns}
         rows={list.data?.rows ?? []}
@@ -265,6 +299,11 @@ export default function CompaniesPage() {
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/companies/${row.id}`)}
         isLoading={list.isLoading}
+        selection={{
+          selectedIds: sel.selectedIds,
+          onToggleRow: sel.toggleRow,
+          onTogglePage: sel.togglePage
+        }}
         emptyMessage={
           showTrash
             ? "Trash is empty. Deleted companies stay here for 30 days."

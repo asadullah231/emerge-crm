@@ -29,7 +29,8 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Live overview of your recruitment desk{me.data?.workspace?.name ? ` (${me.data.workspace.name})` : ""}.
+            Live overview of your recruitment desk
+            {me.data?.workspace?.name ? ` (${me.data.workspace.name})` : ""}.
           </p>
         </div>
         <RefreshBadge
@@ -47,14 +48,56 @@ export default function DashboardPage() {
 
       {/* KPI grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Kpi label="Active Jobs" value={data?.kpis.activeJobs} href="/jobs" loading={overview.isLoading} />
-        <Kpi label="Candidates" value={data?.kpis.totalCandidates} href="/candidates" loading={overview.isLoading} />
-        <Kpi label="Applications" value={data?.kpis.totalApplications} href="/pipeline" loading={overview.isLoading} />
-        <Kpi label="Submitted" value={data?.kpis.submitted} href="/pipeline" loading={overview.isLoading} />
-        <Kpi label="In Interview" value={data?.kpis.interview} href="/pipeline" loading={overview.isLoading} />
-        <Kpi label="Offers" value={data?.kpis.offered} href="/pipeline" loading={overview.isLoading} />
-        <Kpi label="Hires" value={data?.kpis.hired} href="/pipeline" tone="positive" loading={overview.isLoading} />
-        <Kpi label="Rejected" value={data?.kpis.rejected} href="/pipeline" tone="negative" loading={overview.isLoading} />
+        <Kpi
+          label="Active Jobs"
+          value={data?.kpis.activeJobs}
+          href="/jobs"
+          loading={overview.isLoading}
+        />
+        <Kpi
+          label="Candidates"
+          value={data?.kpis.totalCandidates}
+          href="/candidates"
+          loading={overview.isLoading}
+        />
+        <Kpi
+          label="Applications"
+          value={data?.kpis.totalApplications}
+          href="/pipeline"
+          loading={overview.isLoading}
+        />
+        <Kpi
+          label="Submitted"
+          value={data?.kpis.submitted}
+          href="/pipeline"
+          loading={overview.isLoading}
+        />
+        <Kpi
+          label="In Interview"
+          value={data?.kpis.interview}
+          href="/pipeline"
+          loading={overview.isLoading}
+        />
+        <Kpi
+          label="Offers"
+          value={data?.kpis.offered}
+          href="/pipeline"
+          loading={overview.isLoading}
+        />
+        <Kpi
+          label="Hires"
+          value={data?.kpis.hired}
+          href="/pipeline"
+          tone="positive"
+          loading={overview.isLoading}
+        />
+        <Kpi
+          label="Rejected"
+          value={data?.kpis.rejected}
+          href="/pipeline"
+          tone="negative"
+          loading={overview.isLoading}
+        />
         <Kpi
           label="Time to Hire"
           value={data?.kpis.timeToHireDays}
@@ -72,9 +115,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Pipeline */}
-      <Panel title="Recruitment Pipeline" action={<PanelLink href="/pipeline">Open board</PanelLink>}>
+      <Panel
+        title="Recruitment Pipeline"
+        action={<PanelLink href="/pipeline">Open board</PanelLink>}
+      >
         {data && data.kpis.totalApplications === 0 ? (
-          <Empty>No applications in the pipeline yet. Associate a candidate with a job to start.</Empty>
+          <Empty>
+            No applications in the pipeline yet. Associate a candidate with a job to start.
+          </Empty>
         ) : (
           <PipelineBars pipeline={data?.pipeline} loading={overview.isLoading} />
         )}
@@ -82,7 +130,10 @@ export default function DashboardPage() {
 
       {/* Recents */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Recent Candidates" action={<PanelLink href="/candidates">View all</PanelLink>}>
+        <Panel
+          title="Recent Candidates"
+          action={<PanelLink href="/candidates">View all</PanelLink>}
+        >
           <RecentCandidates rows={data?.recentCandidates} loading={overview.isLoading} />
         </Panel>
         <Panel title="Recent Job Openings" action={<PanelLink href="/jobs">View all</PanelLink>}>
@@ -192,7 +243,9 @@ function Kpi({
         ) : (
           <span className={`text-2xl font-semibold tabular-nums ${toneClass}`}>
             {value.toLocaleString()}
-            {unit ? <span className="ml-0.5 text-base font-medium text-[var(--muted)]">{unit}</span> : null}
+            {unit ? (
+              <span className="ml-0.5 text-base font-medium text-[var(--muted)]">{unit}</span>
+            ) : null}
           </span>
         )}
       </div>
@@ -236,7 +289,13 @@ function RefreshBadge({
   );
 }
 
-function PipelineBars({ pipeline, loading }: { pipeline?: Overview["pipeline"]; loading?: boolean }) {
+function PipelineBars({
+  pipeline,
+  loading
+}: {
+  pipeline?: Overview["pipeline"];
+  loading?: boolean;
+}) {
   if (loading || !pipeline) {
     return <div className="h-40 animate-pulse rounded-lg bg-[var(--border)]" />;
   }
@@ -306,7 +365,9 @@ function RecentCandidates({
                 {c.title ?? c.humanId}
               </span>
             </span>
-            <span className="shrink-0 text-xs text-[var(--muted)]">{relativeTime(c.createdAt)}</span>
+            <span className="shrink-0 text-xs text-[var(--muted)]">
+              {relativeTime(c.createdAt)}
+            </span>
           </Link>
         </li>
       ))}
@@ -365,7 +426,8 @@ function Trends({ trends, loading }: { trends?: Overview["trends"]; loading?: bo
     () => (trends ?? []).some((t) => t.candidates > 0 || t.applications > 0),
     [trends]
   );
-  if (loading || !trends) return <div className="h-40 animate-pulse rounded-lg bg-[var(--border)]" />;
+  if (loading || !trends)
+    return <div className="h-40 animate-pulse rounded-lg bg-[var(--border)]" />;
   if (!hasData) return <Empty>Not enough data yet. Trends appear as records are added.</Empty>;
 
   const max = Math.max(1, ...trends.map((t) => Math.max(t.candidates, t.applications)));
@@ -382,14 +444,27 @@ function Trends({ trends, loading }: { trends?: Overview["trends"]; loading?: bo
         <Legend color="var(--brand-secondary)" label="Candidates" />
         <Legend color="var(--brand-primary)" label="Applications" />
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-40 w-full" preserveAspectRatio="none" role="img" aria-label="Weekly candidate and application trends">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="h-40 w-full"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Weekly candidate and application trends"
+      >
         {trends.map((t, i) => {
           const x = pad + i * groupW;
           const ch = (t.candidates / max) * (H - 24);
           const ah = (t.applications / max) * (H - 24);
           return (
             <g key={t.weekStart.toISOString()}>
-              <rect x={x} y={H - 16 - ch} width={barW} height={ch} rx={2} fill="var(--brand-secondary)" />
+              <rect
+                x={x}
+                y={H - 16 - ch}
+                width={barW}
+                height={ch}
+                rx={2}
+                fill="var(--brand-secondary)"
+              />
               <rect
                 x={x + barW + 3}
                 y={H - 16 - ah}

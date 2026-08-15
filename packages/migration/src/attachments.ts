@@ -383,11 +383,7 @@ async function createAttachmentRun(
   return row.id;
 }
 
-async function finishAttachmentRun(
-  db: Database,
-  workspaceId: string,
-  result: AttachmentRunResult
-) {
+async function finishAttachmentRun(db: Database, workspaceId: string, result: AttachmentRunResult) {
   if (!result.runId) return;
   const runId = result.runId;
   await withWorkspace(db, workspaceId, async (tx) => {

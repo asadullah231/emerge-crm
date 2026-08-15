@@ -9,13 +9,48 @@ type Tag = { id: string; name: string; color: string | null };
 
 /** Preset colours offered when creating a tag; keys are stored in the DB. */
 export const TAG_COLORS: { key: string; label: string; chip: string; dot: string }[] = [
-  { key: "slate", label: "Slate", chip: "bg-slate-500/10 text-slate-600 dark:text-slate-300", dot: "bg-slate-500" },
-  { key: "blue", label: "Blue", chip: "bg-blue-500/10 text-blue-600 dark:text-blue-300", dot: "bg-blue-500" },
-  { key: "green", label: "Green", chip: "bg-green-500/10 text-green-600 dark:text-green-300", dot: "bg-green-500" },
-  { key: "amber", label: "Amber", chip: "bg-amber-500/10 text-amber-600 dark:text-amber-400", dot: "bg-amber-500" },
-  { key: "red", label: "Red", chip: "bg-red-500/10 text-red-600 dark:text-red-400", dot: "bg-red-500" },
-  { key: "purple", label: "Purple", chip: "bg-purple-500/10 text-purple-600 dark:text-purple-300", dot: "bg-purple-500" },
-  { key: "teal", label: "Teal", chip: "bg-teal-500/10 text-teal-600 dark:text-teal-300", dot: "bg-teal-500" }
+  {
+    key: "slate",
+    label: "Slate",
+    chip: "bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    dot: "bg-slate-500"
+  },
+  {
+    key: "blue",
+    label: "Blue",
+    chip: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
+    dot: "bg-blue-500"
+  },
+  {
+    key: "green",
+    label: "Green",
+    chip: "bg-green-500/10 text-green-600 dark:text-green-300",
+    dot: "bg-green-500"
+  },
+  {
+    key: "amber",
+    label: "Amber",
+    chip: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    dot: "bg-amber-500"
+  },
+  {
+    key: "red",
+    label: "Red",
+    chip: "bg-red-500/10 text-red-600 dark:text-red-400",
+    dot: "bg-red-500"
+  },
+  {
+    key: "purple",
+    label: "Purple",
+    chip: "bg-purple-500/10 text-purple-600 dark:text-purple-300",
+    dot: "bg-purple-500"
+  },
+  {
+    key: "teal",
+    label: "Teal",
+    chip: "bg-teal-500/10 text-teal-600 dark:text-teal-300",
+    dot: "bg-teal-500"
+  }
 ];
 
 const NEUTRAL_CHIP = "bg-[var(--muted)]/10 text-[var(--foreground)]";
@@ -125,8 +160,7 @@ export function TagEditor({
 
   const selectedIds = useMemo(() => new Set(current.map((t) => t.id)), [current]);
 
-  const commit = (ids: string[]) =>
-    setForEntity.mutate({ entityType, entityId, tagIds: ids });
+  const commit = (ids: string[]) => setForEntity.mutate({ entityType, entityId, tagIds: ids });
 
   const toggle = (tag: Tag) => {
     const next = selectedIds.has(tag.id)
@@ -225,7 +259,9 @@ export function TagEditor({
               </button>
             ))}
             {options.length === 0 && !trimmed ? (
-              <p className="px-3 py-2 text-xs text-[var(--muted)]">No tags yet. Type to create one.</p>
+              <p className="px-3 py-2 text-xs text-[var(--muted)]">
+                No tags yet. Type to create one.
+              </p>
             ) : null}
           </div>
 
@@ -239,7 +275,9 @@ export function TagEditor({
                     onClick={() => setNewColor(c.key)}
                     aria-label={c.label}
                     className={`h-4 w-4 rounded-full ${c.dot} ${
-                      newColor === c.key ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--card)]" : ""
+                      newColor === c.key
+                        ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--card)]"
+                        : ""
                     }`}
                   />
                 ))}

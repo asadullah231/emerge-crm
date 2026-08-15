@@ -67,15 +67,15 @@ M14.
 
 ## Intake & documents
 
-| Zoho feature                         | Priority | Our equivalent                                                          | Data | UI                        | Backend         | Migration            | Milestone       |
-| ------------------------------------ | -------- | ----------------------------------------------------------------------- | ---- | ------------------------- | --------------- | -------------------- | --------------- |
-| Resume parser import (the #1 intake) | MUST     | parsing pipeline (upload -> parse -> candidate + edu/exp + CV attached) | yes  | drop-zone + review screen | parser worker   | n/a                  | **M7 done (v0.9.0)** |
-| Bulk CV import (folder/multi-file)   | MUST     | batch upload queue                                                      | yes  | progress UI               | queue jobs      | n/a                  | **M7 done (v0.9.0)** |
-| LLM provider (any) + own API key     | SHOULD   | per-workspace AI settings (anthropic + openai-compatible), keys encrypted | yes  | Settings > AI            | @emerge/ai      | n/a                  | **M7 done (v0.9.0)** |
-| Attachments on records               | MUST     | attachments (MinIO)                                                     | yes  | files panel               | upload/download | yes (CVs via API)    | M3 (basic) / M7 |
-| Formatted/branded CV generation      | NICE     | formatted CV export                                                     | -    | template                  | renderer        | no                   | post-1.0        |
-| Resume inbox (email CVs in)          | NICE     | inbox address per workspace                                             | yes  | queue                     | mail-in worker  | n/a                  | post-1.0        |
-| Duplicate check on import (email)    | MUST     | dedupe + merge prompt                                                   | -    | merge dialog              | matcher         | dedupe during import | M3/M7/M8        |
+| Zoho feature                         | Priority | Our equivalent                                                            | Data | UI                        | Backend         | Migration            | Milestone            |
+| ------------------------------------ | -------- | ------------------------------------------------------------------------- | ---- | ------------------------- | --------------- | -------------------- | -------------------- |
+| Resume parser import (the #1 intake) | MUST     | parsing pipeline (upload -> parse -> candidate + edu/exp + CV attached)   | yes  | drop-zone + review screen | parser worker   | n/a                  | **M7 done (v0.9.0)** |
+| Bulk CV import (folder/multi-file)   | MUST     | batch upload queue                                                        | yes  | progress UI               | queue jobs      | n/a                  | **M7 done (v0.9.0)** |
+| LLM provider (any) + own API key     | SHOULD   | per-workspace AI settings (anthropic + openai-compatible), keys encrypted | yes  | Settings > AI             | @emerge/ai      | n/a                  | **M7 done (v0.9.0)** |
+| Attachments on records               | MUST     | attachments (MinIO)                                                       | yes  | files panel               | upload/download | yes (CVs via API)    | M3 (basic) / M7      |
+| Formatted/branded CV generation      | NICE     | formatted CV export                                                       | -    | template                  | renderer        | no                   | post-1.0             |
+| Resume inbox (email CVs in)          | NICE     | inbox address per workspace                                               | yes  | queue                     | mail-in worker  | n/a                  | post-1.0             |
+| Duplicate check on import (email)    | MUST     | dedupe + merge prompt                                                     | -    | merge dialog              | matcher         | dedupe during import | M3/M7/M8             |
 
 ## Migration & data admin
 
@@ -122,19 +122,19 @@ M14.
 
 ## Comms, automation, analytics
 
-| Zoho feature                             | Priority     | Our equivalent                                                                       | Data    | UI                   | Backend      | Migration        | Milestone       |
-| ---------------------------------------- | ------------ | ------------------------------------------------------------------------------------ | ------- | -------------------- | ------------ | ---------------- | --------------- |
-| Email send + templates + log to timeline | SHOULD       | email integration (SMTP/provider)                                                    | yes     | composer + templates | send worker  | no               | M13             |
-| Two-way email sync                       | NICE         | provider sync                                                                        | yes     | thread view          | sync worker  | no               | post-1.0        |
-| Workflow rules / Blueprint automation    | NICE         | automation rules engine                                                              | yes     | rules UI             | rule runner  | no (unused)      | post-1.0        |
-| Webhooks                                 | SHOULD       | outbound webhooks                                                                    | yes     | settings             | dispatcher   | no               | M16             |
-| Home dashboard (live KPI command center) | SHOULD       | /dashboard: live KPIs (jobs/candidates/apps/pipeline stages/time-to-hire+fill), pipeline widget, recent candidates+jobs, weekly trends, recruiter perf, activity feed; clickable drill-through; 30s auto-refresh; real RLS-scoped data | done | done | dashboard.overview | reads live | **DONE (ahead of M14)** |
-| Reports & dashboards (full builder)      | SHOULD       | agency KPI reports (submissions/sourcer/week, funnel, time-to-submit, client health) + scheduling | -       | report builder       | aggregates   | no               | M14             |
-| Zia AI matching / semantic search        | NICE         | embedding match (candidates <-> jobs)                                                | vectors | match panel          | embed worker | no               | M15             |
-| Career site + public apply + job boards  | NICE         | careers page + apply form                                                            | yes     | public page          | public api   | no (0 published) | M16 or post-1.0 |
-| Candidate portal                         | NOT (for v1) | -                                                                                    | -       | -                    | -            | no               | post-1.0        |
-| Campaigns                                | NOT          | -                                                                                    | -       | -                    | -            | no (unused)      | -               |
-| SMS/telephony/CTI                        | NOT (for v1) | -                                                                                    | -       | -                    | -            | no               | post-1.0        |
+| Zoho feature                             | Priority     | Our equivalent                                                                                                                                                                                                                         | Data    | UI                   | Backend            | Migration        | Milestone               |
+| ---------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------- | ------------------ | ---------------- | ----------------------- |
+| Email send + templates + log to timeline | SHOULD       | email integration (SMTP/provider)                                                                                                                                                                                                      | yes     | composer + templates | send worker        | no               | M13                     |
+| Two-way email sync                       | NICE         | provider sync                                                                                                                                                                                                                          | yes     | thread view          | sync worker        | no               | post-1.0                |
+| Workflow rules / Blueprint automation    | NICE         | automation rules engine                                                                                                                                                                                                                | yes     | rules UI             | rule runner        | no (unused)      | post-1.0                |
+| Webhooks                                 | SHOULD       | outbound webhooks                                                                                                                                                                                                                      | yes     | settings             | dispatcher         | no               | M16                     |
+| Home dashboard (live KPI command center) | SHOULD       | /dashboard: live KPIs (jobs/candidates/apps/pipeline stages/time-to-hire+fill), pipeline widget, recent candidates+jobs, weekly trends, recruiter perf, activity feed; clickable drill-through; 30s auto-refresh; real RLS-scoped data | done    | done                 | dashboard.overview | reads live       | **DONE (ahead of M14)** |
+| Reports & dashboards (full builder)      | SHOULD       | agency KPI reports (submissions/sourcer/week, funnel, time-to-submit, client health) + scheduling                                                                                                                                      | -       | report builder       | aggregates         | no               | M14                     |
+| Zia AI matching / semantic search        | NICE         | embedding match (candidates <-> jobs)                                                                                                                                                                                                  | vectors | match panel          | embed worker       | no               | M15                     |
+| Career site + public apply + job boards  | NICE         | careers page + apply form                                                                                                                                                                                                              | yes     | public page          | public api         | no (0 published) | M16 or post-1.0         |
+| Candidate portal                         | NOT (for v1) | -                                                                                                                                                                                                                                      | -       | -                    | -                  | no               | post-1.0                |
+| Campaigns                                | NOT          | -                                                                                                                                                                                                                                      | -       | -                    | -                  | no (unused)      | -                       |
+| SMS/telephony/CTI                        | NOT (for v1) | -                                                                                                                                                                                                                                      | -       | -                    | -                  | no               | post-1.0                |
 
 ## Platform & security
 
@@ -157,6 +157,7 @@ notes/@mentions M6, status history M5, Zoho migration M8 - the full dataset is
 live.
 
 **Remaining HIGH (blocks daily use):**
+
 1. **[H2] Candidate CV attachments - DONE (15 Aug).** 1,500 CVs backfilled to
    MinIO across 1,295 of 1,297 candidates (0 failures); the other 2 have no
    attachment in Zoho. Recruiters can now download a CV from the record.
@@ -166,7 +167,7 @@ live.
 5. **[H4] Send email from a record** - M13 (Resend already wired).
 6. **[H7] Offer flow** (made/accepted/withdrawn + expiry) - M12.
 7. **[H8] Client review of submitted candidates** - M10 via **tokened share
-   links** (no login). Reconciliation: the audit flagged a full client *login*
+   links** (no login). Reconciliation: the audit flagged a full client _login_
    portal as HIGH; we meet the underlying need (client approves/rejects/comments
    on submissions) with a no-login link in M10, and defer the login portal to
    post-1.0. The `Client portal (login)` row below stays post-1.0 intentionally.

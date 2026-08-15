@@ -126,7 +126,11 @@ export default function AiSettingsPage() {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={hasKey ? `•••• ${current.data?.keyLast4} (leave blank to keep)` : "Paste your API key"}
+              placeholder={
+                hasKey
+                  ? `•••• ${current.data?.keyLast4} (leave blank to keep)`
+                  : "Paste your API key"
+              }
               className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm"
             />
             {preset?.consoleUrl ? (
@@ -141,11 +145,7 @@ export default function AiSettingsPage() {
           </div>
 
           {testResult ? (
-            <p
-              className={
-                "text-sm " + (testResult.ok ? "text-green-600" : "text-red-600")
-              }
-            >
+            <p className={"text-sm " + (testResult.ok ? "text-green-600" : "text-red-600")}>
               {testResult.ok ? "Connection OK." : `Test failed: ${testResult.error}`}
             </p>
           ) : null}
@@ -165,7 +165,9 @@ export default function AiSettingsPage() {
             <Button disabled={save.isPending || !model} onClick={() => save.mutate(payload())}>
               {save.isPending ? "Saving..." : "Save"}
             </Button>
-            {save.isSuccess ? <span className="self-center text-sm text-green-600">Saved</span> : null}
+            {save.isSuccess ? (
+              <span className="self-center text-sm text-green-600">Saved</span>
+            ) : null}
           </div>
         </div>
       )}

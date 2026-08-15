@@ -1,5 +1,18 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, isNotNull, ne, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  isNotNull,
+  ne,
+  or
+} from "drizzle-orm";
 import { z } from "zod";
 import { companies, companyStatus, contacts, users } from "@emerge/db";
 import { writeAudit } from "../audit";

@@ -39,9 +39,21 @@ export function AppSplash() {
         role="img"
         aria-label="EmergeTech"
       >
-        <path className="emerge-splash-bar" style={{ animationDelay: "0ms" }} d="M36 3 L90 3 L84 19 L30 19 Z" />
-        <path className="emerge-splash-bar" style={{ animationDelay: "160ms" }} d="M12 24 L66 24 L60 40 L6 40 Z" />
-        <path className="emerge-splash-bar" style={{ animationDelay: "320ms" }} d="M20 45 L74 45 L68 61 L14 61 Z" />
+        <path
+          className="emerge-splash-bar"
+          style={{ animationDelay: "0ms" }}
+          d="M36 3 L90 3 L84 19 L30 19 Z"
+        />
+        <path
+          className="emerge-splash-bar"
+          style={{ animationDelay: "160ms" }}
+          d="M12 24 L66 24 L60 40 L6 40 Z"
+        />
+        <path
+          className="emerge-splash-bar"
+          style={{ animationDelay: "320ms" }}
+          d="M20 45 L74 45 L68 61 L14 61 Z"
+        />
       </svg>
       <div className="emerge-splash-word text-2xl font-bold tracking-tight">
         <span style={{ color: "#ffffff" }}>Emerge</span>

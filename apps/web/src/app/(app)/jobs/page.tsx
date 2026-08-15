@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
+import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { NewJobModal } from "@/components/new-job-modal";
 import { JobStatusBadge } from "@/components/record";
 import { TagFilter } from "@/components/tag-editor";
+import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
+import { useRowSelection } from "@/lib/use-row-selection";
 
 type JobRow = RouterOutputs["jobs"]["list"]["rows"][number];
 
@@ -25,6 +28,7 @@ export default function JobsPage() {
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const debouncedSearch = useDebounced(search.trim());
+  const sel = useRowSelection();
 
   const list = trpc.jobs.list.useQuery({
     page,
@@ -35,6 +39,26 @@ export default function JobsPage() {
     tagIds: tagIds.length > 0 ? tagIds : undefined,
     deleted: showTrash
   });
+
+  useEffect(
+    () => sel.clear(),
+    [debouncedSearch, tagIds, showTrash, page, sort.by, sort.dir, sel.clear]
+  );
+
+  const CSV_COLUMNS: CsvColumn<JobRow>[] = [
+    { label: "ID", value: (r) => r.humanId },
+    { label: "Title", value: (r) => r.title },
+    { label: "Company", value: (r) => r.companyName },
+    { label: "Status", value: (r) => r.status },
+    { label: "Employment", value: (r) => r.employmentType },
+    { label: "Work mode", value: (r) => r.workMode },
+    { label: "Location", value: (r) => r.location },
+    { label: "Positions", value: (r) => r.positions }
+  ];
+  const exportSelected = () => {
+    const chosen = (list.data?.rows ?? []).filter((r) => sel.selectedIds.has(r.id));
+    downloadCsv(`jobs-${chosen.length}.csv`, toCsv(chosen, CSV_COLUMNS));
+  };
 
   const restore = trpc.jobs.restore.useMutation({
     onSuccess: () => utils.jobs.list.invalidate()
@@ -149,6 +173,16 @@ export default function JobsPage() {
 
       <FormError message={list.error?.message ?? restore.error?.message} />
 
+      <BulkBar
+        entityType="job"
+        selectedIds={sel.ids}
+        canWrite={canWrite}
+        showTrash={showTrash}
+        onClear={sel.clear}
+        onDone={() => utils.jobs.list.invalidate()}
+        onExport={exportSelected}
+      />
+
       <DataTable
         columns={columns}
         rows={list.data?.rows ?? []}
@@ -164,6 +198,11 @@ export default function JobsPage() {
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/jobs/${row.id}`)}
         isLoading={list.isLoading}
+        selection={{
+          selectedIds: sel.selectedIds,
+          onToggleRow: sel.toggleRow,
+          onTogglePage: sel.togglePage
+        }}
         emptyMessage={
           showTrash
             ? "Trash is empty. Deleted jobs stay here for 30 days."

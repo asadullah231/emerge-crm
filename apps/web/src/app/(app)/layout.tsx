@@ -30,23 +30,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <>
       <AppSplash />
       <AppShell
-      logo={
-        <Link href="/dashboard" aria-label="Emerge CRM home">
-          <LogoFull />
-        </Link>
-      }
-      nav={<SidebarNav items={NAV_ITEMS} />}
-      sidebarFooter={<ApiStatus />}
-      mobileNav={<MobileNav items={NAV_ITEMS} />}
-      headerRight={
-        <>
-          <NotificationBell />
-          <UserMenu name={session.user.name} role={session.role} />
-          <ThemeToggle />
-        </>
-      }
-    >
-      {children}
+        logo={
+          <Link href="/dashboard" aria-label="Emerge CRM home">
+            <LogoFull />
+          </Link>
+        }
+        nav={<SidebarNav items={NAV_ITEMS} />}
+        sidebarFooter={<ApiStatus />}
+        mobileNav={<MobileNav items={NAV_ITEMS} />}
+        headerRight={
+          <>
+            <NotificationBell />
+            <UserMenu name={session.user.name} role={session.role} />
+            <ThemeToggle />
+          </>
+        }
+      >
+        {children}
       </AppShell>
     </>
   );

@@ -26,7 +26,12 @@ function fullName(first: string | null, last: string | null): string {
  */
 export const searchRouter = router({
   global: workspaceProcedure
-    .input(z.object({ q: z.string().trim().min(1).max(100), perType: z.number().int().min(1).max(8).default(5) }))
+    .input(
+      z.object({
+        q: z.string().trim().min(1).max(100),
+        perType: z.number().int().min(1).max(8).default(5)
+      })
+    )
     .query(async ({ ctx, input }): Promise<SearchHit[]> => {
       const term = like(input.q);
       const [cands, comps, conts, jobRows] = await Promise.all([

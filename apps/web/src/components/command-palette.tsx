@@ -141,7 +141,9 @@ export function CommandPalette() {
                       onClick={() => go(hit)}
                       className={
                         "flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm " +
-                        (idx === active ? "bg-[var(--brand-primary-soft)]" : "hover:bg-[var(--background)]")
+                        (idx === active
+                          ? "bg-[var(--brand-primary-soft)]"
+                          : "hover:bg-[var(--background)]")
                       }
                     >
                       <span className="min-w-0">

@@ -25,7 +25,9 @@ export async function prepareInput(
     const { text } = await extractText(pdf, { mergePages: true });
     const merged = (Array.isArray(text) ? text.join("\n") : text).trim();
     if (!merged) {
-      throw new Error("No text found in PDF (scanned image?). Use an Anthropic provider for image PDFs.");
+      throw new Error(
+        "No text found in PDF (scanned image?). Use an Anthropic provider for image PDFs."
+      );
     }
     return { mode: "text", text: merged };
   }
