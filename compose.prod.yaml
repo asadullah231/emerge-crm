@@ -1,41 +1,31 @@
 # Emerge CRM production stack — Hostinger VPS 187.127.75.106.
-# Only Traefik is exposed publicly (80 / 443). Every other service lives on
-# the emerge_prod network, reachable only by name.
 #
-# Env vars come from /opt/emerge/.env (root-owned, 600). See
-# .env.production.example for the full list.
+# Reality on this box (inspected 14 Aug 2026):
+#   * root-traefik-1 already runs on :80/:443 (ACME resolver name `myresolver`,
+#     LE storage /root/letsencrypt, docker-labels provider). We piggyback on
+#     it; we do NOT run our own Traefik.
+#   * emerge-pg / emerge-redis / emerge-minio containers exist with named
+#     volumes (emerge_pg_data / emerge_redis_data / emerge_minio_data). They
+#     stay in place; we do NOT recreate them here. Password rotation +
+#     network attach happens via deploy/vps/bootstrap.sh.
+#
+# What this compose deploys:
+#   * emerge-web    (Next.js standalone) — labels for root-traefik-1
+#   * emerge-worker (BullMQ) — no ingress
+#   * emerge-backup — commented out; enable once R2 creds land
+#
+# Env comes from /opt/emerge/.env (root:root, 600). See .env.production.example.
 
 name: emerge-prod
 
 networks:
-  emerge_prod:
-    driver: bridge
-
-volumes:
-  postgres_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/emerge/data/postgres
-  redis_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/emerge/data/redis
-  minio_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/emerge/data/minio
-  traefik_letsencrypt:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/emerge/data/traefik/letsencrypt
+  # Shared with root-traefik-1 so Traefik discovers our containers via labels.
+  root_traefik_network:
+    external: true
+  # Shared with the pre-existing emerge-pg / emerge-redis / emerge-minio.
+  # Created + attached by deploy/vps/bootstrap.sh.
+  emerge_net:
+    external: true
 
 x-logging: &default-logging
   driver: json-file
@@ -43,223 +33,109 @@ x-logging: &default-logging
     max-size: "50m"
     max-file: "5"
 
-x-restart: &default-restart
-  restart: always
-
 services:
-  # ---------------------------------------------------------------------------
-  # Reverse proxy + Let's Encrypt. Only container binding host ports 80/443.
-  # ---------------------------------------------------------------------------
-  traefik:
-    image: traefik:v3.1
-    <<: [*default-restart]
-    logging: *default-logging
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=emerge-prod_emerge_prod
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.websecure.http.tls=true
-      - --entrypoints.websecure.http.tls.certresolver=letsencrypt
-      - --certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}
-      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
-      - --accesslog=true
-      - --log.level=INFO
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_letsencrypt:/letsencrypt
-    networks: [emerge_prod]
-
-  # ---------------------------------------------------------------------------
-  # Postgres 16 — internal only. Volume bind-mount so backups can see it.
-  # ---------------------------------------------------------------------------
-  postgres:
-    image: postgres:16-alpine
-    container_name: emerge-pg
-    <<: [*default-restart]
-    logging: *default-logging
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    networks: [emerge_prod]
-
-  # ---------------------------------------------------------------------------
-  # Redis 7 with AOF + requirepass. Internal only.
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    container_name: emerge-redis
-    <<: [*default-restart]
-    logging: *default-logging
-    command:
-      - redis-server
-      - --appendonly
-      - "yes"
-      - --requirepass
-      - ${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "$${REDIS_PASSWORD}", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    networks: [emerge_prod]
-
-  # ---------------------------------------------------------------------------
-  # MinIO — S3-compatible object storage for candidate CVs / attachments.
-  # API on 9000 via minio.emergeautomation.tech (Traefik), console on 9001
-  # kept internal by default; expose it only if we need the web UI.
-  # ---------------------------------------------------------------------------
-  minio:
-    image: minio/minio:latest
-    container_name: emerge-minio
-    <<: [*default-restart]
-    logging: *default-logging
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.minio.rule=Host(`minio.emergeautomation.tech`)
-      - traefik.http.routers.minio.entrypoints=websecure
-      - traefik.http.routers.minio.tls.certresolver=letsencrypt
-      - traefik.http.services.minio.loadbalancer.server.port=9000
-    networks: [emerge_prod]
-
-  # ---------------------------------------------------------------------------
-  # Emerge web (Next.js standalone build, apps/web/Dockerfile).
-  # ---------------------------------------------------------------------------
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     image: emerge/web:${IMAGE_TAG:-latest}
     container_name: emerge-web
-    <<: [*default-restart]
+    restart: always
     logging: *default-logging
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      S3_ENDPOINT: http://minio:9000
+      # Existing containers, reachable by name on emerge_net.
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@emerge-pg:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@emerge-redis:6379
+      S3_ENDPOINT: http://emerge-minio:9000
+      # Presigned CV URLs must be browser-reachable; use the public Traefik host.
+      S3_PUBLIC_ENDPOINT: https://minio.emergeautomation.tech
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: ${S3_BUCKET:-emerge}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_SECURE: ${SMTP_SECURE:-true}
-      SMTP_FROM: ${SMTP_FROM}
+      # SMTP is optional — mentions/invitations queue but sendMail fails per
+      # job until Resend creds land. See docs/deploy/production-plan.md §7.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@emergeautomation.tech}
       NEXT_PUBLIC_APP_URL: https://emergeautomation.tech
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      minio: { condition: service_healthy }
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 60s
     labels:
       - traefik.enable=true
+      - traefik.docker.network=root_traefik_network
       - traefik.http.routers.emerge-web.rule=Host(`emergeautomation.tech`) || Host(`www.emergeautomation.tech`)
       - traefik.http.routers.emerge-web.entrypoints=websecure
-      - traefik.http.routers.emerge-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.emerge-web.tls=true
+      - traefik.http.routers.emerge-web.tls.certresolver=myresolver
       - traefik.http.services.emerge-web.loadbalancer.server.port=3000
       - traefik.http.services.emerge-web.loadbalancer.healthcheck.path=/api/health
       - traefik.http.services.emerge-web.loadbalancer.healthcheck.interval=30s
-      # www redirect to apex
+      # www.emergeautomation.tech -> emergeautomation.tech
       - traefik.http.middlewares.www-redirect.redirectregex.regex=^https?://www\.emergeautomation\.tech/(.*)
       - traefik.http.middlewares.www-redirect.redirectregex.replacement=https://emergeautomation.tech/$$1
+      - traefik.http.middlewares.www-redirect.redirectregex.permanent=true
       - traefik.http.routers.emerge-web.middlewares=www-redirect
-    networks: [emerge_prod]
+    networks:
+      - root_traefik_network
+      - emerge_net
 
-  # ---------------------------------------------------------------------------
-  # Emerge worker (BullMQ consumer).
-  # ---------------------------------------------------------------------------
   worker:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
     image: emerge/worker:${IMAGE_TAG:-latest}
     container_name: emerge-worker
-    <<: [*default-restart]
+    restart: always
     logging: *default-logging
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_SECURE: ${SMTP_SECURE:-true}
-      SMTP_FROM: ${SMTP_FROM}
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    networks: [emerge_prod]
-
-  # ---------------------------------------------------------------------------
-  # Backup sidecar: nightly pg_dump + minio mirror to Cloudflare R2.
-  # Runs continuously with an internal cron loop; see deploy/backup/entrypoint.sh.
-  # ---------------------------------------------------------------------------
-  backup:
-    image: emerge/backup:${IMAGE_TAG:-latest}
-    build:
-      context: ./deploy/backup
-    container_name: emerge-backup
-    <<: [*default-restart]
-    logging: *default-logging
-    environment:
-      PGHOST: postgres
-      PGUSER: ${POSTGRES_USER}
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      PGDATABASE: ${POSTGRES_DB}
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: ${S3_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${S3_SECRET_KEY}
-      MINIO_BUCKET: ${S3_BUCKET:-emerge}
-      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
-      R2_ACCESS_KEY: ${R2_ACCESS_KEY}
-      R2_SECRET_KEY: ${R2_SECRET_KEY}
-      R2_BUCKET: ${R2_BUCKET}
-      BACKUP_RETENTION_DAILY: ${BACKUP_RETENTION_DAILY:-30}
-      BACKUP_RETENTION_MONTHLY: ${BACKUP_RETENTION_MONTHLY:-12}
-      BACKUP_SCHEDULE_HOUR_UTC: ${BACKUP_SCHEDULE_HOUR_UTC:-2}
-    volumes:
-      - /opt/emerge/backups:/backups
-    depends_on:
-      postgres: { condition: service_healthy }
-      minio: { condition: service_healthy }
-    networks: [emerge_prod]
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@emerge-pg:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@emerge-redis:6379
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@emergeautomation.tech}
+    networks:
+      - emerge_net
+  # -----------------------------------------------------------------------
+  # Off-site backup sidecar — commented out until Cloudflare R2 creds land.
+  # When enabled, uncomment + `docker compose up -d backup`.
+  # -----------------------------------------------------------------------
+  # backup:
+  #   image: emerge/backup:${IMAGE_TAG:-latest}
+  #   build:
+  #     context: ./deploy/backup
+  #   container_name: emerge-backup
+  #   restart: always
+  #   logging: *default-logging
+  #   environment:
+  #     PGHOST: emerge-pg
+  #     PGUSER: ${POSTGRES_USER}
+  #     PGPASSWORD: ${POSTGRES_PASSWORD}
+  #     PGDATABASE: ${POSTGRES_DB}
+  #     MINIO_ENDPOINT: http://emerge-minio:9000
+  #     MINIO_ACCESS_KEY: ${S3_ACCESS_KEY}
+  #     MINIO_SECRET_KEY: ${S3_SECRET_KEY}
+  #     MINIO_BUCKET: ${S3_BUCKET:-emerge}
+  #     R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+  #     R2_ACCESS_KEY: ${R2_ACCESS_KEY}
+  #     R2_SECRET_KEY: ${R2_SECRET_KEY}
+  #     R2_BUCKET: ${R2_BUCKET}
+  #     BACKUP_RETENTION_DAILY: ${BACKUP_RETENTION_DAILY:-30}
+  #     BACKUP_RETENTION_MONTHLY: ${BACKUP_RETENTION_MONTHLY:-12}
+  #     BACKUP_SCHEDULE_HOUR_UTC: ${BACKUP_SCHEDULE_HOUR_UTC:-2}
+  #   volumes:
+  #     - /opt/emerge/backups:/backups
+  #   networks:
+  #     - emerge_net
