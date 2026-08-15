@@ -8,6 +8,7 @@ import { Button, FormError, Input, Label } from "@/components/form";
 import { Modal } from "@/components/modal";
 import { COMPANY_STATUS_OPTIONS, DuplicateWarning, StatusBadge } from "@/components/record";
 import { TagFilter } from "@/components/tag-editor";
+import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
@@ -140,6 +141,7 @@ export default function CompaniesPage() {
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [status, setStatus] = useState("");
   const debouncedSearch = useDebounced(search.trim());
   const sel = useRowSelection();
 
@@ -150,13 +152,29 @@ export default function CompaniesPage() {
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
     tagIds: tagIds.length > 0 ? tagIds : undefined,
+    status: (status || undefined) as CompanyRow["status"] | undefined,
     deleted: showTrash
   });
 
   useEffect(
     () => sel.clear(),
-    [debouncedSearch, tagIds, showTrash, page, sort.by, sort.dir, sel.clear]
+    [debouncedSearch, tagIds, status, showTrash, page, sort.by, sort.dir, sel.clear]
   );
+
+  const currentFilters: ViewFilters = {
+    search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    sortBy: sort.by,
+    sortDir: sort.dir,
+    fields: status ? { status } : undefined
+  };
+  const applyView = (f: ViewFilters) => {
+    setSearch(f.search ?? "");
+    setTagIds(f.tagIds ?? []);
+    setSort({ by: f.sortBy ?? "name", dir: f.sortDir ?? "asc" });
+    setStatus(f.fields?.status ?? "");
+    setPage(1);
+  };
 
   const CSV_COLUMNS: CsvColumn<CompanyRow>[] = [
     { label: "Name", value: (r) => r.name },
@@ -263,13 +281,32 @@ export default function CompaniesPage() {
       />
 
       {!showTrash ? (
-        <TagFilter
-          selected={tagIds}
-          onChange={(ids) => {
-            setTagIds(ids);
-            setPage(1);
-          }}
-        />
+        <>
+          <div className="flex flex-wrap items-center gap-4">
+            <FieldFilter
+              label="Status"
+              value={status}
+              onChange={(v) => {
+                setStatus(v);
+                setPage(1);
+              }}
+              options={COMPANY_STATUS_OPTIONS}
+            />
+            <TagFilter
+              selected={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+                setPage(1);
+              }}
+            />
+          </div>
+          <ViewsBar
+            entityType="company"
+            current={currentFilters}
+            canWrite={canWrite}
+            onApply={applyView}
+          />
+        </>
       ) : null}
 
       <FormError message={list.error?.message ?? restore.error?.message} />

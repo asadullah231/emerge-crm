@@ -6,8 +6,9 @@ import { DataTable, type DataTableColumn, type SortState } from "@/components/da
 import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { NewJobModal } from "@/components/new-job-modal";
-import { JobStatusBadge } from "@/components/record";
+import { JOB_STATUS_OPTIONS, JobStatusBadge } from "@/components/record";
 import { TagFilter } from "@/components/tag-editor";
+import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
@@ -27,6 +28,7 @@ export default function JobsPage() {
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [status, setStatus] = useState("");
   const debouncedSearch = useDebounced(search.trim());
   const sel = useRowSelection();
 
@@ -37,13 +39,29 @@ export default function JobsPage() {
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
     tagIds: tagIds.length > 0 ? tagIds : undefined,
+    status: (status || undefined) as JobRow["status"] | undefined,
     deleted: showTrash
   });
 
   useEffect(
     () => sel.clear(),
-    [debouncedSearch, tagIds, showTrash, page, sort.by, sort.dir, sel.clear]
+    [debouncedSearch, tagIds, status, showTrash, page, sort.by, sort.dir, sel.clear]
   );
+
+  const currentFilters: ViewFilters = {
+    search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    sortBy: sort.by,
+    sortDir: sort.dir,
+    fields: status ? { status } : undefined
+  };
+  const applyView = (f: ViewFilters) => {
+    setSearch(f.search ?? "");
+    setTagIds(f.tagIds ?? []);
+    setSort({ by: f.sortBy ?? "openedAt", dir: f.sortDir ?? "desc" });
+    setStatus(f.fields?.status ?? "");
+    setPage(1);
+  };
 
   const CSV_COLUMNS: CsvColumn<JobRow>[] = [
     { label: "ID", value: (r) => r.humanId },
@@ -162,13 +180,32 @@ export default function JobsPage() {
       />
 
       {!showTrash ? (
-        <TagFilter
-          selected={tagIds}
-          onChange={(ids) => {
-            setTagIds(ids);
-            setPage(1);
-          }}
-        />
+        <>
+          <div className="flex flex-wrap items-center gap-4">
+            <FieldFilter
+              label="Status"
+              value={status}
+              onChange={(v) => {
+                setStatus(v);
+                setPage(1);
+              }}
+              options={JOB_STATUS_OPTIONS}
+            />
+            <TagFilter
+              selected={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+                setPage(1);
+              }}
+            />
+          </div>
+          <ViewsBar
+            entityType="job"
+            current={currentFilters}
+            canWrite={canWrite}
+            onApply={applyView}
+          />
+        </>
       ) : null}
 
       <FormError message={list.error?.message ?? restore.error?.message} />

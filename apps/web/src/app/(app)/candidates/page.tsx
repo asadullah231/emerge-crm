@@ -7,8 +7,9 @@ import { DataTable, type DataTableColumn, type SortState } from "@/components/da
 import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { NewCandidateModal, candidateName } from "@/components/new-candidate-modal";
-import { SourceBadge } from "@/components/record";
+import { CANDIDATE_SOURCE_OPTIONS, SourceBadge } from "@/components/record";
 import { TagFilter } from "@/components/tag-editor";
+import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
@@ -28,6 +29,7 @@ export default function CandidatesPage() {
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [source, setSource] = useState("");
   const debouncedSearch = useDebounced(search.trim());
   const sel = useRowSelection();
 
@@ -38,14 +40,30 @@ export default function CandidatesPage() {
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
     tagIds: tagIds.length > 0 ? tagIds : undefined,
+    source: (source || undefined) as CandidateRow["source"] | undefined,
     deleted: showTrash
   });
 
   // Selection is per current result set; reset it when the query changes.
   useEffect(
     () => sel.clear(),
-    [debouncedSearch, tagIds, showTrash, page, sort.by, sort.dir, sel.clear]
+    [debouncedSearch, tagIds, source, showTrash, page, sort.by, sort.dir, sel.clear]
   );
+
+  const currentFilters: ViewFilters = {
+    search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    sortBy: sort.by,
+    sortDir: sort.dir,
+    fields: source ? { source } : undefined
+  };
+  const applyView = (f: ViewFilters) => {
+    setSearch(f.search ?? "");
+    setTagIds(f.tagIds ?? []);
+    setSort({ by: f.sortBy ?? "lastName", dir: f.sortDir ?? "asc" });
+    setSource(f.fields?.source ?? "");
+    setPage(1);
+  };
 
   const restore = trpc.candidates.restore.useMutation({
     onSuccess: () => utils.candidates.list.invalidate()
@@ -178,13 +196,32 @@ export default function CandidatesPage() {
       />
 
       {!showTrash ? (
-        <TagFilter
-          selected={tagIds}
-          onChange={(ids) => {
-            setTagIds(ids);
-            setPage(1);
-          }}
-        />
+        <>
+          <div className="flex flex-wrap items-center gap-4">
+            <FieldFilter
+              label="Source"
+              value={source}
+              onChange={(v) => {
+                setSource(v);
+                setPage(1);
+              }}
+              options={CANDIDATE_SOURCE_OPTIONS}
+            />
+            <TagFilter
+              selected={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+                setPage(1);
+              }}
+            />
+          </div>
+          <ViewsBar
+            entityType="candidate"
+            current={currentFilters}
+            canWrite={canWrite}
+            onApply={applyView}
+          />
+        </>
       ) : null}
 
       <FormError message={list.error?.message ?? restore.error?.message} />

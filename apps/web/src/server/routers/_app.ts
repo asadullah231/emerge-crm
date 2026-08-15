@@ -17,6 +17,7 @@ import { parsingRouter } from "./parsing";
 import { searchRouter } from "./search";
 import { tagsRouter } from "./tags";
 import { timelineRouter } from "./timeline";
+import { viewsRouter } from "./views";
 import { workspaceRouter } from "./workspace";
 
 export const appRouter = router({
@@ -44,7 +45,8 @@ export const appRouter = router({
   notifications: notificationsRouter,
   parsing: parsingRouter,
   search: searchRouter,
-  timeline: timelineRouter
+  timeline: timelineRouter,
+  views: viewsRouter
 });
 
 export type AppRouter = typeof appRouter;

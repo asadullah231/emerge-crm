@@ -120,6 +120,13 @@
       "when": 1786801728670,
       "tag": "0016_minor_celestials",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786811240400,
+      "tag": "0017_sour_bug",
+      "breakpoints": true
     }
   ]
 }

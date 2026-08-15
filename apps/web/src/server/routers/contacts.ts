@@ -71,42 +71,46 @@ async function demoteOtherPrimaries(tx: Transaction, companyId: string, keepCont
 }
 
 export const contactsRouter = router({
-  list: workspaceProcedure.input(listInput).query(async ({ ctx, input }) => {
-    const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
-      sortable: {
-        lastName: contacts.lastName,
-        firstName: contacts.firstName,
-        email: contacts.email,
-        title: contacts.title,
-        createdAt: contacts.createdAt,
-        updatedAt: contacts.updatedAt
-      },
-      searchable: [contacts.firstName, contacts.lastName, contacts.email, contacts.title],
-      defaultSort: "lastName"
-    });
-    const deletedWhere = input.deleted
-      ? and(isNotNull(contacts.deletedAt), gte(contacts.deletedAt, trashCutoff()))
-      : isNull(contacts.deletedAt);
-    const tagWhere =
-      input.tagIds && input.tagIds.length > 0
-        ? inArray(contacts.id, taggedEntityIds(ctx.tx, "contact", input.tagIds))
-        : undefined;
-    const where = and(deletedWhere, searchWhere, tagWhere);
+  list: workspaceProcedure
+    .input(listInput.extend({ isPrimary: z.boolean().optional() }))
+    .query(async ({ ctx, input }) => {
+      const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
+        sortable: {
+          lastName: contacts.lastName,
+          firstName: contacts.firstName,
+          email: contacts.email,
+          title: contacts.title,
+          createdAt: contacts.createdAt,
+          updatedAt: contacts.updatedAt
+        },
+        searchable: [contacts.firstName, contacts.lastName, contacts.email, contacts.title],
+        defaultSort: "lastName"
+      });
+      const deletedWhere = input.deleted
+        ? and(isNotNull(contacts.deletedAt), gte(contacts.deletedAt, trashCutoff()))
+        : isNull(contacts.deletedAt);
+      const tagWhere =
+        input.tagIds && input.tagIds.length > 0
+          ? inArray(contacts.id, taggedEntityIds(ctx.tx, "contact", input.tagIds))
+          : undefined;
+      const primaryWhere =
+        input.isPrimary === undefined ? undefined : eq(contacts.isPrimary, input.isPrimary);
+      const where = and(deletedWhere, searchWhere, tagWhere, primaryWhere);
 
-    const [rows, [totalRow]] = await Promise.all([
-      ctx.tx
-        .select(baseCols)
-        .from(contacts)
-        .leftJoin(companies, eq(companies.id, contacts.companyId))
-        .leftJoin(users, eq(users.id, contacts.ownerId))
-        .where(where)
-        .orderBy(orderBy, asc(contacts.id))
-        .limit(limit)
-        .offset(offset),
-      ctx.tx.select({ total: count() }).from(contacts).where(where)
-    ]);
-    return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
-  }),
+      const [rows, [totalRow]] = await Promise.all([
+        ctx.tx
+          .select(baseCols)
+          .from(contacts)
+          .leftJoin(companies, eq(companies.id, contacts.companyId))
+          .leftJoin(users, eq(users.id, contacts.ownerId))
+          .where(where)
+          .orderBy(orderBy, asc(contacts.id))
+          .limit(limit)
+          .offset(offset),
+        ctx.tx.select({ total: count() }).from(contacts).where(where)
+      ]);
+      return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
+    }),
 
   get: workspaceProcedure
     .input(z.object({ id: z.string().uuid() }))

@@ -7,6 +7,7 @@ import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { NewContactModal, contactName } from "@/components/new-contact-modal";
 import { TagFilter } from "@/components/tag-editor";
+import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
@@ -26,6 +27,7 @@ export default function ContactsPage() {
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [primary, setPrimary] = useState("");
   const debouncedSearch = useDebounced(search.trim());
   const sel = useRowSelection();
 
@@ -36,13 +38,29 @@ export default function ContactsPage() {
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
     tagIds: tagIds.length > 0 ? tagIds : undefined,
+    isPrimary: primary === "" ? undefined : primary === "true",
     deleted: showTrash
   });
 
   useEffect(
     () => sel.clear(),
-    [debouncedSearch, tagIds, showTrash, page, sort.by, sort.dir, sel.clear]
+    [debouncedSearch, tagIds, primary, showTrash, page, sort.by, sort.dir, sel.clear]
   );
+
+  const currentFilters: ViewFilters = {
+    search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    sortBy: sort.by,
+    sortDir: sort.dir,
+    fields: primary ? { isPrimary: primary } : undefined
+  };
+  const applyView = (f: ViewFilters) => {
+    setSearch(f.search ?? "");
+    setTagIds(f.tagIds ?? []);
+    setSort({ by: f.sortBy ?? "lastName", dir: f.sortDir ?? "asc" });
+    setPrimary(f.fields?.isPrimary ?? "");
+    setPage(1);
+  };
 
   const CSV_COLUMNS: CsvColumn<ContactRow>[] = [
     { label: "First name", value: (r) => r.firstName },
@@ -157,13 +175,35 @@ export default function ContactsPage() {
       />
 
       {!showTrash ? (
-        <TagFilter
-          selected={tagIds}
-          onChange={(ids) => {
-            setTagIds(ids);
-            setPage(1);
-          }}
-        />
+        <>
+          <div className="flex flex-wrap items-center gap-4">
+            <FieldFilter
+              label="Primary"
+              value={primary}
+              onChange={(v) => {
+                setPrimary(v);
+                setPage(1);
+              }}
+              options={[
+                { value: "true", label: "Primary only" },
+                { value: "false", label: "Non-primary" }
+              ]}
+            />
+            <TagFilter
+              selected={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+                setPage(1);
+              }}
+            />
+          </div>
+          <ViewsBar
+            entityType="contact"
+            current={currentFilters}
+            canWrite={canWrite}
+            onApply={applyView}
+          />
+        </>
       ) : null}
 
       <FormError message={list.error?.message ?? restore.error?.message} />

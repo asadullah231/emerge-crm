@@ -932,3 +932,33 @@ export const workspaceAiSettings = pgTable(
   },
   (t) => [uniqueIndex("workspace_ai_settings_workspace_unique").on(t.workspaceId)]
 );
+
+// ---------------------------------------------------------------------------
+// M9: saved list views. A view is a named, reusable bundle of list filters
+// (search text, tag ids, structured field filters, sort) for one object type,
+// shared across the workspace. The filter payload is stored as JSON and
+// validated by the router on read/write.
+// ---------------------------------------------------------------------------
+
+export const savedViews = pgTable(
+  "saved_views",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Object list this view belongs to: candidate | company | contact | job. */
+    entityType: text("entity_type").notNull(),
+    name: text("name").notNull(),
+    /** Serialized filter state (search, tagIds, field filters, sort). */
+    filters: jsonb("filters").$type<Record<string, unknown>>().notNull(),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("saved_views_ws_entity_idx").on(t.workspaceId, t.entityType),
+    uniqueIndex("saved_views_ws_entity_name_unique").on(t.workspaceId, t.entityType, t.name)
+  ]
+);
+export type SavedView = typeof savedViews.$inferSelect;

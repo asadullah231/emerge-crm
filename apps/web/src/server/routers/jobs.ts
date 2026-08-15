@@ -74,60 +74,63 @@ async function assertHiringContact(
 }
 
 export const jobsRouter = router({
-  list: workspaceProcedure.input(listInput).query(async ({ ctx, input }) => {
-    const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
-      sortable: {
-        title: jobs.title,
-        humanId: jobs.humanId,
-        status: jobs.status,
-        location: jobs.location,
-        openedAt: jobs.openedAt,
-        createdAt: jobs.createdAt,
-        updatedAt: jobs.updatedAt
-      },
-      searchable: [jobs.title, jobs.humanId, jobs.location],
-      defaultSort: "openedAt"
-    });
-    const deletedWhere = input.deleted
-      ? and(isNotNull(jobs.deletedAt), gte(jobs.deletedAt, trashCutoff()))
-      : isNull(jobs.deletedAt);
-    const tagWhere =
-      input.tagIds && input.tagIds.length > 0
-        ? inArray(jobs.id, taggedEntityIds(ctx.tx, "job", input.tagIds))
-        : undefined;
-    const where = and(deletedWhere, searchWhere, tagWhere);
-
-    const [rows, [totalRow]] = await Promise.all([
-      ctx.tx
-        .select({
-          id: jobs.id,
-          humanId: jobs.humanId,
+  list: workspaceProcedure
+    .input(listInput.extend({ status: z.enum(jobStatus.enumValues).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
+        sortable: {
           title: jobs.title,
+          humanId: jobs.humanId,
           status: jobs.status,
-          employmentType: jobs.employmentType,
-          workMode: jobs.workMode,
           location: jobs.location,
-          positions: jobs.positions,
-          companyId: jobs.companyId,
-          companyName: companies.name,
-          ownerId: jobs.ownerId,
           openedAt: jobs.openedAt,
-          deletedAt: jobs.deletedAt,
           createdAt: jobs.createdAt,
-          updatedAt: jobs.updatedAt,
-          ...ownerCols
-        })
-        .from(jobs)
-        .leftJoin(companies, eq(companies.id, jobs.companyId))
-        .leftJoin(users, eq(users.id, jobs.ownerId))
-        .where(where)
-        .orderBy(orderBy, asc(jobs.id))
-        .limit(limit)
-        .offset(offset),
-      ctx.tx.select({ total: count() }).from(jobs).where(where)
-    ]);
-    return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
-  }),
+          updatedAt: jobs.updatedAt
+        },
+        searchable: [jobs.title, jobs.humanId, jobs.location],
+        defaultSort: "openedAt"
+      });
+      const deletedWhere = input.deleted
+        ? and(isNotNull(jobs.deletedAt), gte(jobs.deletedAt, trashCutoff()))
+        : isNull(jobs.deletedAt);
+      const tagWhere =
+        input.tagIds && input.tagIds.length > 0
+          ? inArray(jobs.id, taggedEntityIds(ctx.tx, "job", input.tagIds))
+          : undefined;
+      const statusWhere = input.status ? eq(jobs.status, input.status) : undefined;
+      const where = and(deletedWhere, searchWhere, tagWhere, statusWhere);
+
+      const [rows, [totalRow]] = await Promise.all([
+        ctx.tx
+          .select({
+            id: jobs.id,
+            humanId: jobs.humanId,
+            title: jobs.title,
+            status: jobs.status,
+            employmentType: jobs.employmentType,
+            workMode: jobs.workMode,
+            location: jobs.location,
+            positions: jobs.positions,
+            companyId: jobs.companyId,
+            companyName: companies.name,
+            ownerId: jobs.ownerId,
+            openedAt: jobs.openedAt,
+            deletedAt: jobs.deletedAt,
+            createdAt: jobs.createdAt,
+            updatedAt: jobs.updatedAt,
+            ...ownerCols
+          })
+          .from(jobs)
+          .leftJoin(companies, eq(companies.id, jobs.companyId))
+          .leftJoin(users, eq(users.id, jobs.ownerId))
+          .where(where)
+          .orderBy(orderBy, asc(jobs.id))
+          .limit(limit)
+          .offset(offset),
+        ctx.tx.select({ total: count() }).from(jobs).where(where)
+      ]);
+      return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
+    }),
 
   get: workspaceProcedure
     .input(z.object({ id: z.string().uuid() }))
