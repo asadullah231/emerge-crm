@@ -6,6 +6,7 @@ import { authRouter } from "./auth";
 import { candidatesRouter } from "./candidates";
 import { companiesRouter } from "./companies";
 import { contactsRouter } from "./contacts";
+import { dashboardRouter } from "./dashboard";
 import { jobsRouter } from "./jobs";
 import { membersRouter } from "./members";
 import { notesRouter } from "./notes";
@@ -30,6 +31,7 @@ export const appRouter = router({
   candidates: candidatesRouter,
   jobs: jobsRouter,
   applications: applicationsRouter,
+  dashboard: dashboardRouter,
   attachments: attachmentsRouter,
   tags: tagsRouter,
   notes: notesRouter,
