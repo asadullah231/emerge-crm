@@ -126,6 +126,9 @@ importers:
       '@emerge/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@emerge/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       bullmq:
         specifier: ^5.44.0
         version: 5.81.3
@@ -182,6 +185,18 @@ importers:
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
+
+  packages/email:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.0
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.12)
 
   packages/migration:
     dependencies:

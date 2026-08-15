@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@emerge/core": "workspace:*",
+    "@emerge/email": "workspace:*",
     "bullmq": "^5.44.0",
     "ioredis": "^5.6.0",
     "nodemailer": "^9.0.5"
