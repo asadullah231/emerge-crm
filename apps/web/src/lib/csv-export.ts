@@ -1,6 +1,9 @@
 /** A CSV column: a header label and how to pull its cell value from a row. */
 export type CsvColumn<T> = { label: string; value: (row: T) => string | number | null | undefined };
 
+/** UTF-8 byte-order mark; prepended so Excel opens the file as UTF-8. */
+const BOM = "﻿";
+
 function escapeCell(value: string | number | null | undefined): string {
   const s = value == null ? "" : String(value);
   // Quote when the cell contains a comma, quote, or newline; double inner quotes.
@@ -10,8 +13,7 @@ function escapeCell(value: string | number | null | undefined): string {
 export function toCsv<T>(rows: T[], columns: CsvColumn<T>[]): string {
   const header = columns.map((c) => escapeCell(c.label)).join(",");
   const body = rows.map((row) => columns.map((c) => escapeCell(c.value(row))).join(",")).join("\n");
-  // Leading BOM so Excel opens UTF-8 correctly.
-  return `﻿${header}\n${body}`;
+  return `${BOM}${header}\n${body}`;
 }
 
 /** Trigger a client-side download of `content` as a file. Browser-only. */
