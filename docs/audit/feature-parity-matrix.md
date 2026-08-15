@@ -3,15 +3,22 @@
 Classification: MUST (needed to replace Zoho for our team) / SHOULD (needed to be a
 credible product soon after) / NICE (valuable, not urgent) / NOT (deliberately not
 copied). "Migration" = does switching from Zoho require importing this data.
-Milestones reference the updated roadmap (docs/roadmap.md).
+Milestones reference the updated roadmap (docs/roadmap.md), reconciled 15 Aug 2026
+against the live post-cutover audit (`zoho-live-audit-2026-08-15.md`). The
+"Audit ID" column ties each row to the gap list in that audit (H* = HIGH, M* =
+MEDIUM); every gap maps to exactly one milestone (see roadmap
+§"Audit gap → milestone traceability").
 
 **Delivered so far:** M0 (v0.1.0) foundation, M1 (v0.2.0) auth/RLS/roles,
 M2 (v0.3.0) Companies & Contacts, M3 (v0.4.0) Candidates + CV + dedupe,
 M4 (v0.5.0) Jobs, M5 (v0.6.0) Applications pipeline + kanban + status history,
-**M6 (v0.7.0) Notes + @mentions + notifications + per-record timeline +
-org-wide activity feed + note templates** (matrix rows 36-40). Next: M7 resume
-parsing. The Timeline reads existing events (audit_log + status history + notes),
-so it is populated without a separate event-bus write path for now.
+M6 (v0.7.0) Notes + @mentions + notifications + per-record timeline +
+org-wide activity feed + note templates, **M8 (v0.8.0) Zoho migration engine —
+full dataset live (86 companies / 12 contacts / 1,298 candidates / 101 jobs /
+763 applications / 1,218 notes).** Next: **attachment (CV) backfill** (data
+task, no code — 1,293 CVs still to pull), then M7 resume parsing. The Timeline
+reads existing events (audit_log + status history + notes), so it is populated
+without a separate event-bus write path for now.
 
 ## Core objects
 
@@ -129,20 +136,37 @@ so it is populated without a separate event-bus write path for now.
 | Public REST API + API keys             | SHOULD   | versioned public API                       | yes  | docs            | keys/scopes | no                 | M16               |
 | Import/export at scale                 | MUST     | covered above                              | -    | -               | -           | -                  | M8/M9             |
 
-## Missing from our product today (gap analysis vs Zoho + OpenCATS)
+## Missing from our product today (gap analysis vs live Zoho, 15 Aug 2026)
 
-1. Candidates, jobs, applications do not exist yet - Phase 1 (M3-M5). Everything
-   else assumes them.
-2. Resume parsing (Zoho's real intake, OpenCATS has basic parsing too) - M7.
-3. Relationship-preserving Zoho import - unique to our situation, M8; without it
-   the team cannot switch, which is the entire point.
-4. Notes with @mentions + notifications (the team's handoff mechanism; OpenCATS
-   has plain notes only) - M6.
-5. Status history analytics (Zoho has it implicitly; OpenCATS pipeline history is
-   weak) - M5 event history feeds M14 reports.
-6. Global fast search (both Zoho and OpenCATS have search; we have none) - M9.
-7. Client sendout records with feedback links (Zoho Submissions; nothing in
-   OpenCATS) - M10.
+Reconciled against `zoho-live-audit-2026-08-15.md` §2. Audit IDs in brackets;
+every gap has a milestone (roadmap §"Audit gap → milestone traceability").
+
+**Now DONE (were gaps 1–5, 7 in the pre-cutover matrix):** core objects M2–M5,
+notes/@mentions M6, status history M5, Zoho migration M8 — the full dataset is
+live.
+
+**Remaining HIGH (blocks daily use):**
+1. **[H2] Candidate CV attachments** — 1,293 CVs not yet pulled to MinIO. Data
+   task before M7 (engine already coded). #1 quick win.
+2. **[H6] Resume parsing** — Zoho's real intake (1,034 of 1,298 candidates). M7.
+3. **[H3] Global search** across modules — M9.
+4. **[H1] Interviews module** (schedule/feedback/status FSM) — M11.
+5. **[H4] Send email from a record** — M13 (Resend already wired).
+6. **[H7] Offer flow** (made/accepted/withdrawn + expiry) — M12.
+7. **[H8] Client review of submitted candidates** — M10 via **tokened share
+   links** (no login). Reconciliation: the audit flagged a full client *login*
+   portal as HIGH; we meet the underlying need (client approves/rejects/comments
+   on submissions) with a no-login link in M10, and defer the login portal to
+   post-1.0. The `Client portal (login)` row below stays post-1.0 intentionally.
+8. **[H5] Career site + web-to-candidate** — M16, behind a toggle (LOW in
+   practice: 0 CareerSite-sourced records in the live org).
+
+**Remaining MEDIUM:** tags UI [M1-audit] → M9 · saved views [M2-audit] → M9 ·
+mail merge [M9-audit] → M13 · reports/dashboards → M14 · Zia matching
+[M13-audit] → M15 · forecasts [M15-audit] → M12 · compliance/GDPR [M18-audit]
+→ M17. Custom fields, layouts, assessments, reviews (full), approvals,
+blueprints, candidate/vendor portals, formatted CV, calendar-booking,
+custom functions → post-1.0 (all zero-data or non-blocking in the live org).
 
 ## Features we deliberately do NOT copy
 
