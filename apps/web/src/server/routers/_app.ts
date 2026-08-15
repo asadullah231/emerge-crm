@@ -11,6 +11,7 @@ import { jobsRouter } from "./jobs";
 import { membersRouter } from "./members";
 import { notesRouter } from "./notes";
 import { notificationsRouter } from "./notifications";
+import { parsingRouter } from "./parsing";
 import { tagsRouter } from "./tags";
 import { timelineRouter } from "./timeline";
 import { workspaceRouter } from "./workspace";
@@ -36,6 +37,7 @@ export const appRouter = router({
   tags: tagsRouter,
   notes: notesRouter,
   notifications: notificationsRouter,
+  parsing: parsingRouter,
   timeline: timelineRouter
 });
 
