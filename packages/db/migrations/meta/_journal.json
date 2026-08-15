@@ -113,6 +113,13 @@
       "when": 1786791900609,
       "tag": "0015_public_satana",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1786801728670,
+      "tag": "0016_minor_celestials",
+      "breakpoints": true
     }
   ]
 }
