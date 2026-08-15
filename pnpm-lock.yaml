@@ -253,9 +253,15 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.800.0
         version: 3.1109.0
+      '@emerge/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@emerge/db':
         specifier: workspace:*
         version: link:../db
+      bullmq:
+        specifier: ^5.81.3
+        version: 5.81.3
       drizzle-orm:
         specifier: ^0.44.0
         version: 0.44.7(postgres@3.4.9)
