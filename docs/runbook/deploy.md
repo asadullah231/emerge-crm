@@ -13,7 +13,7 @@ IMAGE_TAG=v0.9.0 docker compose -f compose.prod.yaml --env-file /opt/emerge/.env
 
 # Migrations (idempotent). Run BEFORE swapping traffic if the migration is
 # backwards-compatible; run AFTER if it is not (but we don't do incompatible
-# migrations — every change ships behind an additive schema).
+# migrations - every change ships behind an additive schema).
 docker compose -f compose.prod.yaml --env-file /opt/emerge/.env exec web \
   pnpm --filter @emerge/db migrate
 
@@ -26,7 +26,7 @@ curl -sSf https://crm.crm.emergeautomation.tech/api/health | jq
 - Next.js standalone runtime + Traefik healthcheck means a rebuild spins up
   the new container and only routes to it once `/api/health` returns 200.
 - Compose `up -d web` recreates the web container; there's a ~5 s gap while
-  Traefik notices. For true zero-downtime we'd add a second replica —
+  Traefik notices. For true zero-downtime we'd add a second replica -
   overkill for v1; note it for later.
 
 ## After deploy

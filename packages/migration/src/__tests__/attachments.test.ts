@@ -43,7 +43,7 @@ describe("classifyAttachmentKind", () => {
 describe("safeFilename + objectKeyFor", () => {
   it("sanitises unsafe characters", () => {
     // Matches the web upload route's regex: dots are kept, only /*? collapse to _.
-    // Harmless leading dots — every key is prefixed with workspaces/<ws>/candidates/<id>/.
+    // Harmless leading dots - every key is prefixed with workspaces/<ws>/candidates/<id>/.
     expect(safeFilename("../weird/na*me?.pdf")).toBe(".._weird_na_me_.pdf");
     expect(safeFilename("")).toBe("attachment");
   });

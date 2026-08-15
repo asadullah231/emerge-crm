@@ -18,7 +18,7 @@ docker exec emerge-backup /usr/local/bin/pg-backup.sh
 docker exec emerge-backup /usr/local/bin/minio-mirror.sh
 ```
 
-## Restore — Postgres
+## Restore - Postgres
 
 **Case A: restore into a fresh scratch container (drill / dev copy)**
 
@@ -39,7 +39,7 @@ pg_restore --dbname=postgres://postgres:temp@localhost:15432/emerge_restore \
 docker stop pg-restore
 ```
 
-**Case B: overwrite the production DB (disaster recovery — LAST RESORT)**
+**Case B: overwrite the production DB (disaster recovery - LAST RESORT)**
 
 Requires downtime. Announce first.
 
@@ -67,7 +67,7 @@ docker compose -f /opt/emerge/app/compose.prod.yaml start web worker
 curl -sSf https://crm.crm.emergeautomation.tech/api/health
 ```
 
-## Restore — MinIO attachments
+## Restore - MinIO attachments
 
 The mirror job never deletes from R2, so the R2 copy is a strict superset
 after any single-day loss.

@@ -1,4 +1,4 @@
-# Emerge CRM production stack — Hostinger VPS 187.127.75.106.
+# Emerge CRM production stack - Hostinger VPS 187.127.75.106.
 #
 # Reality on this box (inspected 14 Aug 2026):
 #   * root-traefik-1 already runs on :80/:443 (ACME resolver name `myresolver`,
@@ -10,9 +10,9 @@
 #     network attach happens via deploy/vps/bootstrap.sh.
 #
 # What this compose deploys:
-#   * emerge-web    (Next.js standalone) — labels for root-traefik-1
-#   * emerge-worker (BullMQ) — no ingress
-#   * emerge-backup — commented out; enable once R2 creds land
+#   * emerge-web    (Next.js standalone) - labels for root-traefik-1
+#   * emerge-worker (BullMQ) - no ingress
+#   * emerge-backup - commented out; enable once R2 creds land
 #
 # Env comes from /opt/emerge/.env (root:root, 600). See .env.production.example.
 
@@ -54,7 +54,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: ${S3_BUCKET:-emerge}
-      # SMTP is optional — mentions/invitations queue but sendMail fails per
+      # SMTP is optional - mentions/invitations queue but sendMail fails per
       # job until Resend creds land. See docs/deploy/production-plan.md §7.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -106,7 +106,7 @@ services:
     networks:
       - emerge_net
   # -----------------------------------------------------------------------
-  # Off-site backup sidecar — commented out until Cloudflare R2 creds land.
+  # Off-site backup sidecar - commented out until Cloudflare R2 creds land.
   # When enabled, uncomment + `docker compose up -d backup`.
   # -----------------------------------------------------------------------
   # backup:

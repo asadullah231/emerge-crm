@@ -14,7 +14,7 @@ export const brand = {
   tealHover: "#0a655c",
   tealSoft: "#e1f4f0",
   white: "#ffffff",
-  /** Page background behind the card — a soft cool grey. */
+  /** Page background behind the card - a soft cool grey. */
   pageBg: "#eef0f4",
   card: "#ffffff",
   border: "#e4e7ec",
@@ -35,5 +35,5 @@ export const company = {
   siteUrl: "https://emergeautomation.tech"
 } as const;
 
-/** Fixed content width — the safe, universally-supported email column. */
+/** Fixed content width - the safe, universally-supported email column. */
 export const CONTENT_WIDTH = 600;

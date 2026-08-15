@@ -1,7 +1,7 @@
-# Production Deployment Plan — Emerge CRM
+# Production Deployment Plan - Emerge CRM
 
 Target: **https://crm.emergeautomation.tech**
-Status: **DECISIONS LOCKED 14 Aug 2026** — Option A + Hostinger DNS + Resend
+Status: **DECISIONS LOCKED 14 Aug 2026** - Option A + Hostinger DNS + Resend
 SMTP + Cloudflare R2 backup. Review PR opened with compose/health/runbook.
 Rule: M1–M5 functionality, DB schema, and completed milestones stay untouched.
 
@@ -29,16 +29,16 @@ Rule: M1–M5 functionality, DB schema, and completed milestones stay untouched.
 `DATABASE_URL`, `REDIS_URL`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`,
 `S3_SECRET_KEY`, `S3_BUCKET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`,
 `SMTP_USER`, `SMTP_FROM`, `NEXT_PUBLIC_APP_URL`, `NODE_ENV`. Nothing else.
-(An auth-cookie secret is not read from env today — noted below as a gap.)
+(An auth-cookie secret is not read from env today - noted below as a gap.)
 
-**Auth model**: DB sessions + argon2id (M1). No external OAuth / provider —
+**Auth model**: DB sessions + argon2id (M1). No external OAuth / provider -
 one less thing to configure.
 
 **VPS state (Hostinger, 187.127.75.106, per project memory + secrets file)**
 
 Already running there:
 
-- `emerge-pg` — Postgres 16 on :15432 (dev DB; **holds all Zoho-imported data
+- `emerge-pg` - Postgres 16 on :15432 (dev DB; **holds all Zoho-imported data
   in workspace `019ffbfe-fa0e-7b43-8783-b191af0bd76f Emergetech`**).
 - `emerge-redis` on :16379.
 - `emerge-minio` on :19000 API + :19001 console, bucket `emerge`.
@@ -52,16 +52,16 @@ Secrets live in `D:/Projects/.secrets/master.env` under `EMERGE_DEV_*` keys.
 ## 2. Naming decision to lock first
 
 The "dev" DB on the VPS now holds real Zoho data (the production import that
-just ran). Two clean paths — pick one before we cut over:
+just ran). Two clean paths - pick one before we cut over:
 
-**Option A — Promote in place (recommended).**
+**Option A - Promote in place (recommended).**
 Rename mental model: what we've been calling "dev" IS production. We rotate
 the passwords (they were set as "dev_" strings) but keep the containers,
 volumes and workspace uuid. Data continuity, zero re-import. Downside: dev DB
 and prod DB are the same thing until we later spin up a fresh dev DB
 elsewhere.
 
-**Option B — Fresh prod stack alongside.**
+**Option B - Fresh prod stack alongside.**
 New containers `emerge-pg-prod` (:15433), `emerge-redis-prod` (:16380),
 `emerge-minio-prod` (:19002), fresh secrets. Re-run the Zoho snapshot +
 import into a new prod workspace. Keeps dev sandbox available. Downside: two
@@ -93,7 +93,7 @@ Everything below assumes **Option A** unless you say otherwise.
       emerge-minio (:9000 API, :9001 console, volume emerge_minio_data)
 ```
 
-Everything on the internal Docker network — only Traefik exposes 80/443.
+Everything on the internal Docker network - only Traefik exposes 80/443.
 The old host ports (:15432 / :16379 / :19000 / :19001) get closed to the
 public internet; internal containers keep using the aliases.
 
@@ -116,7 +116,7 @@ public internet; internal containers keep using the aliases.
 
 ### 4.2 Domain / DNS
 
-- Domain **emergeautomation.tech** — confirm ownership: which registrar? If
+- Domain **emergeautomation.tech** - confirm ownership: which registrar? If
   it's on Cloudflare already (we use Cloudflare for the OpenRent stack per
   memory), we add records there. Otherwise: pick where.
 - Records (Cloudflare, DNS-only / grey cloud initially so Let's Encrypt
@@ -137,18 +137,18 @@ public internet; internal containers keep using the aliases.
 - Two secret files:
   1. `D:/Projects/.secrets/master.env` gets a new block `EMERGE_PROD_*`
      containing the rotated passwords, S3 keys, session secret and SMTP.
-  2. On the VPS: `/opt/emerge/.env` — 600, root-owned, sourced by
+  2. On the VPS: `/opt/emerge/.env` - 600, root-owned, sourced by
      `docker compose --env-file`. Never committed anywhere.
 - **Rotate every secret** (they were dev placeholders):
   `EMERGE_PROD_PG_PASSWORD` (Postgres), `EMERGE_PROD_REDIS_PASSWORD`
   (Redis 7 supports `requirepass`; add to URL), `EMERGE_PROD_S3_ACCESS_KEY`
   - `EMERGE_PROD_S3_SECRET_KEY` (MinIO root user), new `EMERGE_PROD_S3_BUCKET`
     (or reuse `emerge`), `SESSION_COOKIE_SECRET` **new** (add support in
-    apps/web session code — currently uses argon2 but signs cookies with an
+    apps/web session code - currently uses argon2 but signs cookies with an
     implicit default; needs a hard secret in prod).
 - SMTP: pick a real provider. Options I'd default to:
   - **Resend** or **Postmark** for transactional (mention notifications,
-    invitations) — cheapest, easy DKIM. Adds `SMTP_HOST/PORT/USER/PASS/FROM`.
+    invitations) - cheapest, easy DKIM. Adds `SMTP_HOST/PORT/USER/PASS/FROM`.
   - Or SES if you already have AWS.
 - `NEXT_PUBLIC_APP_URL=https://crm.emergeautomation.tech`.
 
@@ -157,7 +157,7 @@ public internet; internal containers keep using the aliases.
 - Postgres 16 stays where it is (Option A). Actions:
   - `ALTER USER emerge PASSWORD '<rotated>'` and rewrite `DATABASE_URL`.
   - Set `pg_hba.conf` (via env or config) so `emerge_app` role still exists
-    (RLS depends on it — created by migration `0002_rls_policies.sql`).
+    (RLS depends on it - created by migration `0002_rls_policies.sql`).
   - Move the container off host port :15432; keep it internal-only.
   - Confirm `pg_isready` healthcheck is on the compose file.
 - Run `pnpm db:migrate` once against prod DATABASE_URL to prove the
@@ -192,7 +192,7 @@ public internet; internal containers keep using the aliases.
   ```
   on every service (that's ~250 MB per service cap, disks won't fill).
 - On the VPS, ship container logs to journald optionally; not required for v1.
-- Application logs: Next.js + tRPC already log to stdout — captured by the
+- Application logs: Next.js + tRPC already log to stdout - captured by the
   above.
 
 ### 4.9 Health check
@@ -235,7 +235,7 @@ public internet; internal containers keep using the aliases.
 
 1. Confirm decisions in §2 (Option A vs B) and §4 (registrar, SMTP
    provider, backup bucket).
-2. Add the new files to the repo — non-destructive, PR-reviewed:
+2. Add the new files to the repo - non-destructive, PR-reviewed:
    - `docker-compose.prod.yaml`
    - `apps/web/src/app/api/health/route.ts` (health endpoint)
    - `docs/deploy/README.md` + `docs/runbook/*.md`
@@ -267,16 +267,16 @@ existing dev ports stay in place until we're confident.
 
 ## 6. Decisions (locked 14 Aug 2026)
 
-1. **Option A** — promote current DB in place (data continuity, no re-import).
-2. **DNS on Hostinger** — the domain stays with Hostinger; we add A records
+1. **Option A** - promote current DB in place (data continuity, no re-import).
+2. **DNS on Hostinger** - the domain stays with Hostinger; we add A records
    there.
-3. **SMTP = Resend** — verify `emergeautomation.tech` domain there, mint an
+3. **SMTP = Resend** - verify `emergeautomation.tech` domain there, mint an
    API key.
-4. **Off-site backup = Cloudflare R2** — bucket `emerge-crm-backup`, S3-compat
+4. **Off-site backup = Cloudflare R2** - bucket `emerge-crm-backup`, S3-compat
    token with Object Read & Write.
-5. **SSH** — keep as-is: external SSH stays closed at Hostinger; we operate
+5. **SSH** - keep as-is: external SSH stays closed at Hostinger; we operate
    the VPS via n8n's SSH node (existing `grMG9FFshdYwLVc7` credential).
-6. **MinIO** — expose only the S3 API on `minio.emergeautomation.tech`;
+6. **MinIO** - expose only the S3 API on `minio.emergeautomation.tech`;
    admin console stays internal.
 
 ## 7. Open items still gated on your green light
@@ -293,7 +293,7 @@ health endpoint, and runbooks are already in the review PR.
 
 ## 7. What I did NOT do (and won't until you say)
 
-- No files were pushed to the repo yet — everything above is intent.
+- No files were pushed to the repo yet - everything above is intent.
 - No changes to the VPS.
 - No secrets rotated.
 - No DNS changed.

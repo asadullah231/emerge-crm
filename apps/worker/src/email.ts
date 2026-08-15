@@ -26,7 +26,7 @@ const transporter = nodemailer.createTransport({
 const FROM = process.env.SMTP_FROM ?? "Emerge CRM <no-reply@emerge.local>";
 
 /**
- * Presentation only — delegates to the shared @emerge/email design system.
+ * Presentation only - delegates to the shared @emerge/email design system.
  * The auth/invitation logic still produces the URLs, tokens and expiries; this
  * just renders them into the branded HTML + a plain-text fallback.
  */

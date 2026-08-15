@@ -1,5 +1,5 @@
 /**
- * Workspace invitation email. Presentation only — the invite token, expiry and
+ * Workspace invitation email. Presentation only - the invite token, expiry and
  * accept URL are produced by the auth/invitation logic and passed in unchanged.
  */
 import { company } from "../tokens.js";
@@ -30,7 +30,7 @@ export interface RenderedEmail {
 }
 
 const DESCRIPTION =
-  "Emerge CRM is where the team runs its recruitment pipeline — candidates, jobs and client submissions in one shared place.";
+  "Emerge CRM is where the team runs its recruitment pipeline: candidates, jobs and client submissions in one shared place.";
 
 export function renderInvitationEmail(input: InvitationEmailInput): RenderedEmail {
   const expiresInDays = input.expiresInDays ?? 7;
@@ -72,7 +72,7 @@ export function renderInvitationEmail(input: InvitationEmailInput): RenderedEmai
     "",
     `This invitation expires in ${expiresInDays} days.`,
     "",
-    `— ${company.product}`,
+    `${company.product}`,
     company.domain
   ].join("\n");
 

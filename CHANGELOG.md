@@ -5,7 +5,7 @@ versions follow semantic versioning (one minor version per completed milestone).
 
 ## v0.8.0 - Milestone 8: Zoho Migration & Import Engine (2026-08-14)
 
-Pulled ahead of Milestone 7 Resume Parsing on Asad's direction — the switch-
+Pulled ahead of Milestone 7 Resume Parsing on Asad's direction - the switch-
 over risk (1,296 candidates, 762 applications, 1,218 notes to move over) was
 judged bigger than the intake risk. Resume Parsing becomes v0.9.0.
 

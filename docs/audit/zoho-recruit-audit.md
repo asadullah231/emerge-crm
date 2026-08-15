@@ -1,4 +1,4 @@
-# Zoho Recruit Audit — Emerge's Live Instance
+# Zoho Recruit Audit - Emerge's Live Instance
 
 Date: 13 Aug 2026. Method: read-only API audit of the production Zoho Recruit org
 (module metadata, field definitions, org config, record data, timelines, notes,

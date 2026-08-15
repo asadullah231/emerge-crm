@@ -13,10 +13,10 @@ MEDIUM); every gap maps to exactly one milestone (see roadmap
 M2 (v0.3.0) Companies & Contacts, M3 (v0.4.0) Candidates + CV + dedupe,
 M4 (v0.5.0) Jobs, M5 (v0.6.0) Applications pipeline + kanban + status history,
 M6 (v0.7.0) Notes + @mentions + notifications + per-record timeline +
-org-wide activity feed + note templates, **M8 (v0.8.0) Zoho migration engine —
+org-wide activity feed + note templates, **M8 (v0.8.0) Zoho migration engine -
 full dataset live (86 companies / 12 contacts / 1,298 candidates / 101 jobs /
 763 applications / 1,218 notes).** Next: **attachment (CV) backfill** (data
-task, no code — 1,293 CVs still to pull), then M7 resume parsing. The Timeline
+task, no code - 1,293 CVs still to pull), then M7 resume parsing. The Timeline
 reads existing events (audit_log + status history + notes), so it is populated
 without a separate event-bus write path for now.
 
@@ -142,23 +142,23 @@ Reconciled against `zoho-live-audit-2026-08-15.md` §2. Audit IDs in brackets;
 every gap has a milestone (roadmap §"Audit gap → milestone traceability").
 
 **Now DONE (were gaps 1–5, 7 in the pre-cutover matrix):** core objects M2–M5,
-notes/@mentions M6, status history M5, Zoho migration M8 — the full dataset is
+notes/@mentions M6, status history M5, Zoho migration M8 - the full dataset is
 live.
 
 **Remaining HIGH (blocks daily use):**
-1. **[H2] Candidate CV attachments** — 1,293 CVs not yet pulled to MinIO. Data
+1. **[H2] Candidate CV attachments** - 1,293 CVs not yet pulled to MinIO. Data
    task before M7 (engine already coded). #1 quick win.
-2. **[H6] Resume parsing** — Zoho's real intake (1,034 of 1,298 candidates). M7.
-3. **[H3] Global search** across modules — M9.
-4. **[H1] Interviews module** (schedule/feedback/status FSM) — M11.
-5. **[H4] Send email from a record** — M13 (Resend already wired).
-6. **[H7] Offer flow** (made/accepted/withdrawn + expiry) — M12.
-7. **[H8] Client review of submitted candidates** — M10 via **tokened share
+2. **[H6] Resume parsing** - Zoho's real intake (1,034 of 1,298 candidates). M7.
+3. **[H3] Global search** across modules - M9.
+4. **[H1] Interviews module** (schedule/feedback/status FSM) - M11.
+5. **[H4] Send email from a record** - M13 (Resend already wired).
+6. **[H7] Offer flow** (made/accepted/withdrawn + expiry) - M12.
+7. **[H8] Client review of submitted candidates** - M10 via **tokened share
    links** (no login). Reconciliation: the audit flagged a full client *login*
    portal as HIGH; we meet the underlying need (client approves/rejects/comments
    on submissions) with a no-login link in M10, and defer the login portal to
    post-1.0. The `Client portal (login)` row below stays post-1.0 intentionally.
-8. **[H5] Career site + web-to-candidate** — M16, behind a toggle (LOW in
+8. **[H5] Career site + web-to-candidate** - M16, behind a toggle (LOW in
    practice: 0 CareerSite-sourced records in the live org).
 
 **Remaining MEDIUM:** tags UI [M1-audit] → M9 · saved views [M2-audit] → M9 ·

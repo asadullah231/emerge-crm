@@ -1,5 +1,5 @@
 /**
- * Password-reset email. Presentation only — the reset token/URL and its 1-hour
+ * Password-reset email. Presentation only - the reset token/URL and its 1-hour
  * expiry are produced by the auth logic and passed in unchanged. Included here
  * to prove the design system is reusable across email types.
  */
@@ -27,7 +27,7 @@ export function renderPasswordResetEmail(input: PasswordResetEmailInput): Render
     subtle(
       `This link expires in <strong style="color:inherit;">${expiresInHours} hour${
         expiresInHours === 1 ? "" : "s"
-      }</strong>. Didn't request this? You can safely ignore this email — your password won't change.`
+      }</strong>. Didn't request this? You can safely ignore this email. Your password won't change.`
     ) +
     fallbackLink(input.resetUrl);
 
@@ -47,7 +47,7 @@ export function renderPasswordResetEmail(input: PasswordResetEmailInput): Render
     `This link expires in ${expiresInHours} hour${expiresInHours === 1 ? "" : "s"}.`,
     "If you didn't request this, you can safely ignore this email.",
     "",
-    `— ${company.product}`,
+    `${company.product}`,
     company.domain
   ].join("\n");
 

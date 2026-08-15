@@ -33,7 +33,7 @@ export function AppShell({
     try {
       if (localStorage.getItem(STORAGE_KEY) === "1") setCollapsed(true);
     } catch {
-      // localStorage blocked — keep default
+      // localStorage blocked - keep default
     }
   }, []);
 

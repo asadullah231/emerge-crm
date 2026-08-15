@@ -1,4 +1,4 @@
-# Emerge CRM — production deploy runbook
+# Emerge CRM - production deploy runbook
 
 Domain: **https://crm.emergeautomation.tech**
 Host: Hostinger VPS `187.127.75.106`
@@ -46,7 +46,7 @@ Add these A records at Hostinger (TTL 300 initially so we can rollback fast):
 Wait for propagation (`dig emergeautomation.tech +short` should return the
 VPS IP).
 
-### 1.3 VPS bootstrap (via n8n SSH — the external SSH port is closed)
+### 1.3 VPS bootstrap (via n8n SSH - the external SSH port is closed)
 
 ```bash
 mkdir -p /opt/emerge/{app,data,backups}
@@ -92,7 +92,7 @@ docker stop emerge-minio
 docker cp emerge-minio:/data/. /opt/emerge/data/minio/
 docker rm emerge-minio
 
-# Redis (safe to drop — queue state, not durable data)
+# Redis (safe to drop - queue state, not durable data)
 docker stop emerge-redis && docker rm emerge-redis
 ```
 

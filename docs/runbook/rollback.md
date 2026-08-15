@@ -26,7 +26,7 @@ docker compose -f /opt/emerge/app/compose.prod.yaml exec web \
 ```
 
 For a general "bad state after a schema migration" scenario, restore from
-last night's backup — see [backup-restore.md](./backup-restore.md) Case B.
+last night's backup - see [backup-restore.md](./backup-restore.md) Case B.
 
 ## DNS rollback
 
