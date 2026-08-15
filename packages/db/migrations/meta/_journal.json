@@ -106,6 +106,27 @@
       "when": 1786714759209,
       "tag": "0014_rls_m8",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1786791900609,
+      "tag": "0015_public_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1786801728670,
+      "tag": "0016_minor_celestials",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786811240400,
+      "tag": "0017_sour_bug",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,24 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, ilike, isNull, isNotNull, ne, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  isNotNull,
+  ne,
+  or
+} from "drizzle-orm";
 import { z } from "zod";
 import { companies, companyStatus, contacts, users } from "@emerge/db";
 import { writeAudit } from "../audit";
 import { buildListClauses, listInput, normalizeDomain, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
-import { entityTags } from "./tags";
+import { entityTags, taggedEntityIds } from "./tags";
 
 const companyInput = z.object({
   name: z.string().trim().min(1, "Company name is required").max(255),
@@ -22,52 +35,59 @@ const companyInput = z.object({
 const ownerCols = { ownerName: users.name, ownerEmail: users.email };
 
 export const companiesRouter = router({
-  list: workspaceProcedure.input(listInput).query(async ({ ctx, input }) => {
-    const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
-      sortable: {
-        name: companies.name,
-        industry: companies.industry,
-        location: companies.location,
-        status: companies.status,
-        createdAt: companies.createdAt,
-        updatedAt: companies.updatedAt
-      },
-      searchable: [companies.name, companies.domain, companies.industry, companies.location],
-      defaultSort: "name"
-    });
-    const deletedWhere = input.deleted
-      ? and(isNotNull(companies.deletedAt), gte(companies.deletedAt, trashCutoff()))
-      : isNull(companies.deletedAt);
-    const where = and(deletedWhere, searchWhere);
-
-    const [rows, [totalRow]] = await Promise.all([
-      ctx.tx
-        .select({
-          id: companies.id,
+  list: workspaceProcedure
+    .input(listInput.extend({ status: z.enum(companyStatus.enumValues).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
+        sortable: {
           name: companies.name,
-          website: companies.website,
-          domain: companies.domain,
           industry: companies.industry,
-          size: companies.size,
           location: companies.location,
-          phone: companies.phone,
           status: companies.status,
-          ownerId: companies.ownerId,
-          deletedAt: companies.deletedAt,
           createdAt: companies.createdAt,
-          updatedAt: companies.updatedAt,
-          ...ownerCols
-        })
-        .from(companies)
-        .leftJoin(users, eq(users.id, companies.ownerId))
-        .where(where)
-        .orderBy(orderBy, asc(companies.id))
-        .limit(limit)
-        .offset(offset),
-      ctx.tx.select({ total: count() }).from(companies).where(where)
-    ]);
-    return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
-  }),
+          updatedAt: companies.updatedAt
+        },
+        searchable: [companies.name, companies.domain, companies.industry, companies.location],
+        defaultSort: "name"
+      });
+      const deletedWhere = input.deleted
+        ? and(isNotNull(companies.deletedAt), gte(companies.deletedAt, trashCutoff()))
+        : isNull(companies.deletedAt);
+      const tagWhere =
+        input.tagIds && input.tagIds.length > 0
+          ? inArray(companies.id, taggedEntityIds(ctx.tx, "company", input.tagIds))
+          : undefined;
+      const statusWhere = input.status ? eq(companies.status, input.status) : undefined;
+      const where = and(deletedWhere, searchWhere, tagWhere, statusWhere);
+
+      const [rows, [totalRow]] = await Promise.all([
+        ctx.tx
+          .select({
+            id: companies.id,
+            name: companies.name,
+            website: companies.website,
+            domain: companies.domain,
+            industry: companies.industry,
+            size: companies.size,
+            location: companies.location,
+            phone: companies.phone,
+            status: companies.status,
+            ownerId: companies.ownerId,
+            deletedAt: companies.deletedAt,
+            createdAt: companies.createdAt,
+            updatedAt: companies.updatedAt,
+            ...ownerCols
+          })
+          .from(companies)
+          .leftJoin(users, eq(users.id, companies.ownerId))
+          .where(where)
+          .orderBy(orderBy, asc(companies.id))
+          .limit(limit)
+          .offset(offset),
+        ctx.tx.select({ total: count() }).from(companies).where(where)
+      ]);
+      return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
+    }),
 
   get: workspaceProcedure
     .input(z.object({ id: z.string().uuid() }))

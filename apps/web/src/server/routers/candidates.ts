@@ -15,7 +15,7 @@ import { writeAudit } from "../audit";
 import { bumpCounter, humanId, nextCounter } from "../counters";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
-import { entityTags } from "./tags";
+import { entityTags, taggedEntityIds } from "./tags";
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
 const optionalEmail = z
@@ -58,61 +58,68 @@ function lower(value: string | null | undefined): string | null {
 }
 
 export const candidatesRouter = router({
-  list: workspaceProcedure.input(listInput).query(async ({ ctx, input }) => {
-    const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
-      sortable: {
-        lastName: candidates.lastName,
-        humanId: candidates.humanId,
-        title: candidates.title,
-        email: candidates.email,
-        source: candidates.source,
-        createdAt: candidates.createdAt,
-        updatedAt: candidates.updatedAt
-      },
-      searchable: [
-        candidates.firstName,
-        candidates.lastName,
-        candidates.email,
-        candidates.title,
-        candidates.currentEmployer,
-        candidates.humanId
-      ],
-      defaultSort: "lastName"
-    });
-    const deletedWhere = input.deleted
-      ? and(isNotNull(candidates.deletedAt), gte(candidates.deletedAt, trashCutoff()))
-      : isNull(candidates.deletedAt);
-    const where = and(deletedWhere, searchWhere);
-
-    const [rows, [totalRow]] = await Promise.all([
-      ctx.tx
-        .select({
-          id: candidates.id,
-          humanId: candidates.humanId,
-          firstName: candidates.firstName,
+  list: workspaceProcedure
+    .input(listInput.extend({ source: z.enum(candidateSource.enumValues).optional() }))
+    .query(async ({ ctx, input }) => {
+      const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
+        sortable: {
           lastName: candidates.lastName,
+          humanId: candidates.humanId,
           title: candidates.title,
-          currentEmployer: candidates.currentEmployer,
           email: candidates.email,
-          city: candidates.city,
-          country: candidates.country,
           source: candidates.source,
-          ownerId: candidates.ownerId,
-          deletedAt: candidates.deletedAt,
           createdAt: candidates.createdAt,
-          updatedAt: candidates.updatedAt,
-          ...ownerCols
-        })
-        .from(candidates)
-        .leftJoin(users, eq(users.id, candidates.ownerId))
-        .where(where)
-        .orderBy(orderBy, asc(candidates.id))
-        .limit(limit)
-        .offset(offset),
-      ctx.tx.select({ total: count() }).from(candidates).where(where)
-    ]);
-    return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
-  }),
+          updatedAt: candidates.updatedAt
+        },
+        searchable: [
+          candidates.firstName,
+          candidates.lastName,
+          candidates.email,
+          candidates.title,
+          candidates.currentEmployer,
+          candidates.humanId
+        ],
+        defaultSort: "lastName"
+      });
+      const deletedWhere = input.deleted
+        ? and(isNotNull(candidates.deletedAt), gte(candidates.deletedAt, trashCutoff()))
+        : isNull(candidates.deletedAt);
+      const tagWhere =
+        input.tagIds && input.tagIds.length > 0
+          ? inArray(candidates.id, taggedEntityIds(ctx.tx, "candidate", input.tagIds))
+          : undefined;
+      const sourceWhere = input.source ? eq(candidates.source, input.source) : undefined;
+      const where = and(deletedWhere, searchWhere, tagWhere, sourceWhere);
+
+      const [rows, [totalRow]] = await Promise.all([
+        ctx.tx
+          .select({
+            id: candidates.id,
+            humanId: candidates.humanId,
+            firstName: candidates.firstName,
+            lastName: candidates.lastName,
+            title: candidates.title,
+            currentEmployer: candidates.currentEmployer,
+            email: candidates.email,
+            city: candidates.city,
+            country: candidates.country,
+            source: candidates.source,
+            ownerId: candidates.ownerId,
+            deletedAt: candidates.deletedAt,
+            createdAt: candidates.createdAt,
+            updatedAt: candidates.updatedAt,
+            ...ownerCols
+          })
+          .from(candidates)
+          .leftJoin(users, eq(users.id, candidates.ownerId))
+          .where(where)
+          .orderBy(orderBy, asc(candidates.id))
+          .limit(limit)
+          .offset(offset),
+        ctx.tx.select({ total: count() }).from(candidates).where(where)
+      ]);
+      return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
+    }),
 
   get: workspaceProcedure
     .input(z.object({ id: z.string().uuid() }))

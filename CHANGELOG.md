@@ -3,9 +3,81 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.10.0 - Milestone 9: Global Search, Filters, Saved Views & Bulk Actions (2026-08-15)
+
+### Added
+
+- **Global command search.** A Cmd/Ctrl-K palette searches candidates, jobs,
+  companies and contacts in parallel (name, email, title, employer, human id,
+  domain, industry, location) and jumps to the record. `search` router +
+  `CommandPalette`, mounted in the app shell with a header Search button.
+- **Tags UI.** `TagEditor` on every candidate/company/contact/job record: add
+  existing tags or create one (7-colour palette) and remove them. `TagFilter`
+  chip bar on each list narrows to records carrying all selected tags (AND).
+  `tagIds` filter on every list router via a `taggedEntityIds` subquery.
+- **Bulk select & actions.** `DataTable` gains a selection column (row +
+  page). A `bulk` router (softDelete / restore / addTag) acts on the selected
+  set, RLS-scoped and audited. `BulkBar` action bar: add tag, delete (restore
+  in trash), export CSV, clear.
+- **CSV export** of the selected rows, client-side, per-object columns.
+- **Saved views & filter builder.** New `saved_views` table (workspace-shared,
+  per object type) + RLS + migration 0017. `views` router (list/create/delete)
+  and a `ViewsBar` to apply, save and delete named views. A structured field
+  filter per object (candidate source, company status, job status, contact
+  primary) added to each list router and folded into the saved-view payload.
+
+## v0.9.0 - Milestone 7: Resume Parsing & AI Settings (2026-08-15)
+
+### Added
+
+- **Resume parsing & bulk CV intake.** New `parse_jobs` table (RLS) tracks a CV
+  from upload -> parse -> review -> confirm. A `/candidates/parse` page: drag-drop
+  bulk upload, a status-tabbed review queue that polls as CVs parse, a review
+  modal to edit the parsed fields (with a duplicate-email warning) and confirm to
+  create the candidate + education/experience + the CV re-linked as a `cv`
+  attachment, and retry/discard triage on failures. Upload route + `parsing`
+  router (counts/list/get/confirm/retry/discard) + a BullMQ `parse` worker.
+- **Per-workspace, multi-provider AI (bring-your-own-key).** New `@emerge/ai`
+  package: provider presets (Anthropic native + OpenAI-compatible covering
+  OpenAI, OpenRouter, DeepSeek, Google Gemini, Groq, Mistral, xAI, and any custom
+  endpoint), AES-256-GCM secret crypto, a provider-agnostic resume parser (PDFs
+  read natively by Anthropic; text via unpdf/mammoth otherwise), and a verify
+  (test-connection). New `workspace_ai_settings` table stores each workspace's
+  provider + model + **encrypted** key. New **Settings > AI** page + `ai` router
+  (providers/get/save/test), admin-only; keys are never returned to the client
+  (last 4 only). The parse worker uses each workspace's own key.
+- Verified on the real corpus: 5 DACH/EU CVs parsed cleanly via Claude
+  (names/titles/emails/education/experience extracted, no invented emails on
+  blind CVs). Closes audit gap H6.
+
+### Fixed
+
+- Contain the `/pipeline` board in a bordered card so its stage columns scroll
+  inside a box instead of the page.
+
+### Added (earlier in this cycle)
+
+- **Attachment (CV) backfill** for the `@emerge/migration` engine: a live-Zoho
+  attachment phase (`zoho.ts` OAuth client + `s3.ts` MinIO putter +
+  `attachments.ts`) that resolves each candidate via `external_refs`, lists
+  their Zoho attachments, downloads the bytes, uploads them to MinIO under the
+  same key convention the CRM serves from, and records an `attachments` row +
+  `external_ref` + `import_record`. Idempotent, resumable, dry-run, bounded
+  concurrency. New CLI subcommand `attachments`.
+- Client-side request rate-gate (`--min-interval`) plus single-flight token
+  refresh and retry-on-400 for downloads, after Zoho throttled bursty
+  concurrent calls with transient HTTP 400s.
+
+### Data
+
+- Backfilled **1,500 candidate attachments** (CVs) into production MinIO across
+  **1,295 of 1,297** candidates (the other 2 have no attachment in Zoho), 0
+  failures. Recruiters can now download a candidate's CV from the record.
+  Closes audit gap H2. No M1-M5 code changed.
+
 ## v0.8.0 - Milestone 8: Zoho Migration & Import Engine (2026-08-14)
 
-Pulled ahead of Milestone 7 Resume Parsing on Asad's direction — the switch-
+Pulled ahead of Milestone 7 Resume Parsing on Asad's direction - the switch-
 over risk (1,296 candidates, 762 applications, 1,218 notes to move over) was
 judged bigger than the intake risk. Resume Parsing becomes v0.9.0.
 

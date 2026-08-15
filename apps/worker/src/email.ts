@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import type IORedis from "ioredis";
 import nodemailer from "nodemailer";
+import { renderInvitationEmail, renderPasswordResetEmail } from "@emerge/email";
 
 export type EmailJob =
   | { type: "password-reset"; to: string; resetUrl: string }
@@ -24,30 +25,21 @@ const transporter = nodemailer.createTransport({
 
 const FROM = process.env.SMTP_FROM ?? "Emerge CRM <no-reply@emerge.local>";
 
-function renderEmail(job: EmailJob): { subject: string; text: string } {
+/**
+ * Presentation only - delegates to the shared @emerge/email design system.
+ * The auth/invitation logic still produces the URLs, tokens and expiries; this
+ * just renders them into the branded HTML + a plain-text fallback.
+ */
+function renderEmail(job: EmailJob): { subject: string; html: string; text: string } {
   switch (job.type) {
     case "password-reset":
-      return {
-        subject: "Reset your Emerge CRM password",
-        text: [
-          "You requested a password reset for your Emerge CRM account.",
-          "",
-          `Reset your password: ${job.resetUrl}`,
-          "",
-          "This link expires in 1 hour. If you did not request this, you can ignore this email."
-        ].join("\n")
-      };
+      return renderPasswordResetEmail({ resetUrl: job.resetUrl });
     case "invitation":
-      return {
-        subject: `${job.inviterName} invited you to ${job.workspaceName} on Emerge CRM`,
-        text: [
-          `${job.inviterName} invited you to join the workspace "${job.workspaceName}" on Emerge CRM.`,
-          "",
-          `Accept the invitation: ${job.acceptUrl}`,
-          "",
-          "This invitation expires in 7 days."
-        ].join("\n")
-      };
+      return renderInvitationEmail({
+        inviterName: job.inviterName,
+        workspaceName: job.workspaceName,
+        acceptUrl: job.acceptUrl
+      });
   }
 }
 
@@ -55,8 +47,8 @@ export function startEmailWorker(connection: IORedis): Worker<EmailJob> {
   const worker = new Worker<EmailJob>(
     "email",
     async (job) => {
-      const { subject, text } = renderEmail(job.data);
-      await transporter.sendMail({ from: FROM, to: job.data.to, subject, text });
+      const { subject, html, text } = renderEmail(job.data);
+      await transporter.sendMail({ from: FROM, to: job.data.to, subject, html, text });
       console.log(`[worker] email "${job.data.type}" sent to ${job.data.to}`);
     },
     { connection }

@@ -42,7 +42,9 @@ export default function PipelinePage() {
           : "You have read-only access to the pipeline."}
       </p>
 
-      <ApplicationKanban jobId={jobId || undefined} canWrite={canWrite} showJob={!jobId} />
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+        <ApplicationKanban jobId={jobId || undefined} canWrite={canWrite} showJob={!jobId} />
+      </div>
     </div>
   );
 }

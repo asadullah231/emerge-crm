@@ -427,7 +427,7 @@ async function importCompanies(
     }
   });
   stats.created += eligible.length;
-  // Refresh cache for existing rows (unknown internal id — leave placeholder; children re-lookup as needed).
+  // Refresh cache for existing rows (unknown internal id - leave placeholder; children re-lookup as needed).
   for (const t of batch) {
     if (existing.has(t.externalId) && refCache.get(`company:${t.externalId}`) === "__existing__") {
       const [row] = await tx

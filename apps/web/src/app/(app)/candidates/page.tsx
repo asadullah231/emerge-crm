@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
+import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { NewCandidateModal, candidateName } from "@/components/new-candidate-modal";
-import { SourceBadge } from "@/components/record";
+import { CANDIDATE_SOURCE_OPTIONS, SourceBadge } from "@/components/record";
+import { TagFilter } from "@/components/tag-editor";
+import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
+import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
+import { useRowSelection } from "@/lib/use-row-selection";
 
 type CandidateRow = RouterOutputs["candidates"]["list"]["rows"][number];
 
@@ -23,7 +28,10 @@ export default function CandidatesPage() {
   const [sort, setSort] = useState<SortState>({ by: "lastName", dir: "asc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [source, setSource] = useState("");
   const debouncedSearch = useDebounced(search.trim());
+  const sel = useRowSelection();
 
   const list = trpc.candidates.list.useQuery({
     page,
@@ -31,12 +39,52 @@ export default function CandidatesPage() {
     sortBy: sort.by,
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    source: (source || undefined) as CandidateRow["source"] | undefined,
     deleted: showTrash
   });
+
+  // Selection is per current result set; reset it when the query changes.
+  useEffect(
+    () => sel.clear(),
+    [debouncedSearch, tagIds, source, showTrash, page, sort.by, sort.dir, sel.clear]
+  );
+
+  const currentFilters: ViewFilters = {
+    search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    sortBy: sort.by,
+    sortDir: sort.dir,
+    fields: source ? { source } : undefined
+  };
+  const applyView = (f: ViewFilters) => {
+    setSearch(f.search ?? "");
+    setTagIds(f.tagIds ?? []);
+    setSort({ by: f.sortBy ?? "lastName", dir: f.sortDir ?? "asc" });
+    setSource(f.fields?.source ?? "");
+    setPage(1);
+  };
 
   const restore = trpc.candidates.restore.useMutation({
     onSuccess: () => utils.candidates.list.invalidate()
   });
+
+  const CSV_COLUMNS: CsvColumn<CandidateRow>[] = [
+    { label: "ID", value: (r) => r.humanId },
+    { label: "First name", value: (r) => r.firstName },
+    { label: "Last name", value: (r) => r.lastName },
+    { label: "Title", value: (r) => r.title },
+    { label: "Employer", value: (r) => r.currentEmployer },
+    { label: "Email", value: (r) => r.email },
+    { label: "City", value: (r) => r.city },
+    { label: "Country", value: (r) => r.country },
+    { label: "Source", value: (r) => r.source },
+    { label: "Owner", value: (r) => r.ownerName }
+  ];
+  const exportSelected = () => {
+    const chosen = (list.data?.rows ?? []).filter((r) => sel.selectedIds.has(r.id));
+    downloadCsv(`candidates-${chosen.length}.csv`, toCsv(chosen, CSV_COLUMNS));
+  };
 
   const columns: DataTableColumn<CandidateRow>[] = [
     {
@@ -123,6 +171,9 @@ export default function CandidatesPage() {
           </Button>
           {canWrite && !showTrash ? (
             <>
+              <Link href="/candidates/parse">
+                <Button variant="outline">Parse CVs</Button>
+              </Link>
               <Link href="/candidates/import">
                 <Button variant="outline">Import CSV</Button>
               </Link>
@@ -144,7 +195,46 @@ export default function CandidatesPage() {
         aria-label="Search candidates"
       />
 
+      {!showTrash ? (
+        <>
+          <div className="flex flex-wrap items-center gap-4">
+            <FieldFilter
+              label="Source"
+              value={source}
+              onChange={(v) => {
+                setSource(v);
+                setPage(1);
+              }}
+              options={CANDIDATE_SOURCE_OPTIONS}
+            />
+            <TagFilter
+              selected={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+                setPage(1);
+              }}
+            />
+          </div>
+          <ViewsBar
+            entityType="candidate"
+            current={currentFilters}
+            canWrite={canWrite}
+            onApply={applyView}
+          />
+        </>
+      ) : null}
+
       <FormError message={list.error?.message ?? restore.error?.message} />
+
+      <BulkBar
+        entityType="candidate"
+        selectedIds={sel.ids}
+        canWrite={canWrite}
+        showTrash={showTrash}
+        onClear={sel.clear}
+        onDone={() => utils.candidates.list.invalidate()}
+        onExport={exportSelected}
+      />
 
       <DataTable
         columns={columns}
@@ -161,6 +251,11 @@ export default function CandidatesPage() {
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/candidates/${row.id}`)}
         isLoading={list.isLoading}
+        selection={{
+          selectedIds: sel.selectedIds,
+          onToggleRow: sel.toggleRow,
+          onTogglePage: sel.togglePage
+        }}
         emptyMessage={
           showTrash
             ? "Trash is empty. Deleted candidates stay here for 30 days."

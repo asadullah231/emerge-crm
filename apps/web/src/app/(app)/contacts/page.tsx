@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
+import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { NewContactModal, contactName } from "@/components/new-contact-modal";
+import { TagFilter } from "@/components/tag-editor";
+import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
+import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
+import { useRowSelection } from "@/lib/use-row-selection";
 
 type ContactRow = RouterOutputs["contacts"]["list"]["rows"][number];
 
@@ -21,7 +26,10 @@ export default function ContactsPage() {
   const [sort, setSort] = useState<SortState>({ by: "lastName", dir: "asc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [primary, setPrimary] = useState("");
   const debouncedSearch = useDebounced(search.trim());
+  const sel = useRowSelection();
 
   const list = trpc.contacts.list.useQuery({
     page,
@@ -29,8 +37,45 @@ export default function ContactsPage() {
     sortBy: sort.by,
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    isPrimary: primary === "" ? undefined : primary === "true",
     deleted: showTrash
   });
+
+  useEffect(
+    () => sel.clear(),
+    [debouncedSearch, tagIds, primary, showTrash, page, sort.by, sort.dir, sel.clear]
+  );
+
+  const currentFilters: ViewFilters = {
+    search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    sortBy: sort.by,
+    sortDir: sort.dir,
+    fields: primary ? { isPrimary: primary } : undefined
+  };
+  const applyView = (f: ViewFilters) => {
+    setSearch(f.search ?? "");
+    setTagIds(f.tagIds ?? []);
+    setSort({ by: f.sortBy ?? "lastName", dir: f.sortDir ?? "asc" });
+    setPrimary(f.fields?.isPrimary ?? "");
+    setPage(1);
+  };
+
+  const CSV_COLUMNS: CsvColumn<ContactRow>[] = [
+    { label: "First name", value: (r) => r.firstName },
+    { label: "Last name", value: (r) => r.lastName },
+    { label: "Title", value: (r) => r.title },
+    { label: "Email", value: (r) => r.email },
+    { label: "Secondary email", value: (r) => r.secondaryEmail },
+    { label: "Work phone", value: (r) => r.workPhone },
+    { label: "Mobile", value: (r) => r.mobile },
+    { label: "Company", value: (r) => r.companyName }
+  ];
+  const exportSelected = () => {
+    const chosen = (list.data?.rows ?? []).filter((r) => sel.selectedIds.has(r.id));
+    downloadCsv(`contacts-${chosen.length}.csv`, toCsv(chosen, CSV_COLUMNS));
+  };
 
   const restore = trpc.contacts.restore.useMutation({
     onSuccess: () => utils.contacts.list.invalidate()
@@ -129,7 +174,49 @@ export default function ContactsPage() {
         aria-label="Search contacts"
       />
 
+      {!showTrash ? (
+        <>
+          <div className="flex flex-wrap items-center gap-4">
+            <FieldFilter
+              label="Primary"
+              value={primary}
+              onChange={(v) => {
+                setPrimary(v);
+                setPage(1);
+              }}
+              options={[
+                { value: "true", label: "Primary only" },
+                { value: "false", label: "Non-primary" }
+              ]}
+            />
+            <TagFilter
+              selected={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+                setPage(1);
+              }}
+            />
+          </div>
+          <ViewsBar
+            entityType="contact"
+            current={currentFilters}
+            canWrite={canWrite}
+            onApply={applyView}
+          />
+        </>
+      ) : null}
+
       <FormError message={list.error?.message ?? restore.error?.message} />
+
+      <BulkBar
+        entityType="contact"
+        selectedIds={sel.ids}
+        canWrite={canWrite}
+        showTrash={showTrash}
+        onClear={sel.clear}
+        onDone={() => utils.contacts.list.invalidate()}
+        onExport={exportSelected}
+      />
 
       <DataTable
         columns={columns}
@@ -146,6 +233,11 @@ export default function ContactsPage() {
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/contacts/${row.id}`)}
         isLoading={list.isLoading}
+        selection={{
+          selectedIds: sel.selectedIds,
+          onToggleRow: sel.toggleRow,
+          onTogglePage: sel.togglePage
+        }}
         emptyMessage={
           showTrash
             ? "Trash is empty. Deleted contacts stay here for 30 days."

@@ -9,6 +9,7 @@ import { CandidateDocuments } from "@/components/candidate-documents";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
 import { NotesPanel } from "@/components/notes-panel";
+import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { candidateName } from "@/components/new-candidate-modal";
 import {
@@ -359,20 +360,15 @@ export default function CandidateRecordPage() {
         )}
       </RecordSection>
 
-      {record.tags.length > 0 ? (
-        <RecordSection title="Tags">
-          <div className="flex flex-wrap gap-2">
-            {record.tags.map((t) => (
-              <span
-                key={t.id}
-                className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-xs"
-              >
-                {t.name}
-              </span>
-            ))}
-          </div>
-        </RecordSection>
-      ) : null}
+      <RecordSection title="Tags">
+        <TagEditor
+          entityType="candidate"
+          entityId={record.id}
+          tags={record.tags}
+          canWrite={canEdit}
+          onChanged={() => utils.candidates.get.invalidate({ id: record.id })}
+        />
+      </RecordSection>
 
       <RecordSection title="Notes">
         <NotesPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />

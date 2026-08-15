@@ -9,9 +9,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.117.1",
+    "@aws-sdk/client-s3": "^3.1109.0",
+    "@emerge/ai": "workspace:*",
     "@emerge/core": "workspace:*",
+    "@emerge/db": "workspace:*",
+    "@emerge/email": "workspace:*",
     "bullmq": "^5.44.0",
+    "drizzle-orm": "^0.44.7",
     "ioredis": "^5.6.0",
+    "mammoth": "^1.12.1",
     "nodemailer": "^9.0.5"
   },
   "devDependencies": {

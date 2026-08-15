@@ -1,0 +1,148 @@
+# Emerge CRM production stack - Hostinger VPS 187.127.75.106.
+#
+# Reality on this box (inspected 14 Aug 2026):
+#   * root-traefik-1 already runs on :80/:443 (ACME resolver name `myresolver`,
+#     LE storage /root/letsencrypt, docker-labels provider). We piggyback on
+#     it; we do NOT run our own Traefik.
+#   * emerge-pg / emerge-redis / emerge-minio containers exist with named
+#     volumes (emerge_pg_data / emerge_redis_data / emerge_minio_data). They
+#     stay in place; we do NOT recreate them here. Password rotation +
+#     network attach happens via deploy/vps/bootstrap.sh.
+#
+# What this compose deploys:
+#   * emerge-web    (Next.js standalone) - labels for root-traefik-1
+#   * emerge-worker (BullMQ) - no ingress
+#   * emerge-backup - commented out; enable once R2 creds land
+#
+# Env comes from /opt/emerge/.env (root:root, 600). See .env.production.example.
+
+name: emerge-prod
+
+networks:
+  # Shared with root-traefik-1 so Traefik discovers our containers via labels.
+  root_traefik_network:
+    external: true
+  # Shared with the pre-existing emerge-pg / emerge-redis / emerge-minio.
+  # Created + attached by deploy/vps/bootstrap.sh.
+  emerge_net:
+    external: true
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: emerge/web:${IMAGE_TAG:-latest}
+    container_name: emerge-web
+    restart: always
+    logging: *default-logging
+    environment:
+      NODE_ENV: production
+      # Existing containers, reachable by name on emerge_net.
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@emerge-pg:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@emerge-redis:6379
+      S3_ENDPOINT: http://emerge-minio:9000
+      # Presigned CV URLs must be browser-reachable; use the public Traefik host.
+      S3_PUBLIC_ENDPOINT: https://minio.emergeautomation.tech
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET:-emerge}
+      # Encrypts workspace API keys at rest (AES-256-GCM). Required for AI settings.
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      # SMTP is optional - mentions/invitations queue but sendMail fails per
+      # job until Resend creds land. See docs/deploy/production-plan.md §7.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@emergeautomation.tech}
+      NEXT_PUBLIC_APP_URL: https://crm.emergeautomation.tech
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    labels:
+      # CRM lives on the crm subdomain so the apex stays free for other
+      # emergeautomation.tech services.
+      - traefik.enable=true
+      - traefik.docker.network=root_traefik_network
+      - traefik.http.routers.emerge-web.rule=Host(`crm.emergeautomation.tech`)
+      - traefik.http.routers.emerge-web.entrypoints=websecure
+      - traefik.http.routers.emerge-web.tls=true
+      - traefik.http.routers.emerge-web.tls.certresolver=myresolver
+      - traefik.http.services.emerge-web.loadbalancer.server.port=3000
+      - traefik.http.services.emerge-web.loadbalancer.healthcheck.path=/api/health
+      - traefik.http.services.emerge-web.loadbalancer.healthcheck.interval=30s
+    networks:
+      - root_traefik_network
+      - emerge_net
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    image: emerge/worker:${IMAGE_TAG:-latest}
+    container_name: emerge-worker
+    restart: always
+    logging: *default-logging
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@emerge-pg:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@emerge-redis:6379
+      # S3 so the parse worker (M7) can read uploaded CVs from MinIO.
+      S3_ENDPOINT: http://emerge-minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET:-emerge}
+      # Per-workspace AI keys are decrypted at parse time; this is the master key.
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@emergeautomation.tech}
+    networks:
+      - emerge_net
+  # -----------------------------------------------------------------------
+  # Off-site backup sidecar - commented out until Cloudflare R2 creds land.
+  # When enabled, uncomment + `docker compose up -d backup`.
+  # -----------------------------------------------------------------------
+  # backup:
+  #   image: emerge/backup:${IMAGE_TAG:-latest}
+  #   build:
+  #     context: ./deploy/backup
+  #   container_name: emerge-backup
+  #   restart: always
+  #   logging: *default-logging
+  #   environment:
+  #     PGHOST: emerge-pg
+  #     PGUSER: ${POSTGRES_USER}
+  #     PGPASSWORD: ${POSTGRES_PASSWORD}
+  #     PGDATABASE: ${POSTGRES_DB}
+  #     MINIO_ENDPOINT: http://emerge-minio:9000
+  #     MINIO_ACCESS_KEY: ${S3_ACCESS_KEY}
+  #     MINIO_SECRET_KEY: ${S3_SECRET_KEY}
+  #     MINIO_BUCKET: ${S3_BUCKET:-emerge}
+  #     R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+  #     R2_ACCESS_KEY: ${R2_ACCESS_KEY}
+  #     R2_SECRET_KEY: ${R2_SECRET_KEY}
+  #     R2_BUCKET: ${R2_BUCKET}
+  #     BACKUP_RETENTION_DAILY: ${BACKUP_RETENTION_DAILY:-30}
+  #     BACKUP_RETENTION_MONTHLY: ${BACKUP_RETENTION_MONTHLY:-12}
+  #     BACKUP_SCHEDULE_HOUR_UTC: ${BACKUP_SCHEDULE_HOUR_UTC:-2}
+  #   volumes:
+  #     - /opt/emerge/backups:/backups
+  #   networks:
+  #     - emerge_net

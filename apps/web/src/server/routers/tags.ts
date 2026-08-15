@@ -1,11 +1,24 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { taggings, tags, type Transaction } from "@emerge/db";
 import { router, workspaceProcedure } from "../trpc";
 
 export const TAGGABLE = ["company", "contact", "candidate", "job"] as const;
 export type TaggableType = (typeof TAGGABLE)[number];
+
+/**
+ * Subquery of entity ids that carry EVERY one of `tagIds` (AND filter). Use with
+ * `inArray(table.id, taggedEntityIds(...))` inside a list query.
+ */
+export function taggedEntityIds(tx: Transaction, entityType: TaggableType, tagIds: string[]) {
+  return tx
+    .select({ id: taggings.entityId })
+    .from(taggings)
+    .where(and(eq(taggings.entityType, entityType), inArray(taggings.tagId, tagIds)))
+    .groupBy(taggings.entityId)
+    .having(sql`count(distinct ${taggings.tagId}) = ${tagIds.length}`);
+}
 
 /** Tags attached to one record (used by record pages). */
 export async function entityTags(tx: Transaction, entityType: TaggableType, entityId: string) {

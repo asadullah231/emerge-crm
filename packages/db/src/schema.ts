@@ -832,3 +832,133 @@ export const importRecords = pgTable(
     index("import_records_external_idx").on(t.workspaceId, t.entityType, t.externalId)
   ]
 );
+
+// ---------------------------------------------------------------------------
+// M7: resume parsing & bulk CV intake
+// A parse_job tracks one uploaded CV from upload -> parse -> review -> confirm.
+// The original file lives in the same S3 bucket as attachments; the parser
+// worker fills raw_text + parsed (structured JSON). On confirm a candidate is
+// created (+ education/experience + the CV re-linked as an attachment) and
+// candidate_id is set. Failures land in the triage queue with `error`.
+// ---------------------------------------------------------------------------
+
+export const parseJobStatus = pgEnum("parse_job_status", [
+  "queued",
+  "parsing",
+  "parsed",
+  "confirmed",
+  "discarded",
+  "failed"
+]);
+export type ParseJobStatus = (typeof parseJobStatus.enumValues)[number];
+
+export const parseJobs = pgTable(
+  "parse_jobs",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    status: parseJobStatus("status").notNull().default("queued"),
+    /** Original uploaded file in S3 (same bucket the CRM serves downloads from). */
+    bucket: text("bucket").notNull(),
+    objectKey: text("object_key").notNull(),
+    filename: text("filename").notNull(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(),
+    /** sha256 of the file bytes; lets the UI flag re-uploads of the same CV. */
+    sha256: text("sha256").notNull(),
+    /** Extracted plain text (pdf/docx -> text) and the parser's structured JSON. */
+    rawText: text("raw_text"),
+    parsed: jsonb("parsed").$type<Record<string, unknown>>(),
+    /** The candidate created on confirm (null until confirmed). */
+    candidateId: uuid("candidate_id").references(() => candidates.id, { onDelete: "set null" }),
+    /** Populated when status=failed; drives the triage list. */
+    error: text("error"),
+    uploadedById: uuid("uploaded_by_id").references(() => users.id, { onDelete: "set null" }),
+    confirmedById: uuid("confirmed_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("parse_jobs_workspace_status_idx").on(t.workspaceId, t.status),
+    index("parse_jobs_workspace_sha_idx").on(t.workspaceId, t.sha256)
+  ]
+);
+
+// ---------------------------------------------------------------------------
+// Per-workspace AI provider settings (bring-your-own-key). Each workspace
+// chooses an LLM provider + model and stores its own API key, encrypted at
+// rest (AES-256-GCM). One row per workspace. This is the home for AI config
+// used by resume parsing (M7) and future AI features. anthropic + google use
+// their native APIs; every other provider (openai, openrouter, deepseek, groq,
+// mistral, xai, or any custom endpoint) speaks the OpenAI-compatible protocol
+// via base_url.
+// ---------------------------------------------------------------------------
+
+export const aiProvider = pgEnum("ai_provider", [
+  "anthropic",
+  "openai",
+  "openrouter",
+  "deepseek",
+  "google",
+  "groq",
+  "mistral",
+  "xai",
+  "openai_compatible"
+]);
+export type AiProvider = (typeof aiProvider.enumValues)[number];
+
+export const workspaceAiSettings = pgTable(
+  "workspace_ai_settings",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: aiProvider("provider").notNull().default("anthropic"),
+    model: text("model").notNull(),
+    /** Override endpoint for openai_compatible / self-hosted providers. */
+    baseUrl: text("base_url"),
+    /** AES-256-GCM. The key itself is never stored in plaintext. */
+    apiKeyCiphertext: text("api_key_ciphertext"),
+    apiKeyIv: text("api_key_iv"),
+    apiKeyTag: text("api_key_tag"),
+    /** Last 4 chars of the key, for display only ("sk-...abcd"). */
+    apiKeyLast4: text("api_key_last4"),
+    updatedById: uuid("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [uniqueIndex("workspace_ai_settings_workspace_unique").on(t.workspaceId)]
+);
+
+// ---------------------------------------------------------------------------
+// M9: saved list views. A view is a named, reusable bundle of list filters
+// (search text, tag ids, structured field filters, sort) for one object type,
+// shared across the workspace. The filter payload is stored as JSON and
+// validated by the router on read/write.
+// ---------------------------------------------------------------------------
+
+export const savedViews = pgTable(
+  "saved_views",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Object list this view belongs to: candidate | company | contact | job. */
+    entityType: text("entity_type").notNull(),
+    name: text("name").notNull(),
+    /** Serialized filter state (search, tagIds, field filters, sort). */
+    filters: jsonb("filters").$type<Record<string, unknown>>().notNull(),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("saved_views_ws_entity_idx").on(t.workspaceId, t.entityType),
+    uniqueIndex("saved_views_ws_entity_name_unique").on(t.workspaceId, t.entityType, t.name)
+  ]
+);
+export type SavedView = typeof savedViews.$inferSelect;

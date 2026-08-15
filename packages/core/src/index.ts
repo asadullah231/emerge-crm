@@ -1,3 +1,5 @@
+export * from "./resume";
+
 export const APP_NAME = "Emerge CRM";
 export const APP_VERSION = "0.1.0";
 

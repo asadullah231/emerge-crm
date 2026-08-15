@@ -64,3 +64,44 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/*
+ * Branded app splash (shown briefly on a full page load, like Zoho's).
+ * The three EmergeTech bars slide + pulse in sequence; the wordmark fades up.
+ */
+@keyframes emerge-bar {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateX(-7px);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes emerge-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.emerge-splash-bar {
+  transform-box: fill-box;
+  animation: emerge-bar 1.2s ease-in-out infinite;
+}
+.emerge-splash-word {
+  animation: emerge-word-in 0.6s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .emerge-splash-bar,
+  .emerge-splash-word {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

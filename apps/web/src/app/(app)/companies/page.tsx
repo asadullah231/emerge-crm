@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
+import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input, Label } from "@/components/form";
 import { Modal } from "@/components/modal";
 import { COMPANY_STATUS_OPTIONS, DuplicateWarning, StatusBadge } from "@/components/record";
+import { TagFilter } from "@/components/tag-editor";
+import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
+import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
+import { useRowSelection } from "@/lib/use-row-selection";
 
 type CompanyRow = RouterOutputs["companies"]["list"]["rows"][number];
 
@@ -135,7 +140,10 @@ export default function CompaniesPage() {
   const [sort, setSort] = useState<SortState>({ by: "name", dir: "asc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [status, setStatus] = useState("");
   const debouncedSearch = useDebounced(search.trim());
+  const sel = useRowSelection();
 
   const list = trpc.companies.list.useQuery({
     page,
@@ -143,8 +151,45 @@ export default function CompaniesPage() {
     sortBy: sort.by,
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    status: (status || undefined) as CompanyRow["status"] | undefined,
     deleted: showTrash
   });
+
+  useEffect(
+    () => sel.clear(),
+    [debouncedSearch, tagIds, status, showTrash, page, sort.by, sort.dir, sel.clear]
+  );
+
+  const currentFilters: ViewFilters = {
+    search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    sortBy: sort.by,
+    sortDir: sort.dir,
+    fields: status ? { status } : undefined
+  };
+  const applyView = (f: ViewFilters) => {
+    setSearch(f.search ?? "");
+    setTagIds(f.tagIds ?? []);
+    setSort({ by: f.sortBy ?? "name", dir: f.sortDir ?? "asc" });
+    setStatus(f.fields?.status ?? "");
+    setPage(1);
+  };
+
+  const CSV_COLUMNS: CsvColumn<CompanyRow>[] = [
+    { label: "Name", value: (r) => r.name },
+    { label: "Website", value: (r) => r.website },
+    { label: "Domain", value: (r) => r.domain },
+    { label: "Industry", value: (r) => r.industry },
+    { label: "Size", value: (r) => r.size },
+    { label: "Location", value: (r) => r.location },
+    { label: "Phone", value: (r) => r.phone },
+    { label: "Status", value: (r) => r.status }
+  ];
+  const exportSelected = () => {
+    const chosen = (list.data?.rows ?? []).filter((r) => sel.selectedIds.has(r.id));
+    downloadCsv(`companies-${chosen.length}.csv`, toCsv(chosen, CSV_COLUMNS));
+  };
 
   const restore = trpc.companies.restore.useMutation({
     onSuccess: () => utils.companies.list.invalidate()
@@ -235,7 +280,46 @@ export default function CompaniesPage() {
         aria-label="Search companies"
       />
 
+      {!showTrash ? (
+        <>
+          <div className="flex flex-wrap items-center gap-4">
+            <FieldFilter
+              label="Status"
+              value={status}
+              onChange={(v) => {
+                setStatus(v);
+                setPage(1);
+              }}
+              options={COMPANY_STATUS_OPTIONS}
+            />
+            <TagFilter
+              selected={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+                setPage(1);
+              }}
+            />
+          </div>
+          <ViewsBar
+            entityType="company"
+            current={currentFilters}
+            canWrite={canWrite}
+            onApply={applyView}
+          />
+        </>
+      ) : null}
+
       <FormError message={list.error?.message ?? restore.error?.message} />
+
+      <BulkBar
+        entityType="company"
+        selectedIds={sel.ids}
+        canWrite={canWrite}
+        showTrash={showTrash}
+        onClear={sel.clear}
+        onDone={() => utils.companies.list.invalidate()}
+        onExport={exportSelected}
+      />
 
       <DataTable
         columns={columns}
@@ -252,6 +336,11 @@ export default function CompaniesPage() {
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/companies/${row.id}`)}
         isLoading={list.isLoading}
+        selection={{
+          selectedIds: sel.selectedIds,
+          onToggleRow: sel.toggleRow,
+          onTogglePage: sel.togglePage
+        }}
         emptyMessage={
           showTrash
             ? "Trash is empty. Deleted companies stay here for 30 days."

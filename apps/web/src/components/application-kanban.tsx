@@ -118,7 +118,7 @@ export function ApplicationKanban({
                   {cards.length}
                 </span>
               </div>
-              <div className="flex min-h-24 flex-1 flex-col gap-2 p-2">
+              <div className="flex max-h-[65vh] min-h-24 flex-1 flex-col gap-2 overflow-y-auto p-2">
                 {cards.map((card) => (
                   <KanbanCard
                     key={card.id}

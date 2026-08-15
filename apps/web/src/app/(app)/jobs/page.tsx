@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
+import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { NewJobModal } from "@/components/new-job-modal";
-import { JobStatusBadge } from "@/components/record";
+import { JOB_STATUS_OPTIONS, JobStatusBadge } from "@/components/record";
+import { TagFilter } from "@/components/tag-editor";
+import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
+import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 import { useDebounced } from "@/lib/use-debounced";
+import { useRowSelection } from "@/lib/use-row-selection";
 
 type JobRow = RouterOutputs["jobs"]["list"]["rows"][number];
 
@@ -22,7 +27,10 @@ export default function JobsPage() {
   const [sort, setSort] = useState<SortState>({ by: "openedAt", dir: "desc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [status, setStatus] = useState("");
   const debouncedSearch = useDebounced(search.trim());
+  const sel = useRowSelection();
 
   const list = trpc.jobs.list.useQuery({
     page,
@@ -30,8 +38,45 @@ export default function JobsPage() {
     sortBy: sort.by,
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    status: (status || undefined) as JobRow["status"] | undefined,
     deleted: showTrash
   });
+
+  useEffect(
+    () => sel.clear(),
+    [debouncedSearch, tagIds, status, showTrash, page, sort.by, sort.dir, sel.clear]
+  );
+
+  const currentFilters: ViewFilters = {
+    search: debouncedSearch || undefined,
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
+    sortBy: sort.by,
+    sortDir: sort.dir,
+    fields: status ? { status } : undefined
+  };
+  const applyView = (f: ViewFilters) => {
+    setSearch(f.search ?? "");
+    setTagIds(f.tagIds ?? []);
+    setSort({ by: f.sortBy ?? "openedAt", dir: f.sortDir ?? "desc" });
+    setStatus(f.fields?.status ?? "");
+    setPage(1);
+  };
+
+  const CSV_COLUMNS: CsvColumn<JobRow>[] = [
+    { label: "ID", value: (r) => r.humanId },
+    { label: "Title", value: (r) => r.title },
+    { label: "Company", value: (r) => r.companyName },
+    { label: "Status", value: (r) => r.status },
+    { label: "Employment", value: (r) => r.employmentType },
+    { label: "Work mode", value: (r) => r.workMode },
+    { label: "Location", value: (r) => r.location },
+    { label: "Positions", value: (r) => r.positions }
+  ];
+  const exportSelected = () => {
+    const chosen = (list.data?.rows ?? []).filter((r) => sel.selectedIds.has(r.id));
+    downloadCsv(`jobs-${chosen.length}.csv`, toCsv(chosen, CSV_COLUMNS));
+  };
 
   const restore = trpc.jobs.restore.useMutation({
     onSuccess: () => utils.jobs.list.invalidate()
@@ -134,7 +179,46 @@ export default function JobsPage() {
         aria-label="Search jobs"
       />
 
+      {!showTrash ? (
+        <>
+          <div className="flex flex-wrap items-center gap-4">
+            <FieldFilter
+              label="Status"
+              value={status}
+              onChange={(v) => {
+                setStatus(v);
+                setPage(1);
+              }}
+              options={JOB_STATUS_OPTIONS}
+            />
+            <TagFilter
+              selected={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+                setPage(1);
+              }}
+            />
+          </div>
+          <ViewsBar
+            entityType="job"
+            current={currentFilters}
+            canWrite={canWrite}
+            onApply={applyView}
+          />
+        </>
+      ) : null}
+
       <FormError message={list.error?.message ?? restore.error?.message} />
+
+      <BulkBar
+        entityType="job"
+        selectedIds={sel.ids}
+        canWrite={canWrite}
+        showTrash={showTrash}
+        onClear={sel.clear}
+        onDone={() => utils.jobs.list.invalidate()}
+        onExport={exportSelected}
+      />
 
       <DataTable
         columns={columns}
@@ -151,6 +235,11 @@ export default function JobsPage() {
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/jobs/${row.id}`)}
         isLoading={list.isLoading}
+        selection={{
+          selectedIds: sel.selectedIds,
+          onToggleRow: sel.toggleRow,
+          onTogglePage: sel.togglePage
+        }}
         emptyMessage={
           showTrash
             ? "Trash is empty. Deleted jobs stay here for 30 days."
