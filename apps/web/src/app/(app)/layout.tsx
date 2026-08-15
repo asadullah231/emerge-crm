@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MobileNav, SidebarNav, type NavItem } from "@/components/app-nav";
 import { AppShell } from "@/components/app-shell";
+import { AppSplash } from "@/components/app-splash";
 import { LogoFull } from "@/components/logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -26,7 +27,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect("/login");
 
   return (
-    <AppShell
+    <>
+      <AppSplash />
+      <AppShell
       logo={
         <Link href="/dashboard" aria-label="Emerge CRM home">
           <LogoFull />
@@ -44,6 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }
     >
       {children}
-    </AppShell>
+      </AppShell>
+    </>
   );
 }
