@@ -8,6 +8,7 @@ COPY apps/worker/package.json apps/worker/
 COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
 COPY packages/ui/package.json packages/ui/
+COPY packages/ai/package.json packages/ai/
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
 ENV BUILD_STANDALONE=1
