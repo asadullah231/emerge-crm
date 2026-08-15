@@ -156,8 +156,9 @@ notes/@mentions M6, status history M5, Zoho migration M8 - the full dataset is
 live.
 
 **Remaining HIGH (blocks daily use):**
-1. **[H2] Candidate CV attachments** - 1,293 CVs not yet pulled to MinIO. Data
-   task before M7 (engine already coded). #1 quick win.
+1. **[H2] Candidate CV attachments - DONE (15 Aug).** 1,500 CVs backfilled to
+   MinIO across 1,295 of 1,297 candidates (0 failures); the other 2 have no
+   attachment in Zoho. Recruiters can now download a CV from the record.
 2. **[H6] Resume parsing** - Zoho's real intake (1,034 of 1,298 candidates). M7.
 3. **[H3] Global search** across modules - M9.
 4. **[H1] Interviews module** (schedule/feedback/status FSM) - M11.

@@ -3,6 +3,28 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## Unreleased
+
+### Added
+
+- **Attachment (CV) backfill** for the `@emerge/migration` engine: a live-Zoho
+  attachment phase (`zoho.ts` OAuth client + `s3.ts` MinIO putter +
+  `attachments.ts`) that resolves each candidate via `external_refs`, lists
+  their Zoho attachments, downloads the bytes, uploads them to MinIO under the
+  same key convention the CRM serves from, and records an `attachments` row +
+  `external_ref` + `import_record`. Idempotent, resumable, dry-run, bounded
+  concurrency. New CLI subcommand `attachments`.
+- Client-side request rate-gate (`--min-interval`) plus single-flight token
+  refresh and retry-on-400 for downloads, after Zoho throttled bursty
+  concurrent calls with transient HTTP 400s.
+
+### Data
+
+- Backfilled **1,500 candidate attachments** (CVs) into production MinIO across
+  **1,295 of 1,297** candidates (the other 2 have no attachment in Zoho), 0
+  failures. Recruiters can now download a candidate's CV from the record.
+  Closes audit gap H2. No M1-M5 code changed.
+
 ## v0.8.0 - Milestone 8: Zoho Migration & Import Engine (2026-08-14)
 
 Pulled ahead of Milestone 7 Resume Parsing on Asad's direction - the switch-

@@ -63,7 +63,7 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 19.
 | M5  | Applications: Pipeline, Statuses & Kanban          | v0.6.0  | Done    | M3, M4     | L          | core              |
 | M6  | Notes, @Mentions, Timeline & Notifications         | v0.7.0  | Done    | M2–M5      | L          | collaboration     |
 | M8  | Zoho Migration & Import Engine                     | v0.8.0  | Done    | M2–M6      | L          | migration         |
-| -   | **Attachment (CV) backfill** (engine phase + data run) | –     | **Next**| M8         | S          | **H2**            |
+| -   | **Attachment (CV) backfill** (engine phase + data run) | done  | **Done**| M8         | S          | **H2** done       |
 | M7  | Resume Parsing & Bulk CV Intake                    | v0.9.0  | Planned | M3         | L          | **H6**, M-parse   |
 | M9  | Global Search, Filters, Saved Views & Bulk Actions | v0.10.0 | Planned | M2–M5      | L          | **H3**, M2, M-tags |
 | M10 | Client Submissions & Feedback                      | v0.11.0 | Planned | M5, M6     | M          | **H8**, submissions |
