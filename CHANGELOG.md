@@ -3,6 +3,29 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.10.0 - Milestone 9: Global Search, Filters, Saved Views & Bulk Actions (2026-08-15)
+
+### Added
+
+- **Global command search.** A Cmd/Ctrl-K palette searches candidates, jobs,
+  companies and contacts in parallel (name, email, title, employer, human id,
+  domain, industry, location) and jumps to the record. `search` router +
+  `CommandPalette`, mounted in the app shell with a header Search button.
+- **Tags UI.** `TagEditor` on every candidate/company/contact/job record: add
+  existing tags or create one (7-colour palette) and remove them. `TagFilter`
+  chip bar on each list narrows to records carrying all selected tags (AND).
+  `tagIds` filter on every list router via a `taggedEntityIds` subquery.
+- **Bulk select & actions.** `DataTable` gains a selection column (row +
+  page). A `bulk` router (softDelete / restore / addTag) acts on the selected
+  set, RLS-scoped and audited. `BulkBar` action bar: add tag, delete (restore
+  in trash), export CSV, clear.
+- **CSV export** of the selected rows, client-side, per-object columns.
+- **Saved views & filter builder.** New `saved_views` table (workspace-shared,
+  per object type) + RLS + migration 0017. `views` router (list/create/delete)
+  and a `ViewsBar` to apply, save and delete named views. A structured field
+  filter per object (candidate source, company status, job status, contact
+  primary) added to each list router and folded into the saved-view payload.
+
 ## v0.9.0 - Milestone 7: Resume Parsing & AI Settings (2026-08-15)
 
 ### Added
