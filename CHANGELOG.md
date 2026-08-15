@@ -3,9 +3,36 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
-## Unreleased
+## v0.9.0 - Milestone 7: Resume Parsing & AI Settings (2026-08-15)
 
 ### Added
+
+- **Resume parsing & bulk CV intake.** New `parse_jobs` table (RLS) tracks a CV
+  from upload -> parse -> review -> confirm. A `/candidates/parse` page: drag-drop
+  bulk upload, a status-tabbed review queue that polls as CVs parse, a review
+  modal to edit the parsed fields (with a duplicate-email warning) and confirm to
+  create the candidate + education/experience + the CV re-linked as a `cv`
+  attachment, and retry/discard triage on failures. Upload route + `parsing`
+  router (counts/list/get/confirm/retry/discard) + a BullMQ `parse` worker.
+- **Per-workspace, multi-provider AI (bring-your-own-key).** New `@emerge/ai`
+  package: provider presets (Anthropic native + OpenAI-compatible covering
+  OpenAI, OpenRouter, DeepSeek, Google Gemini, Groq, Mistral, xAI, and any custom
+  endpoint), AES-256-GCM secret crypto, a provider-agnostic resume parser (PDFs
+  read natively by Anthropic; text via unpdf/mammoth otherwise), and a verify
+  (test-connection). New `workspace_ai_settings` table stores each workspace's
+  provider + model + **encrypted** key. New **Settings > AI** page + `ai` router
+  (providers/get/save/test), admin-only; keys are never returned to the client
+  (last 4 only). The parse worker uses each workspace's own key.
+- Verified on the real corpus: 5 DACH/EU CVs parsed cleanly via Claude
+  (names/titles/emails/education/experience extracted, no invented emails on
+  blind CVs). Closes audit gap H6.
+
+### Fixed
+
+- Contain the `/pipeline` board in a bordered card so its stage columns scroll
+  inside a box instead of the page.
+
+### Added (earlier in this cycle)
 
 - **Attachment (CV) backfill** for the `@emerge/migration` engine: a live-Zoho
   attachment phase (`zoho.ts` OAuth client + `s3.ts` MinIO putter +

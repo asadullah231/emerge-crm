@@ -69,8 +69,9 @@ M14.
 
 | Zoho feature                         | Priority | Our equivalent                                                          | Data | UI                        | Backend         | Migration            | Milestone       |
 | ------------------------------------ | -------- | ----------------------------------------------------------------------- | ---- | ------------------------- | --------------- | -------------------- | --------------- |
-| Resume parser import (the #1 intake) | MUST     | parsing pipeline (upload -> parse -> candidate + edu/exp + CV attached) | yes  | drop-zone + review screen | parser worker   | n/a                  | M7              |
-| Bulk CV import (folder/multi-file)   | MUST     | batch upload queue                                                      | yes  | progress UI               | queue jobs      | n/a                  | M7              |
+| Resume parser import (the #1 intake) | MUST     | parsing pipeline (upload -> parse -> candidate + edu/exp + CV attached) | yes  | drop-zone + review screen | parser worker   | n/a                  | **M7 done (v0.9.0)** |
+| Bulk CV import (folder/multi-file)   | MUST     | batch upload queue                                                      | yes  | progress UI               | queue jobs      | n/a                  | **M7 done (v0.9.0)** |
+| LLM provider (any) + own API key     | SHOULD   | per-workspace AI settings (anthropic + openai-compatible), keys encrypted | yes  | Settings > AI            | @emerge/ai      | n/a                  | **M7 done (v0.9.0)** |
 | Attachments on records               | MUST     | attachments (MinIO)                                                     | yes  | files panel               | upload/download | yes (CVs via API)    | M3 (basic) / M7 |
 | Formatted/branded CV generation      | NICE     | formatted CV export                                                     | -    | template                  | renderer        | no                   | post-1.0        |
 | Resume inbox (email CVs in)          | NICE     | inbox address per workspace                                             | yes  | queue                     | mail-in worker  | n/a                  | post-1.0        |
