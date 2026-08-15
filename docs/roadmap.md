@@ -451,6 +451,13 @@ sync + Resume Inbox → post-1.0.
 Dashboards / Metrics / Analytics** tab gap with a scoped, agency-first report
 surface (not a generic report builder in v1).
 
+> **Shipped ahead (15 Aug):** the live home dashboard at `/dashboard` already
+> covers the "Dashboard page assembling cards" item below, plus the pipeline
+> funnel, weekly trends and recruiter performance, all on real RLS-scoped data
+> with clickable drill-through and 30s auto-refresh. What remains for M14 is the
+> configurable report builder, scheduled email delivery, and per-report CSV
+> export.
+
 **Features.**
 - Baseline reports: submissions per sourcer per week; pipeline funnel +
   conversion; time-in-stage; time-to-first-submission; client health (jobs open,

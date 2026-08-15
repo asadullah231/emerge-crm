@@ -20,6 +20,15 @@ task, no code - 1,293 CVs still to pull), then M7 resume parsing. The Timeline
 reads existing events (audit_log + status history + notes), so it is populated
 without a separate event-bus write path for now.
 
+**Live dashboard shipped (15 Aug, ahead of M14):** /dashboard is a real
+recruitment command center reading live RLS-scoped data (no mock numbers): KPI
+cards (active jobs, candidates, applications, submitted/interview/offered/hired/
+rejected, time-to-hire, time-to-fill), a pipeline widget, recent candidates +
+jobs, weekly trends, recruiter performance, and a recent-activity feed. Cards
+drill through to the underlying lists; it auto-refreshes every 30s and on window
+focus; empty states are graceful. Full custom report builder + scheduling stay
+M14.
+
 ## Core objects
 
 | Zoho feature                               | Priority | Our equivalent                                          | Data | UI              | Backend            | Migration           | Milestone        |
@@ -118,7 +127,8 @@ without a separate event-bus write path for now.
 | Two-way email sync                       | NICE         | provider sync                                                                        | yes     | thread view          | sync worker  | no               | post-1.0        |
 | Workflow rules / Blueprint automation    | NICE         | automation rules engine                                                              | yes     | rules UI             | rule runner  | no (unused)      | post-1.0        |
 | Webhooks                                 | SHOULD       | outbound webhooks                                                                    | yes     | settings             | dispatcher   | no               | M16             |
-| Reports & dashboards                     | SHOULD       | agency KPI reports (submissions/sourcer/week, funnel, time-to-submit, client health) | -       | dashboard            | aggregates   | no               | M14             |
+| Home dashboard (live KPI command center) | SHOULD       | /dashboard: live KPIs (jobs/candidates/apps/pipeline stages/time-to-hire+fill), pipeline widget, recent candidates+jobs, weekly trends, recruiter perf, activity feed; clickable drill-through; 30s auto-refresh; real RLS-scoped data | done | done | dashboard.overview | reads live | **DONE (ahead of M14)** |
+| Reports & dashboards (full builder)      | SHOULD       | agency KPI reports (submissions/sourcer/week, funnel, time-to-submit, client health) + scheduling | -       | report builder       | aggregates   | no               | M14             |
 | Zia AI matching / semantic search        | NICE         | embedding match (candidates <-> jobs)                                                | vectors | match panel          | embed worker | no               | M15             |
 | Career site + public apply + job boards  | NICE         | careers page + apply form                                                            | yes     | public page          | public api   | no (0 published) | M16 or post-1.0 |
 | Candidate portal                         | NOT (for v1) | -                                                                                    | -       | -                    | -            | no               | post-1.0        |
