@@ -1,5 +1,6 @@
 import { APP_VERSION } from "@emerge/core";
 import { publicProcedure, router } from "../trpc";
+import { aiRouter } from "./ai";
 import { applicationsRouter } from "./applications";
 import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
@@ -25,6 +26,7 @@ export const appRouter = router({
     }))
   }),
   auth: authRouter,
+  ai: aiRouter,
   workspace: workspaceRouter,
   members: membersRouter,
   companies: companiesRouter,
