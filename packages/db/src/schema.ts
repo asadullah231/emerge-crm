@@ -832,3 +832,56 @@ export const importRecords = pgTable(
     index("import_records_external_idx").on(t.workspaceId, t.entityType, t.externalId)
   ]
 );
+
+// ---------------------------------------------------------------------------
+// M7: resume parsing & bulk CV intake
+// A parse_job tracks one uploaded CV from upload -> parse -> review -> confirm.
+// The original file lives in the same S3 bucket as attachments; the parser
+// worker fills raw_text + parsed (structured JSON). On confirm a candidate is
+// created (+ education/experience + the CV re-linked as an attachment) and
+// candidate_id is set. Failures land in the triage queue with `error`.
+// ---------------------------------------------------------------------------
+
+export const parseJobStatus = pgEnum("parse_job_status", [
+  "queued",
+  "parsing",
+  "parsed",
+  "confirmed",
+  "discarded",
+  "failed"
+]);
+export type ParseJobStatus = (typeof parseJobStatus.enumValues)[number];
+
+export const parseJobs = pgTable(
+  "parse_jobs",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    status: parseJobStatus("status").notNull().default("queued"),
+    /** Original uploaded file in S3 (same bucket the CRM serves downloads from). */
+    bucket: text("bucket").notNull(),
+    objectKey: text("object_key").notNull(),
+    filename: text("filename").notNull(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(),
+    /** sha256 of the file bytes; lets the UI flag re-uploads of the same CV. */
+    sha256: text("sha256").notNull(),
+    /** Extracted plain text (pdf/docx -> text) and the parser's structured JSON. */
+    rawText: text("raw_text"),
+    parsed: jsonb("parsed").$type<Record<string, unknown>>(),
+    /** The candidate created on confirm (null until confirmed). */
+    candidateId: uuid("candidate_id").references(() => candidates.id, { onDelete: "set null" }),
+    /** Populated when status=failed; drives the triage list. */
+    error: text("error"),
+    uploadedById: uuid("uploaded_by_id").references(() => users.id, { onDelete: "set null" }),
+    confirmedById: uuid("confirmed_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("parse_jobs_workspace_status_idx").on(t.workspaceId, t.status),
+    index("parse_jobs_workspace_sha_idx").on(t.workspaceId, t.sha256)
+  ]
+);
