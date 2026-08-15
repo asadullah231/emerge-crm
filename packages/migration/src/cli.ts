@@ -18,6 +18,9 @@ import { buildProposedUserMap, loadUserMap } from "./userMap.js";
 import { runImport } from "./run.js";
 import { rollbackRun } from "./rollback.js";
 import { verifyImport } from "./verify.js";
+import { runAttachmentImport } from "./attachments.js";
+import { ZohoClient, zohoConfigFromEnv } from "./zoho.js";
+import { s3PutterFromEnv } from "./s3.js";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -28,7 +31,7 @@ async function main() {
   const cmd = process.argv[2];
   if (!cmd) {
     console.log(
-      `emerge-migrate: subcommands = build-user-map | dry-run | import | rollback | verify`
+      `emerge-migrate: subcommands = build-user-map | dry-run | import | rollback | verify | attachments`
     );
     process.exit(1);
   }
@@ -128,6 +131,60 @@ async function main() {
     try {
       const r = await verifyImport({ db, workspaceId, snapshotDir: dir });
       console.log(JSON.stringify(r, null, 2));
+    } finally {
+      await db.close();
+    }
+    return;
+  }
+
+  if (cmd === "attachments") {
+    const dir = process.argv[3];
+    const workspaceId = arg("workspace");
+    if (!dir || !workspaceId)
+      throw new Error(
+        "usage: attachments <snapshot-dir> --workspace <uuid> [--module Candidates] [--limit N] [--concurrency N] [--dry-run]"
+      );
+    const dryRun = process.argv.includes("--dry-run");
+    const limit = arg("limit");
+    const concurrency = arg("concurrency");
+    const zoho = new ZohoClient(zohoConfigFromEnv());
+    const s3 = s3PutterFromEnv();
+    if (!dryRun && !s3) throw new Error("S3_* env not configured (needed to store files)");
+    const db = createDb();
+    try {
+      const r = await runAttachmentImport({
+        db,
+        workspaceId,
+        snapshotDir: dir,
+        zoho,
+        s3,
+        module: arg("module"),
+        limit: limit ? Number(limit) : undefined,
+        concurrency: concurrency ? Number(concurrency) : undefined,
+        dryRun,
+        log: (m) => console.log(m)
+      });
+      console.log(
+        JSON.stringify(
+          {
+            runId: r.runId,
+            flagged: r.flagged,
+            unresolved: r.unresolved,
+            candidatesProcessed: r.candidatesProcessed,
+            listed: r.listed,
+            uploaded: r.uploaded,
+            skippedExisting: r.skippedExisting,
+            skippedTooLarge: r.skippedTooLarge,
+            failed: r.failed
+          },
+          null,
+          2
+        )
+      );
+      if (r.errors.length) {
+        console.log(`first errors (${r.errors.length} total):`);
+        for (const e of r.errors.slice(0, 20)) console.log(`  - ${e}`);
+      }
     } finally {
       await db.close();
     }

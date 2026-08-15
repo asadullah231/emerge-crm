@@ -63,7 +63,7 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 19.
 | M5  | Applications: Pipeline, Statuses & Kanban          | v0.6.0  | Done    | M3, M4     | L          | core              |
 | M6  | Notes, @Mentions, Timeline & Notifications         | v0.7.0  | Done    | M2–M5      | L          | collaboration     |
 | M8  | Zoho Migration & Import Engine                     | v0.8.0  | Done    | M2–M6      | L          | migration         |
-| —   | **Attachment (CV) backfill** (data task, no code)  | –       | **Next**| M8         | S          | **H2**            |
+| —   | **Attachment (CV) backfill** (engine phase + data run) | –     | **Next**| M8         | S          | **H2**            |
 | M7  | Resume Parsing & Bulk CV Intake                    | v0.9.0  | Planned | M3         | L          | **H6**, M-parse   |
 | M9  | Global Search, Filters, Saved Views & Bulk Actions | v0.10.0 | Planned | M2–M5      | L          | **H3**, M2, M-tags |
 | M10 | Client Submissions & Feedback                      | v0.11.0 | Planned | M5, M6     | M          | **H8**, submissions |
@@ -168,15 +168,23 @@ New milestones only *add* tables/routers.
 
 ## Near-term data task — Attachment (CV) backfill
 
-**Not a milestone — no schema or code change.** The `attachments` table + MinIO
-storage + the M8 attachment phase already exist; the initial import was
-rate-limited out before it ran.
+**Not a versioned milestone, but it IS a code build.** Correction (15 Aug, on
+inspection): the *display* side already exists from M3 (`attachments` table,
+presigned download, `candidate-documents.tsx`), but the migration engine has
+**no attachment phase** — it only reads offline JSONL snapshots, which carry
+metadata, not file bytes. So this task = build a live-Zoho attachment fetcher in
+`packages/migration` + run it. (An earlier draft wrongly called this "already
+coded".)
 
 - **Objective:** get all Zoho candidate CVs into MinIO so recruiters can
   download a CV from a candidate record.
-- **Work:** run the migration engine's attachment phase against the production
-  workspace (resumable queue, sha256 dedupe, `zoho/<module>/<record>/<att>_<name>`
-  keys). ~1,293 candidate files + any client/job attachments.
+- **Work:** (a) build `zoho.ts` (OAuth refresh-token client: list + download
+  attachments), `s3.ts` (MinIO put), `attachments.ts` (phase: resolve candidate
+  via external_refs → list → download → upload → insert attachments row +
+  external_ref + import_record, resumable + idempotent), and an `attachments`
+  CLI subcommand + tests. (b) run it against the production workspace. ~1,293
+  candidate files. Object key `workspaces/<ws>/candidates/<id>/zoho-<att>-<name>`.
+  **Needs live Zoho API OAuth creds** (the MCP cannot download bytes).
 - **Verify against Zoho:** `files stored == Is_Attachment_Present count`, each
   with matching size/checksum; spot-check 10 CVs open correctly; the benchmark
   Porsche chain's candidates all have a downloadable CV.

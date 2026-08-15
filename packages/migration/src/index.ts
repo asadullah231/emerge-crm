@@ -7,3 +7,6 @@ export * from "./snapshot.js";
 export * from "./run.js";
 export * from "./verify.js";
 export * from "./rollback.js";
+export * from "./zoho.js";
+export * from "./s3.js";
+export * from "./attachments.js";
