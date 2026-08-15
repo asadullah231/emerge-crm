@@ -97,6 +97,15 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@emerge-pg:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@emerge-redis:6379
+      # S3 so the parse worker (M7) can read uploaded CVs from MinIO.
+      S3_ENDPOINT: http://emerge-minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET:-emerge}
+      # Claude resume parser (M7).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      PARSE_MODEL: ${PARSE_MODEL:-claude-sonnet-5}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
