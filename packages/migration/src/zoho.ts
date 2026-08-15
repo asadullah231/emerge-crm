@@ -84,17 +84,27 @@ export class ZohoClient {
   private readonly maxRetries: number;
   private readonly backoffMs: number;
   private token: { value: string; expiresAt: number } | null = null;
+  /** Single-flight lock so concurrent callers share one token refresh. */
+  private refreshing: Promise<string> | null = null;
 
   constructor(cfg: ZohoConfig, opts: ZohoClientOptions = {}) {
     this.cfg = cfg;
     this.fetchImpl = opts.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
-    this.maxRetries = opts.maxRetries ?? 5;
+    this.maxRetries = opts.maxRetries ?? 6;
     this.backoffMs = opts.backoffMs ?? 1000;
   }
 
-  /** Cached access token; refreshes ~60s before expiry. */
+  /** Cached access token; refreshes ~60s before expiry. Refresh is single-flight. */
   private async accessToken(): Promise<string> {
     if (this.token && this.token.expiresAt - 60_000 > monotonicNow()) return this.token.value;
+    if (this.refreshing) return this.refreshing;
+    this.refreshing = this.doRefresh().finally(() => {
+      this.refreshing = null;
+    });
+    return this.refreshing;
+  }
+
+  private async doRefresh(): Promise<string> {
     const url =
       `${this.cfg.accountsDomain}/oauth/v2/token` +
       `?refresh_token=${encodeURIComponent(this.cfg.refreshToken)}` +
@@ -112,7 +122,11 @@ export class ZohoClient {
     return this.token.value;
   }
 
-  private async authedFetch(path: string, accept: "json" | "binary") {
+  private async authedFetch(
+    path: string,
+    accept: "json" | "binary",
+    opts: { retryClientError?: boolean } = {}
+  ) {
     let attempt = 0;
     for (;;) {
       const token = await this.accessToken();
@@ -127,11 +141,18 @@ export class ZohoClient {
         this.token = null;
         if (attempt++ < 1) continue;
       }
-      if ((res.status === 429 || res.status >= 500) && attempt < this.maxRetries) {
+      // Zoho throttles bursty attachment downloads with a transient 400 (the same
+      // request succeeds on retry), so downloads opt into retrying 400 too.
+      const retryable =
+        res.status === 429 ||
+        res.status >= 500 ||
+        (opts.retryClientError === true && res.status === 400);
+      if (retryable && attempt < this.maxRetries) {
         const retryAfter = Number(res.headers.get("Retry-After"));
-        const wait = Number.isFinite(retryAfter) && retryAfter > 0
-          ? retryAfter * 1000
-          : this.backoffMs * 2 ** attempt;
+        const wait =
+          Number.isFinite(retryAfter) && retryAfter > 0
+            ? retryAfter * 1000
+            : this.backoffMs * 2 ** attempt;
         attempt++;
         await sleep(wait);
         continue;
@@ -157,7 +178,8 @@ export class ZohoClient {
   ): Promise<{ bytes: Buffer; contentType: string | null }> {
     const res = await this.authedFetch(
       `/recruit/v2/${module}/${recordId}/Attachments/${attachmentId}`,
-      "binary"
+      "binary",
+      { retryClientError: true }
     );
     if (!res.ok) throw new Error(`download ${module}/${recordId}/${attachmentId}: HTTP ${res.status}`);
     const bytes = Buffer.from(await res.arrayBuffer());
