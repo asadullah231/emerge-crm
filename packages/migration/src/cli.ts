@@ -147,7 +147,10 @@ async function main() {
     const dryRun = process.argv.includes("--dry-run");
     const limit = arg("limit");
     const concurrency = arg("concurrency");
-    const zoho = new ZohoClient(zohoConfigFromEnv());
+    const minInterval = arg("min-interval");
+    const zoho = new ZohoClient(zohoConfigFromEnv(), {
+      minIntervalMs: minInterval ? Number(minInterval) : 0
+    });
     const s3 = s3PutterFromEnv();
     if (!dryRun && !s3) throw new Error("S3_* env not configured (needed to store files)");
     const db = createDb();

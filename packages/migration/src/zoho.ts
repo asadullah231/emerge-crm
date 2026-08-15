@@ -76,6 +76,12 @@ export interface ZohoClientOptions {
   maxRetries?: number;
   /** Base backoff (ms); doubles each attempt, honours Retry-After when given. */
   backoffMs?: number;
+  /**
+   * Minimum gap (ms) between any two outgoing API requests. Zoho throttles
+   * bursts with a transient HTTP 400; spacing requests keeps us under the
+   * per-minute rate limit. 0 disables the gate.
+   */
+  minIntervalMs?: number;
 }
 
 export class ZohoClient {
@@ -83,15 +89,29 @@ export class ZohoClient {
   private readonly fetchImpl: FetchLike;
   private readonly maxRetries: number;
   private readonly backoffMs: number;
+  private readonly minIntervalMs: number;
   private token: { value: string; expiresAt: number } | null = null;
   /** Single-flight lock so concurrent callers share one token refresh. */
   private refreshing: Promise<string> | null = null;
+  /** Next allowed request time (performance.now clock) for the rate gate. */
+  private nextSlotAt = 0;
 
   constructor(cfg: ZohoConfig, opts: ZohoClientOptions = {}) {
     this.cfg = cfg;
     this.fetchImpl = opts.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
     this.maxRetries = opts.maxRetries ?? 6;
     this.backoffMs = opts.backoffMs ?? 1000;
+    this.minIntervalMs = opts.minIntervalMs ?? 0;
+  }
+
+  /** Space outgoing requests by at least minIntervalMs, across all callers. */
+  private async rateGate(): Promise<void> {
+    if (this.minIntervalMs <= 0) return;
+    const now = performance.now();
+    const slot = Math.max(now, this.nextSlotAt);
+    this.nextSlotAt = slot + this.minIntervalMs;
+    const wait = slot - now;
+    if (wait > 0) await sleep(wait);
   }
 
   /** Cached access token; refreshes ~60s before expiry. Refresh is single-flight. */
@@ -130,6 +150,7 @@ export class ZohoClient {
     let attempt = 0;
     for (;;) {
       const token = await this.accessToken();
+      await this.rateGate();
       const res = await this.fetchImpl(`${this.cfg.apiDomain}${path}`, {
         headers: {
           Authorization: `Zoho-oauthtoken ${token}`,
