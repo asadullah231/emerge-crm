@@ -123,6 +123,9 @@ export default function CandidatesPage() {
           </Button>
           {canWrite && !showTrash ? (
             <>
+              <Link href="/candidates/parse">
+                <Button variant="outline">Parse CVs</Button>
+              </Link>
               <Link href="/candidates/import">
                 <Button variant="outline">Import CSV</Button>
               </Link>
