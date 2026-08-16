@@ -1026,3 +1026,156 @@ export const submissions = pgTable(
   ]
 );
 export type Submission = typeof submissions.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// M11: interviews (lite) + feedback scorecards + tasks (To-Dos-lite). Interview
+// records hang off an application; participants are internal users and/or
+// external client contacts; feedback is one scorecard per interviewer with a
+// short edit window. Tasks are a minimal subject/due/assignee/status attachable
+// to any record. Calendar OAuth two-way sync is deferred (ICS via SMTP only).
+// ---------------------------------------------------------------------------
+
+export const interviewType = pgEnum("interview_type", [
+  "screen",
+  "l1",
+  "l2",
+  "l3",
+  "l4",
+  "client",
+  "final",
+  "other"
+]);
+export type InterviewType = (typeof interviewType.enumValues)[number];
+
+export const interviewStatus = pgEnum("interview_status", [
+  "scheduled",
+  "completed",
+  "cancelled",
+  "no_show"
+]);
+export type InterviewStatus = (typeof interviewStatus.enumValues)[number];
+
+export const feedbackRecommendation = pgEnum("feedback_recommendation", [
+  "strong_yes",
+  "yes",
+  "no",
+  "strong_no"
+]);
+export type FeedbackRecommendation = (typeof feedbackRecommendation.enumValues)[number];
+
+export const taskStatus = pgEnum("task_status", ["open", "in_progress", "done"]);
+export type TaskStatus = (typeof taskStatus.enumValues)[number];
+
+export const interviews = pgTable(
+  "interviews",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    humanId: text("human_id").notNull(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    type: interviewType("type").notNull().default("screen"),
+    status: interviewStatus("status").notNull().default("scheduled"),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    durationMins: integer("duration_mins").notNull().default(30),
+    location: text("location"),
+    meetingLink: text("meeting_link"),
+    notes: text("notes"),
+    cancellationReason: text("cancellation_reason"),
+    /** iCalendar SEQUENCE; bumped on reschedule/cancel so re-sent invites supersede. */
+    sequence: integer("sequence").notNull().default(0),
+    organizerId: uuid("organizer_id").references(() => users.id, { onDelete: "set null" }),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("interviews_application_idx").on(t.workspaceId, t.applicationId),
+    index("interviews_schedule_idx").on(t.workspaceId, t.scheduledAt),
+    index("interviews_organizer_idx").on(t.workspaceId, t.organizerId)
+  ]
+);
+export type Interview = typeof interviews.$inferSelect;
+
+export const interviewParticipants = pgTable(
+  "interview_participants",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    interviewId: uuid("interview_id")
+      .notNull()
+      .references(() => interviews.id, { onDelete: "cascade" }),
+    /** Internal interviewer. Null when the participant is an external contact. */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    /** External client-side attendee. Null when the participant is internal. */
+    contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "cascade" }),
+    role: text("role").notNull().default("interviewer"),
+    createdAt: createdAt()
+  },
+  (t) => [
+    index("interview_participants_idx").on(t.workspaceId, t.interviewId),
+    uniqueIndex("interview_participants_user_unique").on(t.interviewId, t.userId),
+    uniqueIndex("interview_participants_contact_unique").on(t.interviewId, t.contactId)
+  ]
+);
+export type InterviewParticipant = typeof interviewParticipants.$inferSelect;
+
+export const interviewFeedback = pgTable(
+  "interview_feedback",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    interviewId: uuid("interview_id")
+      .notNull()
+      .references(() => interviews.id, { onDelete: "cascade" }),
+    /** Denormalized for aggregate scorecards on the application. */
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    authorUserId: uuid("author_user_id").references(() => users.id, { onDelete: "set null" }),
+    rating: integer("rating").notNull(),
+    recommendation: feedbackRecommendation("recommendation").notNull(),
+    comments: text("comments"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("interview_feedback_application_idx").on(t.workspaceId, t.applicationId),
+    uniqueIndex("interview_feedback_author_unique").on(t.interviewId, t.authorUserId)
+  ]
+);
+export type InterviewFeedback = typeof interviewFeedback.$inferSelect;
+
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    subject: text("subject").notNull(),
+    description: text("description"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    status: taskStatus("status").notNull().default("open"),
+    assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
+    /** Optional polymorphic link to a record; null = standalone task. */
+    entityType: text("entity_type"),
+    entityId: uuid("entity_id"),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("tasks_assignee_idx").on(t.workspaceId, t.assigneeId, t.status),
+    index("tasks_entity_idx").on(t.workspaceId, t.entityType, t.entityId)
+  ]
+);
+export type Task = typeof tasks.$inferSelect;

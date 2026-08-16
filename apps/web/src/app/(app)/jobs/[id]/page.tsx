@@ -20,6 +20,7 @@ import {
 } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
+import { TasksPanel } from "@/components/tasks-panel";
 import { SubmitToClientModal } from "@/components/submit-to-client-modal";
 import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
@@ -420,6 +421,10 @@ export default function JobRecordPage() {
           utils.applications.board.invalidate({ jobId: record.id });
         }}
       />
+      <RecordSection title="Tasks">
+        <TasksPanel entityType="job" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
       <RecordSection title="Notes">
         <NotesPanel entityType="job" entityId={record.id} canWrite={canEdit} />
       </RecordSection>

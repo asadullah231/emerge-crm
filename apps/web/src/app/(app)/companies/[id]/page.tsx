@@ -15,6 +15,7 @@ import {
 } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
+import { TasksPanel } from "@/components/tasks-panel";
 import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
@@ -268,6 +269,10 @@ export default function CompanyRecordPage() {
         onClose={() => setAddingContact(false)}
         defaultCompanyId={record.id}
       />
+      <RecordSection title="Tasks">
+        <TasksPanel entityType="company" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
       <RecordSection title="Notes">
         <NotesPanel entityType="company" entityId={record.id} canWrite={canEdit} />
       </RecordSection>

@@ -134,6 +134,13 @@
       "when": 1786852302178,
       "tag": "0018_silky_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786855781569,
+      "tag": "0019_condemned_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }

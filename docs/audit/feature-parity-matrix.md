@@ -62,7 +62,7 @@ M14.
 | Templated screening-call note               | MUST     | note templates (per workspace)     | yes  | template insert       | small                   | n/a                   | M6        |
 | Record timeline (field/status/assoc events) | MUST     | activities event bus + timeline UI | yes  | record timeline       | event emit on mutations | partial               | M6        |
 | Org-wide activity log                       | MUST     | activity feed + existing audit_log | yes  | feed page             | query                   | no                    | M6        |
-| Tasks / Events / Calls                      | NICE     | activities-lite (tasks only first) | yes  | task list             | CRUD                    | no (0 records)        | M11       |
+| Tasks / Events / Calls                      | NICE     | activities-lite (tasks only first) | yes  | task list             | CRUD                    | tasks done (M11)      | M11       |
 | Note share-to-client flag                   | NICE     | share flag reserved                | yes  | toggle                | portal later            | no                    | post-1.0  |
 
 ## Intake & documents
@@ -110,15 +110,15 @@ M14.
 
 ## Interviews, offers, assessments
 
-| Zoho feature                                | Priority      | Our equivalent                                           | Data | UI                     | Backend         | Migration      | Milestone |
-| ------------------------------------------- | ------------- | -------------------------------------------------------- | ---- | ---------------------- | --------------- | -------------- | --------- |
-| Interview scheduling + verdict              | SHOULD        | interviews (lite: slot, participants, outcome, reminder) | yes  | scheduler + record tab | CRUD + notify   | no (0 records) | M11       |
-| Video interview (native/live/recorded)      | NOT           | use Meet/Teams links in location field                   | -    | -                      | -               | no             | -         |
-| Assessments/questionnaires + auto-scoring   | NICE          | scorecards-lite later                                    | yes  | forms                  | scoring         | no             | post-1.0  |
-| Reviews (polymorphic evaluations)           | NICE          | folded into interviews/submissions feedback              | -    | -                      | -               | no             | -         |
-| Offer records + approval flow + e-sign      | SHOULD (lite) | offer status on application + placements                 | yes  | dialog                 | status + record | no             | M12       |
-| Placements + actual revenue                 | SHOULD        | placements                                               | yes  | record + report        | CRUD            | no             | M12       |
-| Conversion candidate -> employee/onboarding | NOT           | placement marks hired; no HRIS handoff                   | -    | -                      | -               | no             | -         |
+| Zoho feature                                | Priority      | Our equivalent                                           | Data | UI                     | Backend         | Migration  | Milestone |
+| ------------------------------------------- | ------------- | -------------------------------------------------------- | ---- | ---------------------- | --------------- | ---------- | --------- |
+| Interview scheduling + verdict              | SHOULD        | interviews (lite: slot, participants, outcome, reminder) | yes  | scheduler + record tab | CRUD + notify   | done (M11) | M11       |
+| Video interview (native/live/recorded)      | NOT           | use Meet/Teams links in location field                   | -    | -                      | -               | no         | -         |
+| Assessments/questionnaires + auto-scoring   | NICE          | scorecards-lite later                                    | yes  | forms                  | scoring         | no         | post-1.0  |
+| Reviews (polymorphic evaluations)           | NICE          | folded into interviews/submissions feedback              | -    | -                      | -               | no         | -         |
+| Offer records + approval flow + e-sign      | SHOULD (lite) | offer status on application + placements                 | yes  | dialog                 | status + record | no         | M12       |
+| Placements + actual revenue                 | SHOULD        | placements                                               | yes  | record + report        | CRUD            | no         | M12       |
+| Conversion candidate -> employee/onboarding | NOT           | placement marks hired; no HRIS handoff                   | -    | -                      | -               | no         | -         |
 
 ## Comms, automation, analytics
 

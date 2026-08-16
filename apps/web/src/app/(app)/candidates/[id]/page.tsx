@@ -10,6 +10,7 @@ import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
 import { NotesPanel } from "@/components/notes-panel";
 import { TagEditor } from "@/components/tag-editor";
+import { TasksPanel } from "@/components/tasks-panel";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { candidateName } from "@/components/new-candidate-modal";
 import {
@@ -368,6 +369,10 @@ export default function CandidateRecordPage() {
           canWrite={canEdit}
           onChanged={() => utils.candidates.get.invalidate({ id: record.id })}
         />
+      </RecordSection>
+
+      <RecordSection title="Tasks">
+        <TasksPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Notes">
