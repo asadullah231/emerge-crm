@@ -1,4 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
+// The BullMQ enqueue needs a live Redis broker; delivery is the worker's job and
+// is covered separately. Stub it so these tests exercise the router + DB logic
+// deterministically (a real enqueue would block the request in CI).
+vi.mock("@/server/email", () => ({ enqueueEmail: vi.fn(async () => undefined) }));
+
 import { handleInboundReply } from "@/server/email-inbound";
 import {
   applyMergeFields,
