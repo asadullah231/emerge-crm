@@ -9,6 +9,8 @@ import { candidatesRouter } from "./candidates";
 import { companiesRouter } from "./companies";
 import { contactsRouter } from "./contacts";
 import { dashboardRouter } from "./dashboard";
+import { emailTemplatesRouter } from "./email-templates";
+import { emailsRouter } from "./emails";
 import { interviewFeedbackRouter } from "./interview-feedback";
 import { interviewsRouter } from "./interviews";
 import { jobsRouter } from "./jobs";
@@ -56,6 +58,8 @@ export const appRouter = router({
   offers: offersRouter,
   placements: placementsRouter,
   revenue: revenueRouter,
+  emails: emailsRouter,
+  emailTemplates: emailTemplatesRouter,
   search: searchRouter,
   submissions: submissionsRouter,
   tasks: tasksRouter,

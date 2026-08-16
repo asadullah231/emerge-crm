@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button, FormError } from "@/components/form";
 import { contactName } from "@/components/new-contact-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
+import { CommunicationPanel } from "@/components/communication-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { TasksPanel } from "@/components/tasks-panel";
 import { TagEditor } from "@/components/tag-editor";
@@ -258,6 +259,10 @@ export default function ContactRecordPage() {
       </p>
       <RecordSection title="Tasks">
         <TasksPanel entityType="contact" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Communication">
+        <CommunicationPanel entityType="contact" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Notes">

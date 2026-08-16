@@ -8,6 +8,7 @@ import { Button, FormError } from "@/components/form";
 import { CandidateDocuments } from "@/components/candidate-documents";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
+import { CommunicationPanel } from "@/components/communication-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { TagEditor } from "@/components/tag-editor";
 import { TasksPanel } from "@/components/tasks-panel";
@@ -373,6 +374,10 @@ export default function CandidateRecordPage() {
 
       <RecordSection title="Tasks">
         <TasksPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Communication">
+        <CommunicationPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Notes">

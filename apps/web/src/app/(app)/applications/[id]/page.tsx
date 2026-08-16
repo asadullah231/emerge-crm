@@ -7,6 +7,7 @@ import { cn } from "@emerge/ui";
 import { Button, FormError } from "@/components/form";
 import { candidateName } from "@/components/new-candidate-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
+import { CommunicationPanel } from "@/components/communication-panel";
 import { InterviewsPanel } from "@/components/interviews-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { OffersPanel } from "@/components/offers-panel";
@@ -270,6 +271,10 @@ export default function ApplicationRecordPage() {
           </ol>
         )}
       </RecordSection>
+      <RecordSection title="Communication">
+        <CommunicationPanel entityType="application" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
       <RecordSection title="Notes">
         <NotesPanel entityType="application" entityId={record.id} canWrite={canEdit} />
       </RecordSection>

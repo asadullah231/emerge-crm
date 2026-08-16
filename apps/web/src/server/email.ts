@@ -8,6 +8,19 @@ export type EmailJob =
       workspaceName: string;
       inviterName: string;
       acceptUrl: string;
+    }
+  | {
+      /** A pre-rendered email sent from a record (M13). The worker delivers it
+       * and updates the `emails` row (status/messageId) by id. */
+      type: "record";
+      emailId: string;
+      workspaceId: string;
+      to: string[];
+      cc?: string[];
+      replyTo?: string;
+      subject: string;
+      html: string;
+      text: string;
     };
 
 // The worker app consumes this queue and does the actual SMTP delivery.

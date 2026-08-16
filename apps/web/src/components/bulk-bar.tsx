@@ -18,7 +18,8 @@ export function BulkBar({
   showTrash,
   onClear,
   onDone,
-  onExport
+  onExport,
+  onMailMerge
 }: {
   entityType: TaggableType;
   selectedIds: string[];
@@ -27,6 +28,8 @@ export function BulkBar({
   onClear: () => void;
   onDone: () => void;
   onExport: () => void;
+  /** When provided, shows a "Mail merge" action (record types that can be emailed). */
+  onMailMerge?: () => void;
 }) {
   const [tagOpen, setTagOpen] = useState(false);
   const tagRef = useRef<HTMLDivElement>(null);
@@ -66,6 +69,12 @@ export function BulkBar({
         <Button variant="outline" className="px-3 py-1.5" onClick={onExport}>
           Export CSV
         </Button>
+
+        {canWrite && !showTrash && onMailMerge ? (
+          <Button variant="outline" className="px-3 py-1.5" onClick={onMailMerge}>
+            Mail merge
+          </Button>
+        ) : null}
 
         {canWrite && !showTrash ? (
           <div ref={tagRef} className="relative">

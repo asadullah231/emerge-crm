@@ -9,6 +9,7 @@ const TABS = [
   { href: "/settings/workspace", label: "Workspace" },
   { href: "/settings/members", label: "Members" },
   { href: "/settings/ai", label: "AI" },
+  { href: "/settings/email-templates", label: "Email templates" },
   { href: "/settings/audit-log", label: "Audit log" }
 ];
 
