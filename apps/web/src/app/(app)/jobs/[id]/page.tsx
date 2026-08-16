@@ -19,6 +19,7 @@ import {
   RecordShell
 } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
+import { JobRevenuePanel } from "@/components/revenue-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { TasksPanel } from "@/components/tasks-panel";
 import { SubmitToClientModal } from "@/components/submit-to-client-modal";
@@ -386,6 +387,10 @@ export default function JobRecordPage() {
 
       <RecordSection title="Client submissions">
         <SubmissionsLog mode="job" id={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Revenue">
+        <JobRevenuePanel jobId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Tags">

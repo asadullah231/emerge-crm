@@ -3,6 +3,30 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.13.0 - Milestone 12: Offers, Placements & Job Revenue (2026-08-16)
+
+### Added
+
+- **Offers.** Offer lifecycle on an application (migration 0020): draft -> sent
+  -> accepted / declined / withdrawn, plus auto-`expired`, with an append-only
+  `offer_status_history`. Salary, currency, start date, medium and an optional
+  offer-letter body. `offers` router: create, update (draft only), send (with
+  expiry), accept, decline, withdraw, get, byApplication. Sending moves the
+  application to `offer_made`; accept -> `offer_accepted`; decline/withdraw ->
+  the terminal `offer_declined` / `offer_withdrawn` statuses (3 new statuses
+  added to the M5 dictionary on the offered/rejected stages).
+- **Expiry cron.** A BullMQ scheduler (every 5 min) flags sent offers past their
+  expiry as `expired`, writing status history + audit across all workspaces.
+- **Placements.** A `placements` record on hire (start date, fee/revenue,
+  placed-by, linked offer), one per application; recording it moves the
+  application to `hired`. `placements` router: create, forApplication, byJob,
+  list, remove.
+- **Job revenue.** `job_revenue` target (revenue-per-position) per job. `revenue`
+  router: summary (expected vs actual vs missed rolled up per job, per client and
+  per account manager), forJob, setTarget, recentPlacements. New `/revenue` page,
+  a revenue panel on job + client records, and an offer/placement panel on the
+  application with an expiry countdown.
+
 ## v0.12.0 - Milestone 11: Interviews & Tasks (lite) (2026-08-16)
 
 ### Added

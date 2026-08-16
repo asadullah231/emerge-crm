@@ -14,6 +14,7 @@ import {
   StatusBadge
 } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
+import { ClientRevenuePanel } from "@/components/revenue-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { TasksPanel } from "@/components/tasks-panel";
 import { TagEditor } from "@/components/tag-editor";
@@ -247,6 +248,10 @@ export default function CompanyRecordPage() {
 
       <RecordSection title="Client submissions">
         <SubmissionsLog mode="client" id={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Revenue">
+        <ClientRevenuePanel companyId={record.id} />
       </RecordSection>
 
       <RecordSection title="Tags">

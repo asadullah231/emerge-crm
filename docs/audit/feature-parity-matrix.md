@@ -31,27 +31,27 @@ M14.
 
 ## Core objects
 
-| Zoho feature                               | Priority | Our equivalent                                          | Data | UI              | Backend            | Migration           | Milestone        |
-| ------------------------------------------ | -------- | ------------------------------------------------------- | ---- | --------------- | ------------------ | ------------------- | ---------------- |
-| Clients module + Account Manager owner     | MUST     | Companies, owner = AM                                   | yes  | list + record   | CRUD/list          | yes (85)            | M2 (in progress) |
-| Contacts under clients, primary flag       | MUST     | Contacts                                                | yes  | list + record   | CRUD/list          | yes (12)            | M2 (in progress) |
-| Parent Client hierarchy                    | NICE     | parent_company_id                                       | yes  | picker          | small              | no (unused)         | post-1.0         |
-| Candidates CRUD, unique email dedupe       | MUST     | Candidates                                              | yes  | list + record   | CRUD + dedupe      | yes (1,287)         | M3               |
-| Education/Experience tabular sub-grids     | MUST     | candidate_education/experience                          | yes  | record section  | CRUD               | yes (parsed data)   | M3               |
-| Candidate autonumber IDs (ZR_n_CAND)       | SHOULD   | human_id per entity                                     | yes  | display         | sequence           | map old ids         | M3               |
-| Candidate sources (26 picklist)            | MUST     | source enum (slimmed)                                   | yes  | filter/badge    | enum               | yes                 | M3               |
-| Candidate dual status+stage                | NOT      | pipeline lives on Application only                      | -    | -               | -                  | statuses map to app | -                |
-| Jobs with REQUIRED client + hiring contact | MUST     | Jobs                                                    | yes  | list + record   | CRUD/list          | yes (101)           | M4               |
-| Job status machine (9 values)              | MUST     | 5-status enum (slimmed to used ones)                    | yes  | badges/filters  | enum               | yes                 | M4               |
-| Rich-text job description                  | MUST     | rich text editor                                        | yes  | editor          | sanitized html     | yes                 | M4               |
-| Free-text salary + structured option       | MUST     | both fields                                             | yes  | inline          | -                  | yes                 | M4               |
-| Revenue forecast per job (expected/actual) | NICE     | placements revenue                                      | yes  | record panel    | computed           | no (unused)         | M12              |
-| Hot job flag, submission limit             | NICE     | flag + limit                                            | yes  | badge           | check              | no                  | post-1.0         |
-| Applications = candidate x job junction    | MUST     | Applications                                            | yes  | everywhere      | CRUD + unique pair | yes (756)           | M5               |
-| 30-value status + 7-stage colored kanban   | MUST     | stage + status dictionary (seeded with our used values) | yes  | kanban + badges | status machine     | yes + history       | M5               |
-| Status history / time-in-stage             | MUST     | application_status_history                              | yes  | timeline        | event write        | partial (timelines) | M5               |
-| Rejection reasons (structured)             | SHOULD   | rejection_reason                                        | yes  | dialog          | enum               | yes where present   | M5               |
-| Kanban pipeline board                      | MUST     | Board view per job + global                             | -    | drag-drop board | stage transitions  | -                   | M5               |
+| Zoho feature                               | Priority | Our equivalent                                          | Data | UI                | Backend            | Migration           | Milestone        |
+| ------------------------------------------ | -------- | ------------------------------------------------------- | ---- | ----------------- | ------------------ | ------------------- | ---------------- |
+| Clients module + Account Manager owner     | MUST     | Companies, owner = AM                                   | yes  | list + record     | CRUD/list          | yes (85)            | M2 (in progress) |
+| Contacts under clients, primary flag       | MUST     | Contacts                                                | yes  | list + record     | CRUD/list          | yes (12)            | M2 (in progress) |
+| Parent Client hierarchy                    | NICE     | parent_company_id                                       | yes  | picker            | small              | no (unused)         | post-1.0         |
+| Candidates CRUD, unique email dedupe       | MUST     | Candidates                                              | yes  | list + record     | CRUD + dedupe      | yes (1,287)         | M3               |
+| Education/Experience tabular sub-grids     | MUST     | candidate_education/experience                          | yes  | record section    | CRUD               | yes (parsed data)   | M3               |
+| Candidate autonumber IDs (ZR_n_CAND)       | SHOULD   | human_id per entity                                     | yes  | display           | sequence           | map old ids         | M3               |
+| Candidate sources (26 picklist)            | MUST     | source enum (slimmed)                                   | yes  | filter/badge      | enum               | yes                 | M3               |
+| Candidate dual status+stage                | NOT      | pipeline lives on Application only                      | -    | -                 | -                  | statuses map to app | -                |
+| Jobs with REQUIRED client + hiring contact | MUST     | Jobs                                                    | yes  | list + record     | CRUD/list          | yes (101)           | M4               |
+| Job status machine (9 values)              | MUST     | 5-status enum (slimmed to used ones)                    | yes  | badges/filters    | enum               | yes                 | M4               |
+| Rich-text job description                  | MUST     | rich text editor                                        | yes  | editor            | sanitized html     | yes                 | M4               |
+| Free-text salary + structured option       | MUST     | both fields                                             | yes  | inline            | -                  | yes                 | M4               |
+| Revenue forecast per job (expected/actual) | NICE     | job_revenue target x positions vs placement fees        | yes  | record + /revenue | rollup             | done (M12)          | M12              |
+| Hot job flag, submission limit             | NICE     | flag + limit                                            | yes  | badge             | check              | no                  | post-1.0         |
+| Applications = candidate x job junction    | MUST     | Applications                                            | yes  | everywhere        | CRUD + unique pair | yes (756)           | M5               |
+| 30-value status + 7-stage colored kanban   | MUST     | stage + status dictionary (seeded with our used values) | yes  | kanban + badges   | status machine     | yes + history       | M5               |
+| Status history / time-in-stage             | MUST     | application_status_history                              | yes  | timeline          | event write        | partial (timelines) | M5               |
+| Rejection reasons (structured)             | SHOULD   | rejection_reason                                        | yes  | dialog            | enum               | yes where present   | M5               |
+| Kanban pipeline board                      | MUST     | Board view per job + global                             | -    | drag-drop board   | stage transitions  | -                   | M5               |
 
 ## Collaboration
 
@@ -110,15 +110,15 @@ M14.
 
 ## Interviews, offers, assessments
 
-| Zoho feature                                | Priority      | Our equivalent                                           | Data | UI                     | Backend         | Migration  | Milestone |
-| ------------------------------------------- | ------------- | -------------------------------------------------------- | ---- | ---------------------- | --------------- | ---------- | --------- |
-| Interview scheduling + verdict              | SHOULD        | interviews (lite: slot, participants, outcome, reminder) | yes  | scheduler + record tab | CRUD + notify   | done (M11) | M11       |
-| Video interview (native/live/recorded)      | NOT           | use Meet/Teams links in location field                   | -    | -                      | -               | no         | -         |
-| Assessments/questionnaires + auto-scoring   | NICE          | scorecards-lite later                                    | yes  | forms                  | scoring         | no         | post-1.0  |
-| Reviews (polymorphic evaluations)           | NICE          | folded into interviews/submissions feedback              | -    | -                      | -               | no         | -         |
-| Offer records + approval flow + e-sign      | SHOULD (lite) | offer status on application + placements                 | yes  | dialog                 | status + record | no         | M12       |
-| Placements + actual revenue                 | SHOULD        | placements                                               | yes  | record + report        | CRUD            | no         | M12       |
-| Conversion candidate -> employee/onboarding | NOT           | placement marks hired; no HRIS handoff                   | -    | -                      | -               | no         | -         |
+| Zoho feature                                | Priority      | Our equivalent                                                                                         | Data | UI                       | Backend       | Migration  | Milestone |
+| ------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ | ---- | ------------------------ | ------------- | ---------- | --------- |
+| Interview scheduling + verdict              | SHOULD        | interviews (lite: slot, participants, outcome, reminder)                                               | yes  | scheduler + record tab   | CRUD + notify | done (M11) | M11       |
+| Video interview (native/live/recorded)      | NOT           | use Meet/Teams links in location field                                                                 | -    | -                        | -             | no         | -         |
+| Assessments/questionnaires + auto-scoring   | NICE          | scorecards-lite later                                                                                  | yes  | forms                    | scoring       | no         | post-1.0  |
+| Reviews (polymorphic evaluations)           | NICE          | folded into interviews/submissions feedback                                                            | -    | -                        | -             | no         | -         |
+| Offer records + approval flow + e-sign      | SHOULD (lite) | offer lifecycle on application (draft/sent/accepted/declined/withdrawn/expired) + letter + expiry cron | yes  | offer panel + countdown  | FSM + history | done (M12) | M12       |
+| Placements + actual revenue                 | SHOULD        | placements + job revenue (expected vs actual, per job/client/AM)                                       | yes  | record panels + /revenue | CRUD + rollup | done (M12) | M12       |
+| Conversion candidate -> employee/onboarding | NOT           | placement marks hired; no HRIS handoff                                                                 | -    | -                        | -             | no         | -         |
 
 ## Comms, automation, analytics
 

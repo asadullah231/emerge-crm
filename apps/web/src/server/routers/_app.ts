@@ -15,7 +15,10 @@ import { jobsRouter } from "./jobs";
 import { membersRouter } from "./members";
 import { notesRouter } from "./notes";
 import { notificationsRouter } from "./notifications";
+import { offersRouter } from "./offers";
 import { parsingRouter } from "./parsing";
+import { placementsRouter } from "./placements";
+import { revenueRouter } from "./revenue";
 import { searchRouter } from "./search";
 import { submissionsRouter } from "./submissions";
 import { tagsRouter } from "./tags";
@@ -50,6 +53,9 @@ export const appRouter = router({
   notes: notesRouter,
   notifications: notificationsRouter,
   parsing: parsingRouter,
+  offers: offersRouter,
+  placements: placementsRouter,
+  revenue: revenueRouter,
   search: searchRouter,
   submissions: submissionsRouter,
   tasks: tasksRouter,

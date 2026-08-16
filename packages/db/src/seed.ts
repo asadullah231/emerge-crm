@@ -173,7 +173,8 @@ const JOB_STATUSES = ["open", "on_hold", "filled", "cancelled", "inactive"] as c
 const EMPLOYMENT = ["permanent", "contract", "temporary"] as const;
 const WORK_MODES = ["onsite", "hybrid", "remote"] as const;
 const APPLICATION_COUNT = 800;
-// The 13 seeded application statuses (key, label, stage, order, entry, terminal).
+// The seeded application statuses (key, label, stage, order, entry, terminal):
+// 13 from M5 + the 3 offer-resolution statuses added in M12.
 // Kept in sync with apps/web/src/lib/applications.ts (that module is web-only).
 const APP_STATUSES = [
   {
@@ -271,6 +272,30 @@ const APP_STATUSES = [
     stage: "archived",
     sortOrder: 13,
     isEntry: true,
+    isTerminal: true
+  },
+  {
+    key: "offer_accepted",
+    label: "Offer accepted",
+    stage: "offered",
+    sortOrder: 14,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "offer_declined",
+    label: "Offer declined",
+    stage: "rejected",
+    sortOrder: 15,
+    isEntry: false,
+    isTerminal: true
+  },
+  {
+    key: "offer_withdrawn",
+    label: "Offer withdrawn",
+    stage: "rejected",
+    sortOrder: 16,
+    isEntry: false,
     isTerminal: true
   }
 ] as const;

@@ -51,9 +51,10 @@ export type DefaultStatus = {
 };
 
 /**
- * The 13 Zoho statuses our team actually uses, mapped to the 7 stages. Exactly
+ * The Zoho statuses our team actually uses, mapped to the 7 stages. Exactly
  * one status per stage is the entry status (what a new application, or a kanban
- * drop into that stage, snaps to).
+ * drop into that stage, snaps to). M12 added the offer resolution statuses
+ * (accepted/declined/withdrawn) onto the offered/rejected stages.
  */
 export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
   {
@@ -151,6 +152,30 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     stage: "archived",
     sortOrder: 13,
     isEntry: true,
+    isTerminal: true
+  },
+  {
+    key: "offer_accepted",
+    label: "Offer accepted",
+    stage: "offered",
+    sortOrder: 14,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "offer_declined",
+    label: "Offer declined",
+    stage: "rejected",
+    sortOrder: 15,
+    isEntry: false,
+    isTerminal: true
+  },
+  {
+    key: "offer_withdrawn",
+    label: "Offer withdrawn",
+    stage: "rejected",
+    sortOrder: 16,
+    isEntry: false,
     isTerminal: true
   }
 ];

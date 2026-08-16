@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -1179,3 +1180,154 @@ export const tasks = pgTable(
   ]
 );
 export type Task = typeof tasks.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// M12: offers, placements & job revenue - closing the loop from offer to fee.
+// The offer lifecycle sits on the application (draft -> sent ->
+// accepted/declined/withdrawn/expired) with an append-only status history; a
+// placement records the actual hire + fee; job_revenue carries the expected
+// fee-per-position so a summary rolls up expected vs actual per job/client/AM.
+// ---------------------------------------------------------------------------
+
+export const offerStatus = pgEnum("offer_status", [
+  "draft",
+  "sent",
+  "accepted",
+  "declined",
+  "withdrawn",
+  "expired"
+]);
+export type OfferStatus = (typeof offerStatus.enumValues)[number];
+
+/** How the offer reached the candidate (parity with Zoho Offer medium). */
+export const offerMedium = pgEnum("offer_medium", ["link", "email", "portal", "other"]);
+export type OfferMedium = (typeof offerMedium.enumValues)[number];
+
+export const offers = pgTable(
+  "offers",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    humanId: text("human_id").notNull(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    status: offerStatus("status").notNull().default("draft"),
+    medium: offerMedium("medium").notNull().default("link"),
+    /** Offered salary in whole currency units (matches jobs.salaryMin). */
+    salaryAmount: integer("salary_amount"),
+    currency: text("currency"),
+    /** Proposed start date, calendar date only ("YYYY-MM-DD"). */
+    startDate: date("start_date"),
+    /** Rendered offer letter body (from a template or free-form). */
+    letterHtml: text("letter_html"),
+    note: text("note"),
+    sentById: uuid("sent_by_id").references(() => users.id, { onDelete: "set null" }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    declinedAt: timestamp("declined_at", { withTimezone: true }),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    /** Reason captured on decline/withdraw. */
+    declineReason: text("decline_reason"),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("offers_application_idx").on(t.workspaceId, t.applicationId),
+    index("offers_status_idx").on(t.workspaceId, t.status),
+    // Drives the expiry cron: sent offers past their expiry date.
+    index("offers_expiry_idx").on(t.status, t.expiresAt),
+    uniqueIndex("offers_workspace_human_id_unique").on(t.workspaceId, t.humanId)
+  ]
+);
+export type Offer = typeof offers.$inferSelect;
+
+/** Append-only transition log for every offer status change. */
+export const offerStatusHistory = pgTable(
+  "offer_status_history",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    offerId: uuid("offer_id")
+      .notNull()
+      .references(() => offers.id, { onDelete: "cascade" }),
+    fromStatus: offerStatus("from_status"),
+    toStatus: offerStatus("to_status").notNull(),
+    /** Null for automated transitions (expiry cron). */
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    note: text("note"),
+    createdAt: createdAt()
+  },
+  (t) => [index("offer_status_history_idx").on(t.workspaceId, t.offerId, t.createdAt)]
+);
+export type OfferStatusHistory = typeof offerStatusHistory.$inferSelect;
+
+export const placements = pgTable(
+  "placements",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    humanId: text("human_id").notNull(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    /** The offer this placement realised, when the hire came via an offer. */
+    offerId: uuid("offer_id").references(() => offers.id, { onDelete: "set null" }),
+    /** Denormalized for revenue rollups without re-joining the application. */
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => candidates.id, { onDelete: "cascade" }),
+    startDate: date("start_date"),
+    /** Actual fee/revenue in whole currency units. */
+    feeAmount: integer("fee_amount"),
+    currency: text("currency"),
+    note: text("note"),
+    placedById: uuid("placed_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("placements_workspace_idx").on(t.workspaceId, t.createdAt),
+    index("placements_job_idx").on(t.workspaceId, t.jobId),
+    // One placement per application (a hire happens once).
+    uniqueIndex("placements_application_unique").on(t.applicationId),
+    uniqueIndex("placements_workspace_human_id_unique").on(t.workspaceId, t.humanId)
+  ]
+);
+export type Placement = typeof placements.$inferSelect;
+
+/**
+ * Expected revenue target per job (Zoho Revenue_per_Position). One row per job;
+ * expected revenue = revenuePerPosition x jobs.positions, compared against the
+ * sum of actual placement fees in the revenue summary.
+ */
+export const jobRevenue = pgTable(
+  "job_revenue",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    revenuePerPosition: integer("revenue_per_position"),
+    currency: text("currency"),
+    note: text("note"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [uniqueIndex("job_revenue_job_unique").on(t.jobId)]
+);
+export type JobRevenue = typeof jobRevenue.$inferSelect;
