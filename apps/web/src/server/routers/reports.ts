@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { REPORT_LABELS, runReport } from "@emerge/reports";
+import { runReport } from "@emerge/db";
+import { REPORT_LABELS } from "@emerge/reports";
 import { REPORT_KEY_VALUES, reportFiltersSchema } from "@/lib/reports";
 import { router, workspaceProcedure } from "../trpc";
 

@@ -225,6 +225,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@emerge/reports':
+        specifier: workspace:*
+        version: link:../reports
       drizzle-orm:
         specifier: ^0.44.0
         version: 0.44.7(postgres@3.4.9)
@@ -299,19 +302,10 @@ importers:
 
   packages/reports:
     dependencies:
-      '@emerge/db':
-        specifier: workspace:*
-        version: link:../db
-      drizzle-orm:
-        specifier: ^0.44.7
-        version: 0.44.7(postgres@3.4.9)
       zod:
         specifier: ^3.24.0
         version: 3.25.76
     devDependencies:
-      '@types/node':
-        specifier: ^22.20.1
-        version: 22.20.1
       typescript:
         specifier: ^5.8.0
         version: 5.9.3

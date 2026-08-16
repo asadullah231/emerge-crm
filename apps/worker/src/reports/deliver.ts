@@ -6,12 +6,11 @@
  * is advanced to its next run time, so it will not re-fire until then.
  */
 import { and, eq, lte } from "drizzle-orm";
-import { reportSchedules, type Database } from "@emerge/db";
+import { reportSchedules, runReport, type Database } from "@emerge/db";
 import {
   REPORT_KEYS,
   computeNextRun,
   reportToCsv,
-  runReport,
   type ReportCadence,
   type ReportFilters,
   type ReportKey
