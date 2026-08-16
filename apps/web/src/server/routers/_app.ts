@@ -15,6 +15,7 @@ import { notesRouter } from "./notes";
 import { notificationsRouter } from "./notifications";
 import { parsingRouter } from "./parsing";
 import { searchRouter } from "./search";
+import { submissionsRouter } from "./submissions";
 import { tagsRouter } from "./tags";
 import { timelineRouter } from "./timeline";
 import { viewsRouter } from "./views";
@@ -45,6 +46,7 @@ export const appRouter = router({
   notifications: notificationsRouter,
   parsing: parsingRouter,
   search: searchRouter,
+  submissions: submissionsRouter,
   timeline: timelineRouter,
   views: viewsRouter
 });

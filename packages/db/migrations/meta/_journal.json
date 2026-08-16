@@ -127,6 +127,13 @@
       "when": 1786811240400,
       "tag": "0017_sour_bug",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1786852302178,
+      "tag": "0018_silky_echo",
+      "breakpoints": true
     }
   ]
 }

@@ -657,7 +657,7 @@ export const noteMentions = pgTable(
   ]
 );
 
-export const notificationKind = pgEnum("notification_kind", ["mention"]);
+export const notificationKind = pgEnum("notification_kind", ["mention", "submission_verdict"]);
 export type NotificationKind = (typeof notificationKind.enumValues)[number];
 
 /** In-app notification inbox (the header bell). One row per recipient per event. */
@@ -962,3 +962,67 @@ export const savedViews = pgTable(
   ]
 );
 export type SavedView = typeof savedViews.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// M10: client submissions & feedback. A submission is a formal "sent this
+// candidate to the client" record layered on the M5 application. One send can
+// cover several candidates for a job (bulk); those rows share a batch id and a
+// single tokened share link the client uses to Approve/Reject/comment with no
+// login. The verdict writes back to the application status machine.
+// ---------------------------------------------------------------------------
+
+export const submissionStatus = pgEnum("submission_status", [
+  "submitted",
+  "approved",
+  "rejected",
+  "archived"
+]);
+export type SubmissionStatus = (typeof submissionStatus.enumValues)[number];
+
+export const submissionMedium = pgEnum("submission_medium", ["link", "email", "portal", "other"]);
+export type SubmissionMedium = (typeof submissionMedium.enumValues)[number];
+
+export const submissions = pgTable(
+  "submissions",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Human id e.g. SUB-0001, unique per workspace, from `counters`. */
+    humanId: text("human_id").notNull(),
+    /** Groups the rows of one send so a single link shows every candidate. */
+    batchId: uuid("batch_id").notNull(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+    /** Client contact the send is addressed to (the reviewer). */
+    contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+    status: submissionStatus("status").notNull().default("submitted"),
+    medium: submissionMedium("medium").notNull().default("link"),
+    /** SHA-256 of the raw share token; the raw token is shown to the sender once. */
+    tokenHash: text("token_hash").notNull(),
+    sentById: uuid("sent_by_id").references(() => users.id, { onDelete: "set null" }),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+    /** After this the share link 404s. Null = no expiry. */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** Sender's note shown to the client on the share page. */
+    note: text("note"),
+    /** Client's free-text feedback captured with the verdict. */
+    clientComment: text("client_comment"),
+    verdictAt: timestamp("verdict_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("submissions_job_idx").on(t.workspaceId, t.jobId),
+    index("submissions_company_idx").on(t.workspaceId, t.companyId),
+    index("submissions_application_idx").on(t.workspaceId, t.applicationId),
+    index("submissions_token_idx").on(t.tokenHash)
+  ]
+);
+export type Submission = typeof submissions.$inferSelect;
