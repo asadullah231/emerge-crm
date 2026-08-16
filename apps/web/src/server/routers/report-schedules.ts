@@ -1,16 +1,17 @@
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { reportSchedules } from "@emerge/db";
-import { REPORT_CADENCES, REPORT_KEYS, computeNextRun, reportFilters } from "@emerge/reports";
+import { reportCadence, reportSchedules } from "@emerge/db";
+import { computeNextRun } from "@emerge/reports";
+import { REPORT_KEY_VALUES, reportFiltersSchema } from "@/lib/reports";
 import { writeAudit } from "../audit";
 import { router, workspaceProcedure } from "../trpc";
 
 const scheduleInput = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
-  reportKey: z.enum(REPORT_KEYS),
-  filters: reportFilters.default({}),
-  cadence: z.enum(REPORT_CADENCES),
+  reportKey: z.enum(REPORT_KEY_VALUES),
+  filters: reportFiltersSchema.default({}),
+  cadence: z.enum(reportCadence.enumValues),
   recipients: z.array(z.string().trim().email()).min(1, "At least one recipient").max(50),
   hourUtc: z.number().int().min(0).max(23).default(7),
   dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),
@@ -19,7 +20,7 @@ const scheduleInput = z.object({
 });
 
 /** Filters arrive with Date objects (superjson); store them as ISO strings. */
-function serializeFilters(f: z.infer<typeof reportFilters>): Record<string, unknown> {
+function serializeFilters(f: z.infer<typeof reportFiltersSchema>): Record<string, unknown> {
   return {
     ...(f.from ? { from: f.from.toISOString() } : {}),
     ...(f.to ? { to: f.to.toISOString() } : {}),
