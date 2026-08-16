@@ -9,6 +9,8 @@ COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
 COPY packages/ui/package.json packages/ui/
 COPY packages/ai/package.json packages/ai/
+COPY packages/email/package.json packages/email/
+COPY packages/reports/package.json packages/reports/
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
 ENV BUILD_STANDALONE=1
