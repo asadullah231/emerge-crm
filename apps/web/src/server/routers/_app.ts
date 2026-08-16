@@ -12,6 +12,8 @@ import { dashboardRouter } from "./dashboard";
 import { emailTemplatesRouter } from "./email-templates";
 import { emailsRouter } from "./emails";
 import { interviewFeedbackRouter } from "./interview-feedback";
+import { reportSchedulesRouter } from "./report-schedules";
+import { reportsRouter } from "./reports";
 import { interviewsRouter } from "./interviews";
 import { jobsRouter } from "./jobs";
 import { membersRouter } from "./members";
@@ -60,6 +62,8 @@ export const appRouter = router({
   revenue: revenueRouter,
   emails: emailsRouter,
   emailTemplates: emailTemplatesRouter,
+  reports: reportsRouter,
+  reportSchedules: reportSchedulesRouter,
   search: searchRouter,
   submissions: submissionsRouter,
   tasks: tasksRouter,

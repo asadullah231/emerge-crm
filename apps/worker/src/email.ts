@@ -40,6 +40,30 @@ const transporter = nodemailer.createTransport({
 const FROM = process.env.SMTP_FROM ?? "Emerge CRM <no-reply@emerge.local>";
 
 /**
+ * Send a scheduled report as an email with a CSV attachment (M14). Called
+ * directly by the delivery sweep, which already runs in the worker process, so
+ * it uses the shared transporter rather than a round-trip through the queue.
+ */
+export async function sendReportEmail(opts: {
+  to: string[];
+  subject: string;
+  html: string;
+  text: string;
+  csv: { filename: string; content: string };
+}): Promise<void> {
+  await transporter.sendMail({
+    from: FROM,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text,
+    attachments: [
+      { filename: opts.csv.filename, content: opts.csv.content, contentType: "text/csv" }
+    ]
+  });
+}
+
+/**
  * Presentation only - delegates to the shared @emerge/email design system.
  * The auth/invitation logic still produces the URLs, tokens and expiries; this
  * just renders them into the branded HTML + a plain-text fallback.

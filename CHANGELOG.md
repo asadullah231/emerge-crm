@@ -3,6 +3,26 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.15.0 - Milestone 14: Agency Reports & Analytics (2026-08-16)
+
+### Added
+
+- **Reports page** (`/reports`) with six agency KPI reports over the live,
+  RLS-scoped pipeline: pipeline funnel + conversion, submissions per sourcer,
+  average time in stage, time to first submission, client health, and a recruiter
+  leaderboard. Each runs with date / owner / client filters.
+- **Per-report CSV export** from the browser, and a **funnel bar visualisation**.
+- **Scheduled email delivery.** New `report_schedules` table (migration 0023) +
+  a worker sweep that emails a due report as a CSV attachment on a daily / weekly
+  / monthly cadence (rides on the M13 email transport). Schedules are managed
+  inline on the Reports page (create, pause/resume, delete).
+- New server-only **`@emerge/reports`** package holds the aggregate computations
+  and scheduling math, shared by the web app and the delivery worker.
+
+> The live `/dashboard` command centre (shipped ahead of schedule in M6-era work)
+> already covers the at-a-glance KPI cards; M14 adds the filterable report
+> surface, CSV export, and scheduled delivery on top.
+
 ## v0.14.0 - Milestone 13: Email Integration (2026-08-16)
 
 ### Added

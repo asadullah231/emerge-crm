@@ -16,6 +16,7 @@
     "@emerge/core": "workspace:*",
     "@emerge/db": "workspace:*",
     "@emerge/email": "workspace:*",
+    "@emerge/reports": "workspace:*",
     "bullmq": "^5.44.0",
     "drizzle-orm": "^0.44.7",
     "ioredis": "^5.6.0",
