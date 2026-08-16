@@ -41,7 +41,7 @@ await queue.upsertJobScheduler(
   { name: "expire-offers" }
 );
 
-const emailWorker = startEmailWorker(connection);
+const emailWorker = startEmailWorker(connection, db);
 const parseWorker = startParseWorker(connection);
 
 console.log(`[worker] started, queues "${QUEUE_NAME}" + "email" + "parse" on ${redisUrl}`);

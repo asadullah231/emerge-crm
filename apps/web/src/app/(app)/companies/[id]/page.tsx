@@ -13,6 +13,7 @@ import {
   RecordShell,
   StatusBadge
 } from "@/components/record";
+import { CommunicationPanel } from "@/components/communication-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { ClientRevenuePanel } from "@/components/revenue-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
@@ -276,6 +277,10 @@ export default function CompanyRecordPage() {
       />
       <RecordSection title="Tasks">
         <TasksPanel entityType="company" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Communication">
+        <CommunicationPanel entityType="company" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Notes">

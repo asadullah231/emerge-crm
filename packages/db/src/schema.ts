@@ -658,7 +658,11 @@ export const noteMentions = pgTable(
   ]
 );
 
-export const notificationKind = pgEnum("notification_kind", ["mention", "submission_verdict"]);
+export const notificationKind = pgEnum("notification_kind", [
+  "mention",
+  "submission_verdict",
+  "email_reply"
+]);
 export type NotificationKind = (typeof notificationKind.enumValues)[number];
 
 /** In-app notification inbox (the header bell). One row per recipient per event. */
@@ -1331,3 +1335,78 @@ export const jobRevenue = pgTable(
   (t) => [uniqueIndex("job_revenue_job_unique").on(t.jobId)]
 );
 export type JobRevenue = typeof jobRevenue.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// M13: email integration - send from a record + log it, mail-merge, and thread
+// inbound replies back to the originating record via a Reply-To token. Outbound
+// delivery rides the existing "email" BullMQ queue + SMTP (Resend) worker.
+// ---------------------------------------------------------------------------
+
+export const emailDirection = pgEnum("email_direction", ["outbound", "inbound"]);
+export type EmailDirection = (typeof emailDirection.enumValues)[number];
+
+export const emailStatus = pgEnum("email_status", ["queued", "sent", "failed", "received"]);
+export type EmailStatus = (typeof emailStatus.enumValues)[number];
+
+/** Reusable, per-workspace email templates with merge fields ({{entity.field}}). */
+export const emailTemplates = pgTable(
+  "email_templates",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    subject: text("subject").notNull(),
+    bodyHtml: text("body_html").notNull(),
+    /** Optional grouping, e.g. "outreach", "interview", "rejection". */
+    category: text("category"),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [uniqueIndex("email_templates_workspace_name_unique").on(t.workspaceId, t.name)]
+);
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+
+export const emails = pgTable(
+  "emails",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Polymorphic link to the record this email belongs to (M6 entity types). */
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    direction: emailDirection("direction").notNull(),
+    status: emailStatus("status").notNull().default("queued"),
+    fromAddr: text("from_addr").notNull(),
+    toAddrs: text("to_addrs").array().notNull(),
+    ccAddrs: text("cc_addrs").array(),
+    subject: text("subject").notNull(),
+    bodyHtml: text("body_html"),
+    bodyText: text("body_text"),
+    /** Our RFC Message-ID for the sent mail; the provider id from Resend. */
+    messageId: text("message_id"),
+    providerId: text("provider_id"),
+    /** Message-ID this email replies to (threading). */
+    inReplyTo: text("in_reply_to"),
+    /** Opaque token embedded in Reply-To; inbound replies resolve back via it. */
+    threadToken: text("thread_token"),
+    templateId: uuid("template_id").references(() => emailTemplates.id, { onDelete: "set null" }),
+    sentById: uuid("sent_by_id").references(() => users.id, { onDelete: "set null" }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    openedAt: timestamp("opened_at", { withTimezone: true }),
+    repliedAt: timestamp("replied_at", { withTimezone: true }),
+    error: text("error"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("emails_entity_idx").on(t.workspaceId, t.entityType, t.entityId, t.createdAt),
+    index("emails_workspace_idx").on(t.workspaceId, t.createdAt),
+    index("emails_thread_token_idx").on(t.threadToken)
+  ]
+);
+export type Email = typeof emails.$inferSelect;

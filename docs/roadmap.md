@@ -71,7 +71,7 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 19.
 | M10 | Client Submissions & Feedback                          | v0.11.0 | Done     | M5, M6     | M          | **H8**, submissions               |
 | M11 | Interviews & Tasks (lite)                              | v0.12.0 | Done     | M5, M6     | M          | **H1**, Reviews-lite, To-Dos-lite |
 | M12 | Offers, Placements & Job Revenue                       | v0.13.0 | Done     | M5         | M          | **H7**, Forecasts                 |
-| M13 | Email Integration                                      | v0.14.0 | Planned  | M6         | L          | **H4**, Mail-merge                |
+| M13 | Email Integration                                      | v0.14.0 | Done     | M6         | L          | **H4**, Mail-merge                |
 | M14 | Agency Reports & Analytics                             | v0.15.0 | Planned  | M5, M10    | M          | Reports/Dashboards/Metrics        |
 | M15 | Candidate Matching & Semantic Search                   | v0.16.0 | Planned  | M7, M9     | L          | Zia matching                      |
 | M16 | Public API, Webhooks & Career Page                     | v0.17.0 | Planned  | M9         | L          | **H5**, career site, job boards   |

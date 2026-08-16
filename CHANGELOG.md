@@ -3,6 +3,28 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.14.0 - Milestone 13: Email Integration (2026-08-16)
+
+### Added
+
+- **Send email from a record.** A Communication panel on candidate, contact,
+  application and company records: compose a message, pick a template, and send
+  over SMTP/Resend. New `emails` table (migration 0021) logs every message
+  (direction, status, subject, body, recipients, provider ids) with a per-record
+  thread; the send is queued to the existing email worker and the row is updated
+  to sent/failed on delivery.
+- **Templates + merge fields.** Per-workspace `email_templates` (managed in
+  Settings -> Email templates) with `{{candidate.firstName}}` /
+  `{{job.title}}` / `{{company.name}}` style merge fields resolved per record at
+  send time, then wrapped in the branded email layout.
+- **Mail merge.** From the candidates list bulk bar: pick a template and send it
+  personalised to the whole selection; records without an email are skipped and
+  reported.
+- **Inbound reply capture.** A public `/api/email/inbound` webhook (Resend
+  Inbound) threads a reply back onto the originating record via a Reply-To token,
+  logs it as an inbound message, marks the original replied, and notifies the
+  sender. Full two-way mailbox sync stays post-1.0.
+
 ## v0.13.0 - Milestone 12: Offers, Placements & Job Revenue (2026-08-16)
 
 ### Added

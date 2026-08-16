@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
 import { BulkBar } from "@/components/bulk-bar";
+import { MailMergeModal } from "@/components/mail-merge-modal";
 import { Button, FormError, Input } from "@/components/form";
 import { NewCandidateModal, candidateName } from "@/components/new-candidate-modal";
 import { CANDIDATE_SOURCE_OPTIONS, SourceBadge } from "@/components/record";
@@ -28,6 +29,7 @@ export default function CandidatesPage() {
   const [sort, setSort] = useState<SortState>({ by: "lastName", dir: "asc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [merging, setMerging] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [source, setSource] = useState("");
   const debouncedSearch = useDebounced(search.trim());
@@ -234,6 +236,15 @@ export default function CandidatesPage() {
         onClear={sel.clear}
         onDone={() => utils.candidates.list.invalidate()}
         onExport={exportSelected}
+        onMailMerge={() => setMerging(true)}
+      />
+
+      <MailMergeModal
+        open={merging}
+        onClose={() => setMerging(false)}
+        entityType="candidate"
+        entityIds={sel.ids}
+        onDone={sel.clear}
       />
 
       <DataTable

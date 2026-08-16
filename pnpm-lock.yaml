@@ -53,6 +53,9 @@ importers:
       '@emerge/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@emerge/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@emerge/ui':
         specifier: workspace:*
         version: link:../../packages/ui
