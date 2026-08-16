@@ -173,7 +173,8 @@ const JOB_STATUSES = ["open", "on_hold", "filled", "cancelled", "inactive"] as c
 const EMPLOYMENT = ["permanent", "contract", "temporary"] as const;
 const WORK_MODES = ["onsite", "hybrid", "remote"] as const;
 const APPLICATION_COUNT = 800;
-// The 13 seeded application statuses (key, label, stage, order, entry, terminal).
+// The seeded application statuses (key, label, stage, order, entry, terminal):
+// 13 from M5 + the 3 offer-resolution statuses added in M12.
 // Kept in sync with apps/web/src/lib/applications.ts (that module is web-only).
 const APP_STATUSES = [
   {

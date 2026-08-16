@@ -130,7 +130,7 @@ describe.skipIf(!process.env.DATABASE_URL)("applications (M5, DB)", () => {
   }
 
   it(
-    "seeds the status dictionary idempotently (13 rows after two runs)",
+    "seeds the status dictionary idempotently (16 rows after two runs)",
     async () => {
       const { and, eq } = await import("drizzle-orm");
       await seedStatuses(wsA);
@@ -138,7 +138,7 @@ describe.skipIf(!process.env.DATABASE_URL)("applications (M5, DB)", () => {
       const rows = await dbmod.withWorkspace(db, wsA, (tx) =>
         tx.select().from(dbmod.applicationStatuses)
       );
-      expect(rows).toHaveLength(13);
+      expect(rows).toHaveLength(16);
       const associated = rows.find((r) => r.key === "associated");
       expect(associated?.stage).toBe("screening");
       // Sanity: the query above is workspace-scoped by RLS.
