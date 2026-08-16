@@ -1410,3 +1410,51 @@ export const emails = pgTable(
   ]
 );
 export type Email = typeof emails.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// M14: agency reports & analytics. The report aggregates are read-side only
+// (@emerge/reports); this table stores "email report X to these people on this
+// cadence". The delivery worker sweeps rows whose next_run_at has passed.
+// ---------------------------------------------------------------------------
+
+export const reportCadence = pgEnum("report_cadence", ["daily", "weekly", "monthly"]);
+export type ReportCadenceEnum = (typeof reportCadence.enumValues)[number];
+
+export const reportFormat = pgEnum("report_format", ["csv"]);
+export type ReportFormatEnum = (typeof reportFormat.enumValues)[number];
+
+export const reportSchedules = pgTable(
+  "report_schedules",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** One of @emerge/reports REPORT_KEYS. */
+    reportKey: text("report_key").notNull(),
+    /** Serialized report filters (dates as ISO strings). */
+    filters: jsonb("filters").$type<Record<string, unknown>>(),
+    cadence: reportCadence("cadence").notNull(),
+    format: reportFormat("format").notNull().default("csv"),
+    /** Recipient email addresses. */
+    recipients: text("recipients").array().notNull(),
+    /** Hour of day (UTC) to send. */
+    hourUtc: integer("hour_utc").notNull().default(7),
+    /** 0=Sunday..6=Saturday, for the weekly cadence. */
+    dayOfWeek: integer("day_of_week"),
+    /** 1..28, for the monthly cadence. */
+    dayOfMonth: integer("day_of_month"),
+    active: boolean("active").notNull().default(true),
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull(),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    index("report_schedules_workspace_idx").on(t.workspaceId),
+    index("report_schedules_due_idx").on(t.active, t.nextRunAt)
+  ]
+);
+export type ReportSchedule = typeof reportSchedules.$inferSelect;

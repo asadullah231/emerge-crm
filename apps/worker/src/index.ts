@@ -5,6 +5,7 @@ import { createDb } from "@emerge/db";
 import { startEmailWorker } from "./email";
 import { expireOverdueOffers } from "./offers/expiry";
 import { startParseWorker } from "./parse/worker";
+import { deliverDueReports } from "./reports/deliver";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
@@ -22,6 +23,9 @@ const worker = new Worker(
     } else if (job.name === "expire-offers") {
       const n = await expireOverdueOffers(db);
       if (n > 0) console.log(`[worker] expired ${n} overdue offer(s)`);
+    } else if (job.name === "deliver-reports") {
+      const n = await deliverDueReports(db);
+      if (n > 0) console.log(`[worker] delivered ${n} scheduled report(s)`);
     }
   },
   { connection }
@@ -39,6 +43,13 @@ await queue.upsertJobScheduler(
   "expire-offers-scheduler",
   { every: 5 * 60_000 },
   { name: "expire-offers" }
+);
+
+// Scheduled report delivery: email due report schedules as CSV (M14).
+await queue.upsertJobScheduler(
+  "deliver-reports-scheduler",
+  { every: 5 * 60_000 },
+  { name: "deliver-reports" }
 );
 
 const emailWorker = startEmailWorker(connection, db);
