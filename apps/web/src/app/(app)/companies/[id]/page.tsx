@@ -14,6 +14,7 @@ import {
   StatusBadge
 } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
+import { SubmissionsLog } from "@/components/submissions-log";
 import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
@@ -241,6 +242,10 @@ export default function CompanyRecordPage() {
             ))}
           </ul>
         )}
+      </RecordSection>
+
+      <RecordSection title="Client submissions">
+        <SubmissionsLog mode="client" id={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Tags">

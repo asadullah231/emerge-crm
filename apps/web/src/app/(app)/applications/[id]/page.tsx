@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { cn } from "@emerge/ui";
@@ -7,6 +8,8 @@ import { Button, FormError } from "@/components/form";
 import { candidateName } from "@/components/new-candidate-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
+import { SubmissionsLog } from "@/components/submissions-log";
+import { SubmitToClientModal } from "@/components/submit-to-client-modal";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { STAGE_ACCENT, STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { trpc } from "@/lib/trpc/client";
@@ -38,6 +41,7 @@ export default function ApplicationRecordPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const utils = trpc.useUtils();
+  const [submitting, setSubmitting] = useState(false);
 
   const me = trpc.auth.me.useQuery();
   const app = trpc.applications.get.useQuery({ id: params.id });
@@ -116,17 +120,22 @@ export default function ApplicationRecordPage() {
               Restore
             </Button>
           ) : (
-            <Button
-              variant="danger"
-              disabled={softDelete.isPending}
-              onClick={() => {
-                if (window.confirm(`Remove ${name} from ${record.jobTitle}'s pipeline?`)) {
-                  softDelete.mutate({ id: record.id });
-                }
-              }}
-            >
-              Remove
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setSubmitting(true)}>
+                Submit to client
+              </Button>
+              <Button
+                variant="danger"
+                disabled={softDelete.isPending}
+                onClick={() => {
+                  if (window.confirm(`Remove ${name} from ${record.jobTitle}'s pipeline?`)) {
+                    softDelete.mutate({ id: record.id });
+                  }
+                }}
+              >
+                Remove
+              </Button>
+            </>
           )
         ) : null
       }
@@ -209,6 +218,15 @@ export default function ApplicationRecordPage() {
         ) : null}
       </RecordSection>
 
+      <RecordSection title="Client submissions">
+        <SubmissionsLog
+          mode="application"
+          id={record.id}
+          canWrite={canEdit}
+          showCandidate={false}
+        />
+      </RecordSection>
+
       <RecordSection title="History">
         {record.history.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">No transitions yet.</p>
@@ -244,6 +262,17 @@ export default function ApplicationRecordPage() {
       <RecordSection title="Timeline">
         <TimelinePanel entityType="application" entityId={record.id} />
       </RecordSection>
+
+      <SubmitToClientModal
+        open={submitting}
+        onClose={() => setSubmitting(false)}
+        jobId={record.jobId}
+        defaultApplicationIds={[record.id]}
+        onDone={() => {
+          utils.applications.get.invalidate({ id: record.id });
+          utils.submissions.forApplication.invalidate({ applicationId: record.id });
+        }}
+      />
     </RecordShell>
   );
 }

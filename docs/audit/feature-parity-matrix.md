@@ -100,13 +100,13 @@ M14.
 
 ## Client-facing workflow
 
-| Zoho feature                            | Priority | Our equivalent                       | Data | UI                   | Backend            | Migration      | Milestone |
-| --------------------------------------- | -------- | ------------------------------------ | ---- | -------------------- | ------------------ | -------------- | --------- |
-| "Submitted to client" loop via statuses | MUST     | in M5 status machine                 | yes  | board/badges         | statuses           | yes            | M5        |
-| Submissions module (formal sendouts)    | SHOULD   | submissions table on top of statuses | yes  | sendout dialog + log | CRUD + email later | no (0 records) | M10       |
-| Client feedback capture                 | SHOULD   | feedback on submission               | yes  | form/share link      | tokened link       | no             | M10       |
-| Client portal (login)                   | NICE     | portal app                           | yes  | portal               | auth scope         | no             | post-1.0  |
-| Candidate submission limit per job      | NICE     | limit check                          | yes  | warning              | check              | no             | post-1.0  |
+| Zoho feature                            | Priority | Our equivalent                       | Data | UI                   | Backend            | Migration  | Milestone |
+| --------------------------------------- | -------- | ------------------------------------ | ---- | -------------------- | ------------------ | ---------- | --------- |
+| "Submitted to client" loop via statuses | MUST     | in M5 status machine                 | yes  | board/badges         | statuses           | yes        | M5        |
+| Submissions module (formal sendouts)    | SHOULD   | submissions table on top of statuses | yes  | sendout dialog + log | CRUD + email later | done (M10) | M10       |
+| Client feedback capture                 | SHOULD   | feedback on submission               | yes  | form/share link      | tokened link       | done (M10) | M10       |
+| Client portal (login)                   | NICE     | portal app                           | yes  | portal               | auth scope         | no         | post-1.0  |
+| Candidate submission limit per job      | NICE     | limit check                          | yes  | warning              | check              | no         | post-1.0  |
 
 ## Interviews, offers, assessments
 

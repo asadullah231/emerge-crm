@@ -3,6 +3,27 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.11.0 - Milestone 10: Client Submissions & Feedback (2026-08-16)
+
+### Added
+
+- **Submissions.** A formal "sent this candidate to the client" record layered
+  on the M5 application. New `submissions` table (RLS, migration 0018) with a
+  status machine (submitted/approved/rejected/archived), medium, batch id and a
+  hashed share token. `submissions` router: create (single or bulk for one job),
+  byJob, byClient, forApplication, revoke. Sending moves each application to
+  `submitted_to_client` and logs it on the timeline.
+- **Submit to client dialog.** From an application or a job: pick the
+  candidate(s), add a note and an optional link expiry, and get a tokened share
+  link shown once.
+- **No-login client review.** A public `/share/[token]` page shows the submitted
+  candidate(s) with their CV and an Approve / Reject (with reason) control. The
+  verdict writes back to the application (`approved_by_client` /
+  `rejected_by_client`), records the client's comment, and notifies the owner.
+  Unknown, revoked or expired tokens 404. Public endpoints are rate-limited.
+- **Submission logs** on the job, company and application records, with a badge
+  for each verdict and a revoke action for still-open links.
+
 ## v0.10.0 - Milestone 9: Global Search, Filters, Saved Views & Bulk Actions (2026-08-15)
 
 ### Added

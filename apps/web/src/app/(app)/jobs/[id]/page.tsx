@@ -19,6 +19,8 @@ import {
   RecordShell
 } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
+import { SubmissionsLog } from "@/components/submissions-log";
+import { SubmitToClientModal } from "@/components/submit-to-client-modal";
 import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
@@ -30,6 +32,7 @@ export default function JobRecordPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const [associating, setAssociating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const me = trpc.auth.me.useQuery();
   const job = trpc.jobs.get.useQuery({ id: params.id });
@@ -342,9 +345,20 @@ export default function JobRecordPage() {
         title={`Pipeline (${record.pipeline.total})`}
         actions={
           canEdit ? (
-            <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
-              Add candidate
-            </Button>
+            <div className="flex gap-2">
+              {record.pipeline.total > 0 ? (
+                <Button
+                  variant="outline"
+                  className="px-3 py-1.5"
+                  onClick={() => setSubmitting(true)}
+                >
+                  Submit to client
+                </Button>
+              ) : null}
+              <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
+                Add candidate
+              </Button>
+            </div>
           ) : null
         }
       >
@@ -369,6 +383,10 @@ export default function JobRecordPage() {
         <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
       </RecordSection>
 
+      <RecordSection title="Client submissions">
+        <SubmissionsLog mode="job" id={record.id} canWrite={canEdit} />
+      </RecordSection>
+
       <RecordSection title="Tags">
         <TagEditor
           entityType="job"
@@ -391,6 +409,15 @@ export default function JobRecordPage() {
         onCreated={() => {
           utils.applications.board.invalidate({ jobId: record.id });
           utils.jobs.get.invalidate({ id: record.id });
+        }}
+      />
+      <SubmitToClientModal
+        open={submitting}
+        onClose={() => setSubmitting(false)}
+        jobId={record.id}
+        onDone={() => {
+          utils.submissions.byJob.invalidate({ jobId: record.id });
+          utils.applications.board.invalidate({ jobId: record.id });
         }}
       />
       <RecordSection title="Notes">
