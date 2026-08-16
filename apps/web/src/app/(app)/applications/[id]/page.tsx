@@ -9,6 +9,7 @@ import { candidateName } from "@/components/new-candidate-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
 import { InterviewsPanel } from "@/components/interviews-panel";
 import { NotesPanel } from "@/components/notes-panel";
+import { OffersPanel } from "@/components/offers-panel";
 import { TasksPanel } from "@/components/tasks-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { SubmitToClientModal } from "@/components/submit-to-client-modal";
@@ -235,6 +236,10 @@ export default function ApplicationRecordPage() {
           canWrite={canEdit}
           showCandidate={false}
         />
+      </RecordSection>
+
+      <RecordSection title="Offer & placement">
+        <OffersPanel applicationId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="History">

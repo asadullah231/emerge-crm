@@ -70,7 +70,7 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 19.
 | M9  | Global Search, Filters, Saved Views & Bulk Actions     | v0.10.0 | Done     | M2–M5      | L          | **H3**, M2, M-tags                |
 | M10 | Client Submissions & Feedback                          | v0.11.0 | Done     | M5, M6     | M          | **H8**, submissions               |
 | M11 | Interviews & Tasks (lite)                              | v0.12.0 | Done     | M5, M6     | M          | **H1**, Reviews-lite, To-Dos-lite |
-| M12 | Offers, Placements & Job Revenue                       | v0.13.0 | Planned  | M5         | M          | **H7**, Forecasts                 |
+| M12 | Offers, Placements & Job Revenue                       | v0.13.0 | Done     | M5         | M          | **H7**, Forecasts                 |
 | M13 | Email Integration                                      | v0.14.0 | Planned  | M6         | L          | **H4**, Mail-merge                |
 | M14 | Agency Reports & Analytics                             | v0.15.0 | Planned  | M5, M10    | M          | Reports/Dashboards/Metrics        |
 | M15 | Candidate Matching & Semantic Search                   | v0.16.0 | Planned  | M7, M9     | L          | Zia matching                      |

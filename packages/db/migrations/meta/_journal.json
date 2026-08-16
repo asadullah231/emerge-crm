@@ -141,6 +141,13 @@
       "when": 1786855781569,
       "tag": "0019_condemned_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1786862079844,
+      "tag": "0020_eminent_kate_bishop",
+      "breakpoints": true
     }
   ]
 }

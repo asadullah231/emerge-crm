@@ -7,10 +7,11 @@ import {
 
 // Unit checks: the status dictionary + status->stage machine (no DB needed).
 describe("application status machine (M5)", () => {
-  it("has 13 unique status keys", () => {
+  it("has 16 unique status keys", () => {
+    // 13 seeded in M5 + the 3 offer-resolution statuses added in M12.
     const keys = DEFAULT_APPLICATION_STATUSES.map((s) => s.key);
-    expect(keys).toHaveLength(13);
-    expect(new Set(keys).size).toBe(13);
+    expect(keys).toHaveLength(16);
+    expect(new Set(keys).size).toBe(16);
   });
 
   it("maps every status to a valid stage", () => {

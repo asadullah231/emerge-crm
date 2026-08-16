@@ -272,6 +272,30 @@ const APP_STATUSES = [
     sortOrder: 13,
     isEntry: true,
     isTerminal: true
+  },
+  {
+    key: "offer_accepted",
+    label: "Offer accepted",
+    stage: "offered",
+    sortOrder: 14,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "offer_declined",
+    label: "Offer declined",
+    stage: "rejected",
+    sortOrder: 15,
+    isEntry: false,
+    isTerminal: true
+  },
+  {
+    key: "offer_withdrawn",
+    label: "Offer withdrawn",
+    stage: "rejected",
+    sortOrder: 16,
+    isEntry: false,
+    isTerminal: true
   }
 ] as const;
 
