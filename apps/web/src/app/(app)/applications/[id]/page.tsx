@@ -7,7 +7,9 @@ import { cn } from "@emerge/ui";
 import { Button, FormError } from "@/components/form";
 import { candidateName } from "@/components/new-candidate-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
+import { InterviewsPanel } from "@/components/interviews-panel";
 import { NotesPanel } from "@/components/notes-panel";
+import { TasksPanel } from "@/components/tasks-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { SubmitToClientModal } from "@/components/submit-to-client-modal";
 import { TimelinePanel } from "@/components/timeline-panel";
@@ -216,6 +218,14 @@ export default function ApplicationRecordPage() {
             Rejection reason: {record.rejectionReason}
           </p>
         ) : null}
+      </RecordSection>
+
+      <RecordSection title="Interviews">
+        <InterviewsPanel applicationId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Tasks">
+        <TasksPanel entityType="application" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Client submissions">

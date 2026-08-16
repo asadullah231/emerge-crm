@@ -9,6 +9,8 @@ import { candidatesRouter } from "./candidates";
 import { companiesRouter } from "./companies";
 import { contactsRouter } from "./contacts";
 import { dashboardRouter } from "./dashboard";
+import { interviewFeedbackRouter } from "./interview-feedback";
+import { interviewsRouter } from "./interviews";
 import { jobsRouter } from "./jobs";
 import { membersRouter } from "./members";
 import { notesRouter } from "./notes";
@@ -17,6 +19,7 @@ import { parsingRouter } from "./parsing";
 import { searchRouter } from "./search";
 import { submissionsRouter } from "./submissions";
 import { tagsRouter } from "./tags";
+import { tasksRouter } from "./tasks";
 import { timelineRouter } from "./timeline";
 import { viewsRouter } from "./views";
 import { workspaceRouter } from "./workspace";
@@ -39,6 +42,8 @@ export const appRouter = router({
   candidates: candidatesRouter,
   jobs: jobsRouter,
   applications: applicationsRouter,
+  interviews: interviewsRouter,
+  interviewFeedback: interviewFeedbackRouter,
   dashboard: dashboardRouter,
   attachments: attachmentsRouter,
   tags: tagsRouter,
@@ -47,6 +52,7 @@ export const appRouter = router({
   parsing: parsingRouter,
   search: searchRouter,
   submissions: submissionsRouter,
+  tasks: tasksRouter,
   timeline: timelineRouter,
   views: viewsRouter
 });

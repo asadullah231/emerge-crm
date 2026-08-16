@@ -3,6 +3,26 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.12.0 - Milestone 11: Interviews & Tasks (lite) (2026-08-16)
+
+### Added
+
+- **Interviews.** Interview records on an application (migration 0019): type
+  (screen/L1-L4/client/final), status FSM (scheduled/completed/cancelled/
+  no-show), datetime + duration, location/meeting link, and participants (internal
+  users + external client contacts). `interviews` router: schedule, get,
+  byApplication, mine, update (reschedule bumps the iCal sequence), setStatus.
+  Scheduling, rescheduling and cancelling land on the application timeline.
+- **ICS invites.** Each interview downloads as a standards-compliant `.ics`
+  (importable into Google/Outlook) with organizer + attendees; SMTP delivery
+  rides on the email milestone.
+- **Feedback scorecards.** One scorecard per interviewer (rating 1-5 +
+  recommendation strong-yes/yes/no/strong-no + comments), immutable 15 minutes
+  after first submit, aggregated on the application.
+- **Tasks (lite).** A minimal task (subject, due date, assignee, status)
+  attachable to any record, with overdue highlighting, a per-record task list,
+  and a My Tasks view. My Interviews day/week list. Both wired into the nav.
+
 ## v0.11.0 - Milestone 10: Client Submissions & Feedback (2026-08-16)
 
 ### Added

@@ -6,6 +6,7 @@ import { Button, FormError } from "@/components/form";
 import { contactName } from "@/components/new-contact-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
 import { NotesPanel } from "@/components/notes-panel";
+import { TasksPanel } from "@/components/tasks-panel";
 import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
@@ -255,6 +256,10 @@ export default function ContactRecordPage() {
         Created {new Date(record.createdAt).toLocaleString()} - Last updated{" "}
         {new Date(record.updatedAt).toLocaleString()}
       </p>
+      <RecordSection title="Tasks">
+        <TasksPanel entityType="contact" entityId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
       <RecordSection title="Notes">
         <NotesPanel entityType="contact" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
