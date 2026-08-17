@@ -3,6 +3,31 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.16.0 - Milestone 15: Client Feedback R1, Intake Flow & Job Collaboration (2026-08-17)
+
+First client-feedback round (Mo). Planned milestones shifted by one: Matching is
+now M16 / v0.17.0 and v1.0.0 ships at M20.
+
+### Added
+
+- **Parse-to-pipeline flow.** Confirming a parsed CV can now, in the same step,
+  associate the candidate with an open job opening (application + entry status +
+  history), tag the account manager with an @mention (lands in the notification
+  bell) and save the screening call notes as a note on the application.
+- **Quick-create client.** A "+ New client" button inside the New job opening
+  modal creates the client and selects it in place, without leaving the form.
+- **Client call summary on jobs.** New `client_call_summary` column (migration
+  0024), captured in the create modal and editable on the job record.
+- **Job attachments.** Jobs now carry documents: job description and client
+  meeting summary (new `attachment_kind` values) plus other files. Upload from
+  the create modal or the job record's new Attachments section; download via
+  presigned URL; delete. New `POST /api/jobs/[id]/documents` route.
+- **New-job email notification.** Posting a job opening emails every other
+  active member the job facts, the client call summary and a deep link. New
+  `job-posted` email job + branded template in `@emerge/email`.
+- **Zoho-familiar terminology.** Nav and pages now say "Job Openings" and
+  "Clients" to match what the team knows from Zoho Recruit.
+
 ## v0.15.0 - Milestone 14: Agency Reports & Analytics (2026-08-16)
 
 ### Added
