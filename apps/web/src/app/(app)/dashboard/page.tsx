@@ -1,18 +1,62 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
-import { type ApplicationStageKey } from "@/lib/applications";
+import { useMemo, useState, type ReactNode } from "react";
+import {
+  BigNumber,
+  FunnelChart,
+  MultiTrendChart,
+  type TrendSeries
+} from "@/components/dashboard-charts";
+import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 
 type Overview = RouterOutputs["dashboard"]["overview"];
 
 /** Auto-refresh cadence so the dashboard reflects CRM changes without a reload. */
 const REFRESH_MS = 30_000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Date-range presets. `days` null = all time; `weeks` drives the trend window. */
+const RANGES = [
+  { key: "all", label: "All time", days: null, weeks: 12 },
+  { key: "7", label: "Last 7 days", days: 7, weeks: 4 },
+  { key: "30", label: "Last 30 days", days: 30, weeks: 6 },
+  { key: "90", label: "Last 90 days", days: 90, weeks: 13 },
+  { key: "180", label: "Last 6 months", days: 180, weeks: 26 }
+] as const;
+
+const TREND_SERIES: TrendSeries[] = [
+  { key: "candidates", label: "Candidates", color: "var(--brand-secondary)" },
+  { key: "applications", label: "Applications", color: "var(--brand-primary)" },
+  { key: "interviews", label: "Interviews", color: "#f59e0b" },
+  { key: "jobs", label: "Jobs opened", color: "#a1a1aa" }
+];
 
 export default function DashboardPage() {
   const me = trpc.auth.me.useQuery();
-  const overview = trpc.dashboard.overview.useQuery(undefined, {
+  const members = trpc.members.list.useQuery();
+
+  const [rangeKey, setRangeKey] = useState<string>("all");
+  const [ownerId, setOwnerId] = useState<string>("");
+  const [activeStage, setActiveStage] = useState<string | null>(null);
+
+  const range = RANGES.find((r) => r.key === rangeKey) ?? RANGES[0];
+  const from = useMemo(
+    () => (range.days == null ? undefined : new Date(Date.now() - range.days * DAY_MS)),
+    [range.days]
+  );
+
+  const filters = useMemo(
+    () => ({
+      from,
+      ownerId: ownerId || undefined,
+      trendWeeks: range.weeks
+    }),
+    [from, ownerId, range.weeks]
+  );
+
+  const overview = trpc.dashboard.overview.useQuery(filters, {
     refetchInterval: REFRESH_MS,
     refetchOnWindowFocus: true
   });
@@ -20,8 +64,42 @@ export default function DashboardPage() {
     { limit: 8 },
     { refetchInterval: REFRESH_MS, refetchOnWindowFocus: true }
   );
+  const drill = trpc.dashboard.applicationsByStage.useQuery(
+    {
+      stage: (activeStage ?? "screening") as "screening",
+      from,
+      ownerId: ownerId || undefined,
+      limit: 20
+    },
+    { enabled: activeStage != null }
+  );
 
   const data = overview.data;
+  const filtersActive = rangeKey !== "all" || ownerId !== "";
+  const ownerName = members.data?.find((m) => m.userId === ownerId)?.name;
+
+  const exportCsv = () => {
+    if (!data) return;
+    const k = data.kpis;
+    const rows: { metric: string; value: number | string }[] = [
+      { metric: "Active Jobs", value: k.activeJobs },
+      { metric: "Candidates", value: k.totalCandidates },
+      { metric: "Applications", value: k.totalApplications },
+      { metric: "Submissions", value: k.submissions },
+      { metric: "Interviews", value: k.interviews },
+      { metric: "Offers", value: k.offers },
+      { metric: "Hires", value: k.hires },
+      { metric: "Rejections", value: k.rejected },
+      { metric: "Time to Hire (days)", value: k.timeToHireDays ?? "" },
+      { metric: "Time to Fill (days)", value: k.timeToFillDays ?? "" },
+      ...data.funnel.map((f) => ({ metric: `Funnel · ${f.label}`, value: f.count }))
+    ];
+    const cols: CsvColumn<(typeof rows)[number]>[] = [
+      { label: "Metric", value: (r) => r.metric },
+      { label: "Value", value: (r) => r.value }
+    ];
+    downloadCsv("dashboard.csv", toCsv(rows, cols));
+  };
 
   return (
     <div className="space-y-6">
@@ -40,6 +118,59 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+          Date range
+          <select
+            value={rangeKey}
+            onChange={(e) => setRangeKey(e.target.value)}
+            className={selectClass}
+          >
+            {RANGES.map((r) => (
+              <option key={r.key} value={r.key}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+          Recruiter
+          <select
+            value={ownerId}
+            onChange={(e) => setOwnerId(e.target.value)}
+            className={selectClass}
+          >
+            <option value="">Everyone</option>
+            {(members.data ?? []).map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {filtersActive ? (
+          <button
+            type="button"
+            onClick={() => {
+              setRangeKey("all");
+              setOwnerId("");
+            }}
+            className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted)] hover:bg-[var(--background)]"
+          >
+            Reset
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={exportCsv}
+          disabled={!data}
+          className="ml-auto rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] disabled:opacity-50"
+        >
+          Export CSV
+        </button>
+      </div>
+
       {overview.error ? (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600">
           Could not load the dashboard: {overview.error.message}
@@ -48,64 +179,65 @@ export default function DashboardPage() {
 
       {/* KPI grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Kpi
+        <BigNumber
           label="Active Jobs"
           value={data?.kpis.activeJobs}
           href="/jobs"
+          sublabel={data ? `${data.kpis.totalJobs} total` : undefined}
           loading={overview.isLoading}
         />
-        <Kpi
+        <BigNumber
           label="Candidates"
           value={data?.kpis.totalCandidates}
           href="/candidates"
           loading={overview.isLoading}
         />
-        <Kpi
+        <BigNumber
           label="Applications"
           value={data?.kpis.totalApplications}
           href="/pipeline"
           loading={overview.isLoading}
         />
-        <Kpi
-          label="Submitted"
-          value={data?.kpis.submitted}
+        <BigNumber
+          label="Submissions"
+          value={data?.kpis.submissions}
           href="/pipeline"
           loading={overview.isLoading}
         />
-        <Kpi
-          label="In Interview"
-          value={data?.kpis.interview}
-          href="/pipeline"
+        <BigNumber
+          label="Interviews"
+          value={data?.kpis.interviews}
+          href="/interviews"
           loading={overview.isLoading}
         />
-        <Kpi
+        <BigNumber
           label="Offers"
-          value={data?.kpis.offered}
+          value={data?.kpis.offers}
           href="/pipeline"
           loading={overview.isLoading}
         />
-        <Kpi
+        <BigNumber
           label="Hires"
-          value={data?.kpis.hired}
-          href="/pipeline"
+          value={data?.kpis.hires}
+          href="/revenue"
           tone="positive"
           loading={overview.isLoading}
         />
-        <Kpi
-          label="Rejected"
+        <BigNumber
+          label="Rejections"
           value={data?.kpis.rejected}
           href="/pipeline"
           tone="negative"
           loading={overview.isLoading}
         />
-        <Kpi
+        <BigNumber
           label="Time to Hire"
           value={data?.kpis.timeToHireDays}
           unit="d"
           emptyHint="No hires yet"
           loading={overview.isLoading}
         />
-        <Kpi
+        <BigNumber
           label="Time to Fill"
           value={data?.kpis.timeToFillDays}
           unit="d"
@@ -114,19 +246,61 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Pipeline */}
-      <Panel
-        title="Recruitment Pipeline"
-        action={<PanelLink href="/pipeline">Open board</PanelLink>}
-      >
-        {data && data.kpis.totalApplications === 0 ? (
-          <Empty>
-            No applications in the pipeline yet. Associate a candidate with a job to start.
-          </Empty>
-        ) : (
-          <PipelineBars pipeline={data?.pipeline} loading={overview.isLoading} />
-        )}
-      </Panel>
+      {/* Funnel + trends */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel
+          title="Recruitment Funnel"
+          subtitle="Applications that ever reached each stage · click a stage to drill in"
+          action={<PanelLink href="/pipeline">Open board</PanelLink>}
+        >
+          {data && data.kpis.totalApplications === 0 ? (
+            <Empty>
+              No applications in the pipeline yet. Associate a candidate with a job to start.
+            </Empty>
+          ) : (
+            <FunnelChart
+              data={data?.funnel}
+              activeStage={activeStage}
+              onSelect={(s) => setActiveStage((cur) => (cur === s ? null : s))}
+              loading={overview.isLoading}
+            />
+          )}
+          {activeStage ? (
+            <StageDrill
+              label={data?.funnel.find((f) => f.stage === activeStage)?.label ?? activeStage}
+              rows={drill.data}
+              loading={drill.isLoading}
+              onClose={() => setActiveStage(null)}
+            />
+          ) : null}
+        </Panel>
+        <Panel
+          title="Trends"
+          subtitle="New records per week"
+          action={ownerName ? <FilterTag>{ownerName}</FilterTag> : undefined}
+        >
+          <MultiTrendChart data={data?.trends} series={TREND_SERIES} loading={overview.isLoading} />
+        </Panel>
+      </div>
+
+      {/* Recruiter performance + upcoming interviews */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Recruiter Performance" subtitle="By application owner · click to filter">
+          <Recruiters
+            rows={data?.recruiterPerformance}
+            loading={overview.isLoading}
+            activeOwner={ownerId}
+            onSelect={(id) => setOwnerId((cur) => (cur === id ? "" : id))}
+          />
+        </Panel>
+        <Panel
+          title="Upcoming Interviews"
+          subtitle="Next 14 days"
+          action={<PanelLink href="/interviews">View all</PanelLink>}
+        >
+          <UpcomingInterviews rows={data?.upcomingInterviews} loading={overview.isLoading} />
+        </Panel>
+      </div>
 
       {/* Recents */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -141,26 +315,13 @@ export default function DashboardPage() {
         </Panel>
       </div>
 
-      {/* Trends + recruiter performance */}
+      {/* Tasks + activity */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Candidate & Application Trends" subtitle="New records per week">
-          <Trends trends={data?.trends} loading={overview.isLoading} />
+        <Panel title="Tasks & Follow-ups" action={<PanelLink href="/tasks">View all</PanelLink>}>
+          <OpenTasks rows={data?.openTasks} loading={overview.isLoading} />
         </Panel>
-        <Panel title="Recruiter Performance" subtitle="By application owner">
-          <Recruiters rows={data?.recruiterPerformance} loading={overview.isLoading} />
-        </Panel>
-      </div>
-
-      {/* Activity + upcoming (future modules) */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Recent Activity">
+        <Panel title="Recent Activity" action={<PanelLink href="/activity">View all</PanelLink>}>
           <Activity events={activity.data} loading={activity.isLoading} />
-        </Panel>
-        <Panel title="Upcoming Interviews">
-          <Empty>Interview scheduling arrives in a later milestone. Nothing to show yet.</Empty>
-        </Panel>
-        <Panel title="Tasks & Follow-ups">
-          <Empty>Tasks and follow-ups arrive in a later milestone. Nothing to show yet.</Empty>
         </Panel>
       </div>
     </div>
@@ -170,6 +331,9 @@ export default function DashboardPage() {
 /* --------------------------------------------------------------------------- */
 /* Building blocks                                                             */
 /* --------------------------------------------------------------------------- */
+
+const selectClass =
+  "rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-sm text-[var(--foreground)]";
 
 function Panel({
   title,
@@ -204,61 +368,16 @@ function PanelLink({ href, children }: { href: string; children: ReactNode }) {
   );
 }
 
-function Empty({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-center text-sm text-[var(--muted)]">{children}</p>;
+function FilterTag({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full bg-[var(--brand-secondary-soft)] px-2 py-0.5 text-xs font-medium text-[var(--brand-secondary)]">
+      {children}
+    </span>
+  );
 }
 
-function Kpi({
-  label,
-  value,
-  href,
-  unit,
-  tone = "default",
-  emptyHint,
-  loading
-}: {
-  label: string;
-  value: number | null | undefined;
-  href?: string;
-  unit?: string;
-  tone?: "default" | "positive" | "negative";
-  emptyHint?: string;
-  loading?: boolean;
-}) {
-  const toneClass =
-    tone === "positive"
-      ? "text-green-600"
-      : tone === "negative"
-        ? "text-red-600"
-        : "text-[var(--brand-primary)]";
-
-  const body = (
-    <div className="flex h-full flex-col justify-between rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:border-[var(--brand-primary)]/40 hover:bg-[var(--brand-primary-soft)]">
-      <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">{label}</p>
-      <div className="mt-2">
-        {loading ? (
-          <span className="inline-block h-7 w-12 animate-pulse rounded bg-[var(--border)]" />
-        ) : value == null ? (
-          <span className="text-sm text-[var(--muted)]">{emptyHint ?? "-"}</span>
-        ) : (
-          <span className={`text-2xl font-semibold tabular-nums ${toneClass}`}>
-            {value.toLocaleString()}
-            {unit ? (
-              <span className="ml-0.5 text-base font-medium text-[var(--muted)]">{unit}</span>
-            ) : null}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-
-  return href ? (
-    <Link href={href} aria-label={label} className="block">
-      {body}
-    </Link>
-  ) : (
-    body
-  );
+function Empty({ children }: { children: ReactNode }) {
+  return <p className="py-6 text-center text-sm text-[var(--muted)]">{children}</p>;
 }
 
 function RefreshBadge({
@@ -289,55 +408,191 @@ function RefreshBadge({
   );
 }
 
-function PipelineBars({
-  pipeline,
-  loading
+type DrillRow = RouterOutputs["dashboard"]["applicationsByStage"][number];
+
+function StageDrill({
+  label,
+  rows,
+  loading,
+  onClose
 }: {
-  pipeline?: Overview["pipeline"];
+  label: string;
+  rows?: DrillRow[];
   loading?: boolean;
+  onClose: () => void;
 }) {
-  if (loading || !pipeline) {
-    return <div className="h-40 animate-pulse rounded-lg bg-[var(--border)]" />;
-  }
-  const max = Math.max(1, ...pipeline.map((p) => p.count));
   return (
-    <div className="space-y-2">
-      {pipeline.map((p) => (
-        <Link
-          key={p.stage}
-          href="/pipeline"
-          className="group flex items-center gap-3 rounded-md px-1 py-1 hover:bg-[var(--background)]"
+    <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold text-[var(--foreground)]">In {label}</p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+          aria-label="Close drill-down"
         >
-          <span className="w-24 shrink-0 text-sm text-[var(--foreground)]">{p.label}</span>
-          <span className="relative h-6 flex-1 overflow-hidden rounded bg-[var(--background)]">
-            <span
-              className={`absolute inset-y-0 left-0 rounded ${stageBar(p.stage)}`}
-              style={{ width: `${Math.max(p.count === 0 ? 0 : 4, (p.count / max) * 100)}%` }}
-            />
-          </span>
-          <span className="w-12 shrink-0 text-right text-sm font-semibold tabular-nums text-[var(--foreground)]">
-            {p.count.toLocaleString()}
-          </span>
-        </Link>
-      ))}
+          Close
+        </button>
+      </div>
+      {loading ? (
+        <RowsSkeleton />
+      ) : !rows || rows.length === 0 ? (
+        <Empty>No applications in this stage for the current filters.</Empty>
+      ) : (
+        <ul className="divide-y divide-[var(--border)]">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <Link
+                href={`/applications/${r.id}`}
+                className="flex items-center justify-between gap-3 py-1.5 hover:bg-[var(--card)]"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm text-[var(--foreground)]">
+                    {[r.candidateFirstName, r.candidateLastName].filter(Boolean).join(" ") ||
+                      r.candidateHumanId}
+                  </span>
+                  <span className="block truncate text-xs text-[var(--muted)]">{r.jobTitle}</span>
+                </span>
+                <span className="shrink-0 text-xs text-[var(--muted)]">
+                  {r.ownerName ?? "Unassigned"}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-function stageBar(stage: ApplicationStageKey): string {
-  switch (stage) {
-    case "hired":
-      return "bg-green-500/70";
-    case "rejected":
-      return "bg-red-500/60";
-    case "archived":
-      return "bg-[var(--muted)]/40";
-    case "interview":
-    case "offered":
-      return "bg-[var(--brand-primary)]/70";
-    default:
-      return "bg-[var(--brand-secondary)]/70";
-  }
+function Recruiters({
+  rows,
+  loading,
+  activeOwner,
+  onSelect
+}: {
+  rows?: Overview["recruiterPerformance"];
+  loading?: boolean;
+  activeOwner: string;
+  onSelect: (userId: string) => void;
+}) {
+  if (loading) return <RowsSkeleton />;
+  if (!rows || rows.length === 0) return <Empty>No owned applications yet.</Empty>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs text-[var(--muted)]">
+            <th className="pb-2 font-medium">Recruiter</th>
+            <th className="pb-2 text-right font-medium">Total</th>
+            <th className="pb-2 text-right font-medium">Submitted</th>
+            <th className="pb-2 text-right font-medium">Interview</th>
+            <th className="pb-2 text-right font-medium">Offered</th>
+            <th className="pb-2 text-right font-medium">Hired</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[var(--border)]">
+          {rows.map((r) => {
+            const active = activeOwner === r.userId;
+            return (
+              <tr
+                key={r.userId}
+                onClick={() => onSelect(r.userId)}
+                className={`cursor-pointer ${
+                  active ? "bg-[var(--brand-primary-soft)]" : "hover:bg-[var(--background)]"
+                }`}
+              >
+                <td className="py-2 font-medium text-[var(--foreground)]">{r.name}</td>
+                <td className="py-2 text-right tabular-nums">{r.total}</td>
+                <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.submitted}</td>
+                <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.interview}</td>
+                <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.offered}</td>
+                <td className="py-2 text-right font-semibold tabular-nums text-green-600">
+                  {r.hired}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function UpcomingInterviews({
+  rows,
+  loading
+}: {
+  rows?: Overview["upcomingInterviews"];
+  loading?: boolean;
+}) {
+  if (loading) return <RowsSkeleton />;
+  if (!rows || rows.length === 0)
+    return <Empty>No interviews scheduled in the next 14 days.</Empty>;
+  return (
+    <ul className="divide-y divide-[var(--border)]">
+      {rows.map((iv) => (
+        <li key={iv.id}>
+          <Link
+            href={`/applications/${iv.applicationId}`}
+            className="flex items-center justify-between gap-3 py-2 hover:bg-[var(--background)]"
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-[var(--foreground)]">
+                {[iv.candidateFirstName, iv.candidateLastName].filter(Boolean).join(" ") ||
+                  iv.humanId}
+              </span>
+              <span className="block truncate text-xs text-[var(--muted)]">
+                {iv.jobTitle} · {iv.type}
+              </span>
+            </span>
+            <span className="shrink-0 text-right text-xs text-[var(--muted)]">
+              {dateTime(iv.scheduledAt)}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function OpenTasks({ rows, loading }: { rows?: Overview["openTasks"]; loading?: boolean }) {
+  if (loading) return <RowsSkeleton />;
+  if (!rows || rows.length === 0) return <Empty>No open tasks. You are all caught up.</Empty>;
+  const now = Date.now();
+  return (
+    <ul className="divide-y divide-[var(--border)]">
+      {rows.map((t) => {
+        const overdue = t.dueAt ? new Date(t.dueAt).getTime() < now : false;
+        return (
+          <li key={t.id}>
+            <Link
+              href="/tasks"
+              className="flex items-center justify-between gap-3 py-2 hover:bg-[var(--background)]"
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-[var(--foreground)]">
+                  {t.subject}
+                </span>
+                <span className="block truncate text-xs text-[var(--muted)]">
+                  {t.assigneeName ?? "Unassigned"}
+                </span>
+              </span>
+              <span
+                className={`shrink-0 text-right text-xs ${
+                  overdue ? "font-medium text-red-600" : "text-[var(--muted)]"
+                }`}
+              >
+                {t.dueAt
+                  ? (overdue ? "Overdue · " : "") + shortDate(new Date(t.dueAt))
+                  : "No due date"}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function RecentCandidates({
@@ -418,114 +673,6 @@ function JobStatusBadge({ status }: { status: string }) {
     >
       {status.replace(/_/g, " ")}
     </span>
-  );
-}
-
-function Trends({ trends, loading }: { trends?: Overview["trends"]; loading?: boolean }) {
-  const hasData = useMemo(
-    () => (trends ?? []).some((t) => t.candidates > 0 || t.applications > 0),
-    [trends]
-  );
-  if (loading || !trends)
-    return <div className="h-40 animate-pulse rounded-lg bg-[var(--border)]" />;
-  if (!hasData) return <Empty>Not enough data yet. Trends appear as records are added.</Empty>;
-
-  const max = Math.max(1, ...trends.map((t) => Math.max(t.candidates, t.applications)));
-  const W = 640;
-  const H = 160;
-  const pad = 8;
-  const n = trends.length;
-  const groupW = (W - pad * 2) / n;
-  const barW = Math.max(3, groupW / 2 - 3);
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-4 text-xs text-[var(--muted)]">
-        <Legend color="var(--brand-secondary)" label="Candidates" />
-        <Legend color="var(--brand-primary)" label="Applications" />
-      </div>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="h-40 w-full"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="Weekly candidate and application trends"
-      >
-        {trends.map((t, i) => {
-          const x = pad + i * groupW;
-          const ch = (t.candidates / max) * (H - 24);
-          const ah = (t.applications / max) * (H - 24);
-          return (
-            <g key={t.weekStart.toISOString()}>
-              <rect
-                x={x}
-                y={H - 16 - ch}
-                width={barW}
-                height={ch}
-                rx={2}
-                fill="var(--brand-secondary)"
-              />
-              <rect
-                x={x + barW + 3}
-                y={H - 16 - ah}
-                width={barW}
-                height={ah}
-                rx={2}
-                fill="var(--brand-primary)"
-              />
-            </g>
-          );
-        })}
-      </svg>
-      <div className="flex justify-between text-[10px] text-[var(--muted)]">
-        <span>{shortDate(trends[0]!.weekStart)}</span>
-        <span>{shortDate(trends[trends.length - 1]!.weekStart)}</span>
-      </div>
-    </div>
-  );
-}
-
-function Legend({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: color }} />
-      {label}
-    </span>
-  );
-}
-
-function Recruiters({
-  rows,
-  loading
-}: {
-  rows?: Overview["recruiterPerformance"];
-  loading?: boolean;
-}) {
-  if (loading) return <RowsSkeleton />;
-  if (!rows || rows.length === 0) return <Empty>No owned applications yet.</Empty>;
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-left text-xs text-[var(--muted)]">
-          <th className="pb-2 font-medium">Recruiter</th>
-          <th className="pb-2 text-right font-medium">Total</th>
-          <th className="pb-2 text-right font-medium">Submitted</th>
-          <th className="pb-2 text-right font-medium">Interview</th>
-          <th className="pb-2 text-right font-medium">Hired</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-[var(--border)]">
-        {rows.map((r) => (
-          <tr key={r.userId}>
-            <td className="py-2 font-medium text-[var(--foreground)]">{r.name}</td>
-            <td className="py-2 text-right tabular-nums">{r.total}</td>
-            <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.submitted}</td>
-            <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.interview}</td>
-            <td className="py-2 text-right font-semibold tabular-nums text-green-600">{r.hired}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }
 
@@ -612,4 +759,13 @@ function relativeTime(date: Date): string {
 
 function shortDate(date: Date): string {
   return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function dateTime(date: Date): string {
+  return date.toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
