@@ -31,7 +31,7 @@ const jobCols = { jobTitle: jobs.title, jobHumanId: jobs.humanId };
 const ownerCols = { ownerName: users.name };
 
 /** Seed the workspace status dictionary with the defaults if it has none yet. */
-async function ensureDefaultStatuses(tx: Transaction, workspaceId: string): Promise<void> {
+export async function ensureDefaultStatuses(tx: Transaction, workspaceId: string): Promise<void> {
   await tx
     .insert(applicationStatuses)
     .values(
@@ -61,7 +61,7 @@ async function resolveStatus(tx: Transaction, statusKey: string) {
 }
 
 /** The entry status key for a stage (from the workspace dictionary, else default). */
-async function entryStatusForStage(tx: Transaction, stage: string): Promise<string> {
+export async function entryStatusForStage(tx: Transaction, stage: string): Promise<string> {
   const [row] = await tx
     .select({ key: applicationStatuses.key })
     .from(applicationStatuses)

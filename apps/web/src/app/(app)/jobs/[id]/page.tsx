@@ -18,6 +18,7 @@ import {
   RecordSection,
   RecordShell
 } from "@/components/record";
+import { JobDocuments } from "@/components/job-documents";
 import { NotesPanel } from "@/components/notes-panel";
 import { JobRevenuePanel } from "@/components/revenue-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
@@ -111,7 +112,7 @@ export default function JobRecordPage() {
   return (
     <RecordShell
       backHref="/jobs"
-      backLabel="Jobs"
+      backLabel="Job Openings"
       title={record.title}
       subtitle={
         <span className="flex flex-wrap items-center gap-2">
@@ -341,6 +342,26 @@ export default function JobRecordPage() {
             onSave={save("description")}
           />
         </div>
+        <div className="mt-2">
+          <InlineField
+            label="Client call summary"
+            value={record.clientCallSummary}
+            canEdit={canEdit}
+            saving={update.isPending}
+            type="textarea"
+            render={(v) => <span className="whitespace-pre-wrap">{v}</span>}
+            onSave={save("clientCallSummary")}
+          />
+        </div>
+      </RecordSection>
+
+      <RecordSection title="Attachments">
+        <JobDocuments
+          jobId={record.id}
+          files={record.attachments}
+          canWrite={canEdit}
+          onChanged={() => utils.jobs.get.invalidate({ id: record.id })}
+        />
       </RecordSection>
 
       <RecordSection

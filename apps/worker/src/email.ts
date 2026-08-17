@@ -3,7 +3,11 @@ import { eq } from "drizzle-orm";
 import type IORedis from "ioredis";
 import nodemailer from "nodemailer";
 import { emails, withWorkspace, type Database } from "@emerge/db";
-import { renderInvitationEmail, renderPasswordResetEmail } from "@emerge/email";
+import {
+  renderInvitationEmail,
+  renderJobPostedEmail,
+  renderPasswordResetEmail
+} from "@emerge/email";
 
 export type EmailJob =
   | { type: "password-reset"; to: string; resetUrl: string }
@@ -13,6 +17,21 @@ export type EmailJob =
       workspaceName: string;
       inviterName: string;
       acceptUrl: string;
+    }
+  | {
+      /** Team-wide heads-up when a new job opening is posted (M15). */
+      type: "job-posted";
+      to: string[];
+      jobTitle: string;
+      jobHumanId: string;
+      companyName: string;
+      location: string | null;
+      employmentType: string;
+      workMode: string;
+      positions: number;
+      postedByName: string;
+      clientCallSummary: string | null;
+      jobUrl: string;
     }
   | {
       /** A pre-rendered email sent from a record (M13); update the row on send. */
@@ -81,6 +100,19 @@ function renderEmail(job: Exclude<EmailJob, { type: "record" }>): {
         inviterName: job.inviterName,
         workspaceName: job.workspaceName,
         acceptUrl: job.acceptUrl
+      });
+    case "job-posted":
+      return renderJobPostedEmail({
+        jobTitle: job.jobTitle,
+        jobHumanId: job.jobHumanId,
+        companyName: job.companyName,
+        location: job.location,
+        employmentType: job.employmentType,
+        workMode: job.workMode,
+        positions: job.positions,
+        postedByName: job.postedByName,
+        clientCallSummary: job.clientCallSummary,
+        jobUrl: job.jobUrl
       });
   }
 }
