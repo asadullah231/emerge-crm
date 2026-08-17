@@ -519,12 +519,17 @@ export const dashboardRouter = router({
         from: z.date().optional(),
         to: z.date().optional(),
         ownerId: z.string().uuid().optional(),
+        jobId: z.string().uuid().optional(),
         limit: z.number().int().min(1).max(50).default(20)
       })
     )
     .query(async ({ ctx, input }) => {
       const where = scoped(
-        and(isNull(applications.deletedAt), eq(applications.stage, input.stage)),
+        and(
+          isNull(applications.deletedAt),
+          eq(applications.stage, input.stage),
+          input.jobId ? eq(applications.jobId, input.jobId) : undefined
+        ),
         {
           dateCol: applications.createdAt,
           ownerCol: applications.ownerId,
@@ -551,5 +556,71 @@ export const dashboardRouter = router({
         .where(where)
         .orderBy(desc(applications.stageEnteredAt))
         .limit(input.limit);
+    }),
+
+  /**
+   * Zoho-style pipeline matrix: one row per job opening that has applications,
+   * with the live candidate count in each stage. Optional owner (All Users) and
+   * client (All Clients) filters. Read-only, workspace-scoped. Every cell count
+   * is a real group aggregate; no snapshot caching.
+   */
+  pipelineByJob: workspaceProcedure
+    .input(
+      z
+        .object({
+          ownerId: z.string().uuid().optional(),
+          companyId: z.string().uuid().optional(),
+          limit: z.number().int().min(1).max(100).default(50)
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const where = and(
+        isNull(applications.deletedAt),
+        isNull(jobs.deletedAt),
+        input?.ownerId ? eq(applications.ownerId, input.ownerId) : undefined,
+        input?.companyId ? eq(jobs.companyId, input.companyId) : undefined
+      );
+      const rows = await ctx.tx
+        .select({
+          jobId: jobs.id,
+          jobHumanId: jobs.humanId,
+          jobTitle: jobs.title,
+          jobStatus: jobs.status,
+          companyId: companies.id,
+          companyName: companies.name,
+          screening: sql<number>`count(*) filter (where ${applications.stage} = 'screening')`,
+          submitted: sql<number>`count(*) filter (where ${applications.stage} = 'submitted')`,
+          interview: sql<number>`count(*) filter (where ${applications.stage} = 'interview')`,
+          offered: sql<number>`count(*) filter (where ${applications.stage} = 'offered')`,
+          hired: sql<number>`count(*) filter (where ${applications.stage} = 'hired')`,
+          rejected: sql<number>`count(*) filter (where ${applications.stage} = 'rejected')`,
+          total: count()
+        })
+        .from(applications)
+        .innerJoin(jobs, eq(jobs.id, applications.jobId))
+        .leftJoin(companies, eq(companies.id, jobs.companyId))
+        .where(where)
+        .groupBy(jobs.id, jobs.humanId, jobs.title, jobs.status, companies.id, companies.name)
+        .orderBy(desc(count()))
+        .limit(input?.limit ?? 50);
+
+      return rows.map((r) => ({
+        jobId: r.jobId,
+        jobHumanId: r.jobHumanId,
+        jobTitle: r.jobTitle,
+        jobStatus: r.jobStatus,
+        companyId: r.companyId,
+        companyName: r.companyName,
+        counts: {
+          screening: Number(r.screening),
+          submitted: Number(r.submitted),
+          interview: Number(r.interview),
+          offered: Number(r.offered),
+          hired: Number(r.hired),
+          rejected: Number(r.rejected)
+        },
+        total: Number(r.total)
+      }));
     })
 });

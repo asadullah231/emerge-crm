@@ -8,6 +8,7 @@ import {
   MultiTrendChart,
   type TrendSeries
 } from "@/components/dashboard-charts";
+import { PipelineView } from "@/components/pipeline-view";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 
@@ -282,6 +283,9 @@ export default function DashboardPage() {
           <MultiTrendChart data={data?.trends} series={TREND_SERIES} loading={overview.isLoading} />
         </Panel>
       </div>
+
+      {/* Zoho-style pipeline matrix (job x stage) */}
+      <PipelineView />
 
       {/* Recruiter performance + upcoming interviews */}
       <div className="grid gap-4 lg:grid-cols-2">
