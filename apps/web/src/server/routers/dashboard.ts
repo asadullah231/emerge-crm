@@ -595,6 +595,7 @@ export const dashboardRouter = router({
           offered: sql<number>`count(*) filter (where ${applications.stage} = 'offered')`,
           hired: sql<number>`count(*) filter (where ${applications.stage} = 'hired')`,
           rejected: sql<number>`count(*) filter (where ${applications.stage} = 'rejected')`,
+          archived: sql<number>`count(*) filter (where ${applications.stage} = 'archived')`,
           total: count()
         })
         .from(applications)
@@ -618,7 +619,8 @@ export const dashboardRouter = router({
           interview: Number(r.interview),
           offered: Number(r.offered),
           hired: Number(r.hired),
-          rejected: Number(r.rejected)
+          rejected: Number(r.rejected),
+          archived: Number(r.archived)
         },
         total: Number(r.total)
       }));
