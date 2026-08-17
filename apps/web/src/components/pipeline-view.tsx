@@ -4,8 +4,10 @@
  * Zoho Recruit-style Pipeline View: one row per job opening, one column per
  * pipeline stage, each stage cell a right-pointing funnel ribbon holding the
  * live candidate count in that job + stage. Self-contained - owns its All Users
- * / All Clients filters, a sortable first column, and a click-to-drill panel.
- * Real data only (dashboard.pipelineByJob + applicationsByStage); no mock rows.
+ * / All Clients filters and a sortable first column. The panel is a fixed height
+ * with the rows scrolling inside it (sticky header + sticky first column), like
+ * Zoho. Clicking a ribbon opens that job's page. Real data only
+ * (dashboard.pipelineByJob); no mock rows.
  */
 
 import Link from "next/link";
@@ -34,30 +36,18 @@ const RIBBON_CLIP =
 const selectClass =
   "rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-sm text-[var(--foreground)]";
 
-type Selection = { jobId: string; jobTitle: string; stage: PipelineStage; label: string };
 type SortKey = "total" | "title-asc" | "title-desc";
 
 export function PipelineView() {
   const [ownerId, setOwnerId] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [sort, setSort] = useState<SortKey>("total");
-  const [selected, setSelected] = useState<Selection | null>(null);
 
   const members = trpc.members.list.useQuery();
   const companies = trpc.companies.list.useQuery({ page: 1, pageSize: 200 });
   const pipeline = trpc.dashboard.pipelineByJob.useQuery(
     { ownerId: ownerId || undefined, companyId: companyId || undefined },
     { refetchInterval: 30_000, refetchOnWindowFocus: true }
-  );
-
-  const drill = trpc.dashboard.applicationsByStage.useQuery(
-    {
-      stage: (selected?.stage ?? "screening") as "screening",
-      jobId: selected?.jobId,
-      ownerId: ownerId || undefined,
-      limit: 25
-    },
-    { enabled: selected != null }
   );
 
   const rows = useMemo(() => {
@@ -92,10 +82,7 @@ export function PipelineView() {
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={ownerId}
-            onChange={(e) => {
-              setOwnerId(e.target.value);
-              setSelected(null);
-            }}
+            onChange={(e) => setOwnerId(e.target.value)}
             className={selectClass}
             aria-label="Filter by user"
           >
@@ -108,10 +95,7 @@ export function PipelineView() {
           </select>
           <select
             value={companyId}
-            onChange={(e) => {
-              setCompanyId(e.target.value);
-              setSelected(null);
-            }}
+            onChange={(e) => setCompanyId(e.target.value)}
             className={selectClass}
             aria-label="Filter by client"
           >
@@ -136,11 +120,12 @@ export function PipelineView() {
           No job openings with candidates for these filters.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        // Fixed-height panel: rows scroll inside, header + first column stay put.
+        <div className="max-h-[420px] overflow-auto">
           <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-[var(--border)]">
-                <th className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left align-bottom">
+              <tr>
+                <th className="sticky left-0 top-0 z-30 border-b border-[var(--border)] bg-[var(--card)] px-3 py-2 text-left align-bottom">
                   <button
                     type="button"
                     onClick={cycleSort}
@@ -153,7 +138,7 @@ export function PipelineView() {
                 {COLUMNS.map((c) => (
                   <th
                     key={c.stage}
-                    className="relative px-2 pb-2 pt-3 text-center text-xs font-medium text-[var(--foreground)]"
+                    className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--card)] px-2 pb-2 pt-3 text-center text-xs font-medium text-[var(--foreground)]"
                   >
                     <span
                       className="absolute inset-x-1 top-0 h-1 rounded-full"
@@ -166,8 +151,8 @@ export function PipelineView() {
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {rows.map((r) => (
-                <tr key={r.jobId} className="hover:bg-[var(--background)]">
-                  <td className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2.5">
+                <tr key={r.jobId} className="group">
+                  <td className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2.5 group-hover:bg-[var(--background)]">
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5 shrink-0 text-[var(--muted)]">
                         <BinocularsIcon />
@@ -198,36 +183,23 @@ export function PipelineView() {
                   </td>
                   {COLUMNS.map((c) => {
                     const n = r.counts[c.stage];
-                    const isActive = selected?.jobId === r.jobId && selected?.stage === c.stage;
                     return (
-                      <td key={c.stage} className="px-2 py-2.5 text-center">
+                      <td
+                        key={c.stage}
+                        className="px-2 py-2.5 text-center group-hover:bg-[var(--background)]"
+                      >
                         {n > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelected(
-                                isActive
-                                  ? null
-                                  : {
-                                      jobId: r.jobId,
-                                      jobTitle: r.jobTitle,
-                                      stage: c.stage,
-                                      label: c.label
-                                    }
-                              )
-                            }
-                            aria-pressed={isActive}
+                          <Link
+                            href={`/jobs/${r.jobId}`}
                             title={`${n} in ${c.label} · ${r.jobTitle}`}
-                            className="mx-auto flex h-7 w-full max-w-[86px] items-center justify-center pr-1.5 text-sm font-semibold text-white transition-colors"
+                            className="mx-auto flex h-7 w-full max-w-[86px] items-center justify-center pr-1.5 text-sm font-semibold text-white transition-colors hover:brightness-110"
                             style={{
-                              backgroundColor: isActive
-                                ? "var(--brand-secondary)"
-                                : "var(--brand-primary)",
+                              backgroundColor: "var(--brand-primary)",
                               clipPath: RIBBON_CLIP
                             }}
                           >
                             {n}
-                          </button>
+                          </Link>
                         ) : (
                           <span className="text-[var(--border)]">·</span>
                         )}
@@ -240,51 +212,6 @@ export function PipelineView() {
           </table>
         </div>
       )}
-
-      {selected ? (
-        <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="min-w-0 truncate text-xs font-semibold text-[var(--foreground)]">
-              {selected.label} · {selected.jobTitle}
-            </p>
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              className="shrink-0 text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
-            >
-              Close
-            </button>
-          </div>
-          {drill.isLoading ? (
-            <div className="space-y-2">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-7 animate-pulse rounded bg-[var(--border)]" />
-              ))}
-            </div>
-          ) : !drill.data || drill.data.length === 0 ? (
-            <p className="py-3 text-center text-sm text-[var(--muted)]">No candidates to show.</p>
-          ) : (
-            <ul className="divide-y divide-[var(--border)]">
-              {drill.data.map((a) => (
-                <li key={a.id}>
-                  <Link
-                    href={`/applications/${a.id}`}
-                    className="flex items-center justify-between gap-3 py-1.5 hover:bg-[var(--card)]"
-                  >
-                    <span className="truncate text-sm text-[var(--foreground)]">
-                      {[a.candidateFirstName, a.candidateLastName].filter(Boolean).join(" ") ||
-                        a.candidateHumanId}
-                    </span>
-                    <span className="shrink-0 text-xs text-[var(--muted)]">
-                      {a.ownerName ?? "Unassigned"}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : null}
     </section>
   );
 }
