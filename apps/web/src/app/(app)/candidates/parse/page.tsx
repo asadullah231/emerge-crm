@@ -285,6 +285,32 @@ function ReviewModal({
   const [form, setForm] = useState<ParsedResume | null>(null);
   const confirm = trpc.parsing.confirm.useMutation();
 
+  // Optional intake flow (M15): associate with a job opening + notify the AM.
+  const [jobId, setJobId] = useState("");
+  const [notifyUserId, setNotifyUserId] = useState("");
+  const [callNotes, setCallNotes] = useState("");
+  const openJobs = trpc.jobs.list.useQuery({
+    page: 1,
+    pageSize: 200,
+    sortBy: "title",
+    sortDir: "asc",
+    status: "open",
+    deleted: false
+  });
+  const members = trpc.members.list.useQuery();
+  const activeMembers = (members.data ?? []).filter((m) => !m.deactivatedAt);
+
+  const pickJob = (nextJobId: string) => {
+    setJobId(nextJobId);
+    // Default the person to notify to the job's account manager.
+    if (nextJobId) {
+      const row = (openJobs.data?.rows ?? []).find((j) => j.id === nextJobId);
+      if (row?.ownerId && activeMembers.some((m) => m.userId === row.ownerId)) {
+        setNotifyUserId(row.ownerId);
+      }
+    }
+  };
+
   // Initialise the form from the parsed data once loaded.
   const data =
     form ??
@@ -370,6 +396,51 @@ function ReviewModal({
               after confirming.
             </p>
 
+            <div className="space-y-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3">
+              <p className="text-sm font-medium">Pipeline (optional)</p>
+              <label className="block">
+                <span className="text-xs text-[var(--muted)]">Associate with job opening</span>
+                <select
+                  value={jobId}
+                  onChange={(e) => pickJob(e.target.value)}
+                  className="mt-0.5 w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-sm"
+                >
+                  <option value="">No job opening</option>
+                  {(openJobs.data?.rows ?? []).map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.title}
+                      {j.companyName ? ` - ${j.companyName}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs text-[var(--muted)]">Tag account manager</span>
+                <select
+                  value={notifyUserId}
+                  onChange={(e) => setNotifyUserId(e.target.value)}
+                  className="mt-0.5 w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-sm"
+                >
+                  <option value="">Nobody</option>
+                  {activeMembers.map((m) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs text-[var(--muted)]">Call notes</span>
+                <textarea
+                  value={callNotes}
+                  onChange={(e) => setCallNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Notes from the screening call; saved as a note and sent with the @mention..."
+                  className="mt-0.5 w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-sm"
+                />
+              </label>
+            </div>
+
             <FormError message={confirm.error?.message} />
 
             <div className="flex justify-end gap-2">
@@ -380,7 +451,13 @@ function ReviewModal({
                 disabled={confirm.isPending || !data.lastName}
                 onClick={() =>
                   confirm.mutate(
-                    { id, candidate: { ...data, lastName: data.lastName ?? "" } },
+                    {
+                      id,
+                      candidate: { ...data, lastName: data.lastName ?? "" },
+                      jobId: jobId || null,
+                      notifyUserId: notifyUserId || null,
+                      callNotes: callNotes.trim() || null
+                    },
                     { onSuccess: () => void onConfirmed() }
                   )
                 }

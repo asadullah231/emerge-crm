@@ -29,7 +29,7 @@ async function activeMemberIds(tx: Transaction, ids: string[]): Promise<string[]
 }
 
 /** Insert mention rows + fan out a notification to each mentioned member. */
-async function fanOutMentions(
+export async function fanOutMentions(
   tx: Transaction,
   opts: {
     workspaceId: string;

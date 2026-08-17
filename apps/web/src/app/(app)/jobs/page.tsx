@@ -150,7 +150,9 @@ export default function JobsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{showTrash ? "Jobs - Trash" : "Jobs"}</h1>
+        <h1 className="text-2xl font-semibold">
+          {showTrash ? "Job Openings - Trash" : "Job Openings"}
+        </h1>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -159,10 +161,10 @@ export default function JobsPage() {
               setPage(1);
             }}
           >
-            {showTrash ? "Back to jobs" : "Trash"}
+            {showTrash ? "Back to job openings" : "Trash"}
           </Button>
           {canWrite && !showTrash ? (
-            <Button onClick={() => setCreating(true)}>New job</Button>
+            <Button onClick={() => setCreating(true)}>New job opening</Button>
           ) : null}
         </div>
       </div>
@@ -244,8 +246,8 @@ export default function JobsPage() {
           showTrash
             ? "Trash is empty. Deleted jobs stay here for 30 days."
             : debouncedSearch
-              ? "No jobs match your search."
-              : "No jobs yet. Open your first role."
+              ? "No job openings match your search."
+              : "No job openings yet. Open your first role."
         }
       />
 

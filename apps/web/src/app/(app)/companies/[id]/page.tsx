@@ -74,7 +74,7 @@ export default function CompanyRecordPage() {
   return (
     <RecordShell
       backHref="/companies"
-      backLabel="Companies"
+      backLabel="Clients"
       title={record.name}
       badges={<StatusBadge status={record.status} />}
       actions={

@@ -1,19 +1,22 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, eq, gte, inArray, isNull, isNotNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, isNotNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import {
   applications,
+  attachments,
   companies,
   contacts,
   jobEmploymentType,
   jobStatus,
   jobWorkMode,
   jobs,
+  memberships,
   users
 } from "@emerge/db";
 import { APPLICATION_STAGES } from "@/lib/applications";
 import { writeAudit } from "../audit";
 import { humanId, nextCounter } from "../counters";
+import { enqueueEmail } from "../email";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
 import { entityTags, taggedEntityIds } from "./tags";
@@ -31,6 +34,7 @@ export const jobInput = z.object({
   workMode: z.enum(jobWorkMode.enumValues).optional(),
   location: optionalText(255),
   description: optionalText(20000),
+  clientCallSummary: optionalText(20000),
   positions: z.number().int().min(1).max(9999).optional(),
   salaryText: optionalText(120),
   salaryMin: z.number().int().min(0).nullable().optional(),
@@ -149,6 +153,7 @@ export const jobsRouter = router({
           workMode: jobs.workMode,
           location: jobs.location,
           description: jobs.description,
+          clientCallSummary: jobs.clientCallSummary,
           positions: jobs.positions,
           salaryText: jobs.salaryText,
           salaryMin: jobs.salaryMin,
@@ -168,7 +173,7 @@ export const jobsRouter = router({
         .where(eq(jobs.id, input.id));
       if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
 
-      const [hiringContact, tags] = await Promise.all([
+      const [hiringContact, tags, files] = await Promise.all([
         job.hiringContactId
           ? ctx.tx
               .select({
@@ -182,7 +187,25 @@ export const jobsRouter = router({
               .where(eq(contacts.id, job.hiringContactId))
               .then((r) => r[0] ?? null)
           : Promise.resolve(null),
-        entityTags(ctx.tx, "job", job.id)
+        entityTags(ctx.tx, "job", job.id),
+        ctx.tx
+          .select({
+            id: attachments.id,
+            kind: attachments.kind,
+            filename: attachments.filename,
+            mime: attachments.mime,
+            size: attachments.size,
+            createdAt: attachments.createdAt
+          })
+          .from(attachments)
+          .where(
+            and(
+              eq(attachments.entityType, "job"),
+              eq(attachments.entityId, job.id),
+              isNull(attachments.deletedAt)
+            )
+          )
+          .orderBy(desc(attachments.createdAt))
       ]);
 
       // Real pipeline summary: live application counts by stage for this job.
@@ -200,7 +223,7 @@ export const jobsRouter = router({
         total: stageRows.reduce((sum, r) => sum + r.count, 0),
         byStage
       };
-      return { ...job, hiringContact, tags, pipeline };
+      return { ...job, hiringContact, tags, attachments: files, pipeline };
     }),
 
   create: workspaceProcedure.input(jobInput).mutation(async ({ ctx, input }) => {
@@ -221,6 +244,7 @@ export const jobsRouter = router({
         workMode: input.workMode ?? "onsite",
         location: input.location ?? null,
         description: input.description ?? null,
+        clientCallSummary: input.clientCallSummary ?? null,
         positions: input.positions ?? 1,
         salaryText: input.salaryText ?? null,
         salaryMin: input.salaryMin ?? null,
@@ -238,6 +262,47 @@ export const jobsRouter = router({
       targetId: created.id,
       meta: { humanId: created.humanId, title: created.title }
     });
+
+    // Notify the whole team about the new opening (M15). Delivery is queued;
+    // a queue outage must never fail the job creation itself.
+    try {
+      const [recipients, [company]] = await Promise.all([
+        ctx.tx
+          .select({ email: users.email })
+          .from(memberships)
+          .innerJoin(users, eq(users.id, memberships.userId))
+          .where(
+            and(
+              eq(memberships.workspaceId, ctx.workspaceId),
+              isNull(memberships.deactivatedAt),
+              ne(memberships.userId, ctx.session.user.id)
+            )
+          ),
+        ctx.tx
+          .select({ name: companies.name })
+          .from(companies)
+          .where(eq(companies.id, created.companyId))
+      ]);
+      if (recipients.length > 0) {
+        const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+        await enqueueEmail({
+          type: "job-posted",
+          to: recipients.map((r) => r.email),
+          jobTitle: created.title,
+          jobHumanId: created.humanId,
+          companyName: company?.name ?? "Unknown client",
+          location: created.location,
+          employmentType: created.employmentType,
+          workMode: created.workMode,
+          positions: created.positions,
+          postedByName: ctx.session.user.name,
+          clientCallSummary: created.clientCallSummary,
+          jobUrl: `${base}/jobs/${created.id}`
+        });
+      }
+    } catch (err) {
+      console.error("[jobs.create] job-posted email enqueue failed:", err);
+    }
     return created;
   }),
 

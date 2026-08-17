@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, FormError, Input, Label } from "@/components/form";
 import { Modal } from "@/components/modal";
 import { JOB_EMPLOYMENT_OPTIONS, JOB_WORK_MODE_OPTIONS } from "@/components/record";
 import { contactName } from "@/components/new-contact-modal";
+import { NewCompanyModal } from "@/components/new-company-modal";
 import { trpc } from "@/lib/trpc/client";
+
+const ACCEPT = ".pdf,.doc,.docx,.rtf,.txt";
 
 export function NewJobModal({
   open,
@@ -26,6 +29,14 @@ export function NewJobModal({
   const [workMode, setWorkMode] = useState("onsite");
   const [location, setLocation] = useState("");
   const [positions, setPositions] = useState("1");
+  const [clientCallSummary, setClientCallSummary] = useState("");
+  const [creatingCompany, setCreatingCompany] = useState(false);
+  // Optional intake documents, uploaded right after the job is created (M15).
+  const jdRef = useRef<HTMLInputElement>(null);
+  const summaryRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const companyOptions = trpc.companies.list.useQuery(
     { page: 1, pageSize: 200, sortBy: "name", sortDir: "asc", deleted: false },
@@ -45,36 +56,81 @@ export function NewJobModal({
     setWorkMode("onsite");
     setLocation("");
     setPositions("1");
+    setClientCallSummary("");
+    setUploadError(null);
+    setCreatedId(null);
+    if (jdRef.current) jdRef.current.value = "";
+    if (summaryRef.current) summaryRef.current.value = "";
   };
 
-  const create = trpc.jobs.create.useMutation({
-    onSuccess: async (created) => {
+  const create = trpc.jobs.create.useMutation();
+
+  const submit = async () => {
+    setUploadError(null);
+    setSubmitting(true);
+    try {
+      const n = parseInt(positions, 10);
+      let created;
+      try {
+        created = await create.mutateAsync({
+          title: title.trim(),
+          companyId,
+          hiringContactId: hiringContactId || null,
+          employmentType: employmentType as "permanent" | "contract" | "temporary",
+          workMode: workMode as "onsite" | "hybrid" | "remote",
+          location: location.trim() || null,
+          clientCallSummary: clientCallSummary.trim() || null,
+          positions: Number.isFinite(n) && n > 0 ? n : 1
+        });
+      } catch {
+        return; // Shown via create.error.
+      }
+
+      const uploads: Array<{ file: File | undefined; kind: string }> = [
+        { file: jdRef.current?.files?.[0], kind: "job_description" },
+        { file: summaryRef.current?.files?.[0], kind: "client_meeting_summary" }
+      ];
+      const failures: string[] = [];
+      for (const u of uploads) {
+        if (!u.file) continue;
+        const body = new FormData();
+        body.append("file", u.file);
+        body.append("kind", u.kind);
+        const res = await fetch(`/api/jobs/${created.id}/documents`, { method: "POST", body });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          failures.push(`${u.file.name}: ${data.error ?? "upload failed"}`);
+        }
+      }
       await utils.jobs.list.invalidate();
+
+      if (failures.length > 0) {
+        // The job exists; be honest about the files and let the user proceed.
+        setCreatedId(created.id);
+        setUploadError(
+          `Job opening created, but a document failed to upload (${failures.join("; ")}). ` +
+            "You can upload it again from the job page."
+        );
+        return;
+      }
       reset();
       onClose();
       router.push(`/jobs/${created.id}`);
+    } finally {
+      setSubmitting(false);
     }
-  });
+  };
 
   return (
-    <Modal title="New job" open={open} onClose={onClose}>
+    <Modal title="New job opening" open={open} onClose={onClose}>
       <form
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          const n = parseInt(positions, 10);
-          create.mutate({
-            title: title.trim(),
-            companyId,
-            hiringContactId: hiringContactId || null,
-            employmentType: employmentType as "permanent" | "contract" | "temporary",
-            workMode: workMode as "onsite" | "hybrid" | "remote",
-            location: location.trim() || null,
-            positions: Number.isFinite(n) && n > 0 ? n : 1
-          });
+          void submit();
         }}
       >
-        <FormError message={create.error?.message} />
+        <FormError message={create.error?.message ?? uploadError ?? undefined} />
         <div>
           <Label htmlFor="job-title">Job title</Label>
           <Input
@@ -86,7 +142,18 @@ export function NewJobModal({
           />
         </div>
         <div>
-          <Label htmlFor="job-company">Client company</Label>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label htmlFor="job-company" className="block text-sm font-medium">
+              Client
+            </label>
+            <button
+              type="button"
+              onClick={() => setCreatingCompany(true)}
+              className="text-xs text-[var(--accent)] hover:underline"
+            >
+              + New client
+            </button>
+          </div>
           <select
             id="job-company"
             required
@@ -180,15 +247,76 @@ export function NewJobModal({
             />
           </div>
         </div>
+        <div>
+          <Label htmlFor="job-call-summary">Client call summary</Label>
+          <textarea
+            id="job-call-summary"
+            value={clientCallSummary}
+            onChange={(e) => setClientCallSummary(e.target.value)}
+            rows={3}
+            placeholder="Key points from the client call: must-haves, salary, process..."
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Included in the email the team receives when this job is posted.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="job-jd-file">Job description (file)</Label>
+            <input
+              id="job-jd-file"
+              ref={jdRef}
+              type="file"
+              accept={ACCEPT}
+              className="w-full text-sm text-[var(--muted)] file:mr-2 file:rounded-md file:border file:border-[var(--border)] file:bg-[var(--background)] file:px-2 file:py-1 file:text-sm"
+            />
+          </div>
+          <div>
+            <Label htmlFor="job-summary-file">Client meeting summary (file)</Label>
+            <input
+              id="job-summary-file"
+              ref={summaryRef}
+              type="file"
+              accept={ACCEPT}
+              className="w-full text-sm text-[var(--muted)] file:mr-2 file:rounded-md file:border file:border-[var(--border)] file:bg-[var(--background)] file:px-2 file:py-1 file:text-sm"
+            />
+          </div>
+        </div>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={create.isPending || !companyId}>
-            {create.isPending ? "Creating..." : "Create job"}
-          </Button>
+          {createdId ? (
+            <Button
+              type="button"
+              onClick={() => {
+                const id = createdId;
+                reset();
+                onClose();
+                router.push(`/jobs/${id}`);
+              }}
+            >
+              Open job opening
+            </Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting || !companyId}>
+                {submitting ? "Creating..." : "Create job opening"}
+              </Button>
+            </>
+          )}
         </div>
       </form>
+
+      <NewCompanyModal
+        open={creatingCompany}
+        onClose={() => setCreatingCompany(false)}
+        onCreated={async (c) => {
+          setCompanyId(c.id);
+          setHiringContactId("");
+        }}
+      />
     </Modal>
   );
 }
