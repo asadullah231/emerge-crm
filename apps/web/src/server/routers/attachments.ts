@@ -3,24 +3,27 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { attachments } from "@emerge/db";
 import { writeAudit } from "../audit";
-import { deleteObject, getPresignedDownloadUrl, isStorageConfigured } from "../storage";
+import { deleteObject, isStorageConfigured } from "../storage";
 import { router, workspaceProcedure } from "../trpc";
 
 export const attachmentsRouter = router({
-  /** Short-lived presigned URL the client opens to download the file. */
+  /**
+   * URL the client opens to download the file. App-proxied (M15 fix): the
+   * storage endpoint is internal-only in production, so the app streams the
+   * object itself from /api/attachments/[id]/download.
+   */
   downloadUrl: workspaceProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const [file] = await ctx.tx
-        .select()
+        .select({ id: attachments.id })
         .from(attachments)
         .where(and(eq(attachments.id, input.id), isNull(attachments.deletedAt)));
       if (!file) throw new TRPCError({ code: "NOT_FOUND", message: "File not found" });
       if (!isStorageConfigured()) {
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Storage is not configured" });
       }
-      const url = await getPresignedDownloadUrl(file.objectKey, file.filename);
-      return { url };
+      return { url: `/api/attachments/${file.id}/download` };
     }),
 
   remove: workspaceProcedure
