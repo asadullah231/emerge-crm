@@ -104,7 +104,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -112,64 +112,65 @@ export default function DashboardPage() {
             {me.data?.workspace?.name ? ` (${me.data.workspace.name})` : ""}.
           </p>
         </div>
-        <RefreshBadge
-          isFetching={overview.isFetching}
-          updatedAt={overview.dataUpdatedAt}
-          error={!!overview.error}
-        />
-      </div>
-
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-          Date range
-          <select
-            value={rangeKey}
-            onChange={(e) => setRangeKey(e.target.value)}
-            className={selectClass}
-          >
-            {RANGES.map((r) => (
-              <option key={r.key} value={r.key}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-          Recruiter
-          <select
-            value={ownerId}
-            onChange={(e) => setOwnerId(e.target.value)}
-            className={selectClass}
-          >
-            <option value="">Everyone</option>
-            {(members.data ?? []).map((m) => (
-              <option key={m.userId} value={m.userId}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {filtersActive ? (
-          <button
-            type="button"
-            onClick={() => {
-              setRangeKey("all");
-              setOwnerId("");
-            }}
-            className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted)] hover:bg-[var(--background)]"
-          >
-            Reset
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={exportCsv}
-          disabled={!data}
-          className="ml-auto rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] disabled:opacity-50"
-        >
-          Export CSV
-        </button>
+        {/* Filter + actions toolbar, inlined into the header to avoid a wide empty bar */}
+        <div className="flex flex-col items-end gap-2">
+          <RefreshBadge
+            isFetching={overview.isFetching}
+            updatedAt={overview.dataUpdatedAt}
+            error={!!overview.error}
+          />
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Date range
+              <select
+                value={rangeKey}
+                onChange={(e) => setRangeKey(e.target.value)}
+                className={selectClass}
+              >
+                {RANGES.map((r) => (
+                  <option key={r.key} value={r.key}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Recruiter
+              <select
+                value={ownerId}
+                onChange={(e) => setOwnerId(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">Everyone</option>
+                {(members.data ?? []).map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {filtersActive ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setRangeKey("all");
+                  setOwnerId("");
+                }}
+                className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted)] hover:bg-[var(--background)]"
+              >
+                Reset
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={!data}
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] disabled:opacity-50"
+            >
+              Export CSV
+            </button>
+          </div>
+        </div>
       </div>
 
       {overview.error ? (
