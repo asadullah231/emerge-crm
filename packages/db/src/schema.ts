@@ -437,7 +437,10 @@ export const jobStatus = pgEnum("job_status", [
   "on_hold",
   "filled",
   "cancelled",
-  "inactive"
+  "inactive",
+  "waiting_approval",
+  "declined",
+  "submitted_by_client"
 ]);
 export type JobStatus = (typeof jobStatus.enumValues)[number];
 
@@ -479,6 +482,15 @@ export const jobs = pgTable(
     description: text("description"),
     /** Client call summary captured at intake (M15); included in the new-job email. */
     clientCallSummary: text("client_call_summary"),
+    /** Skills the role needs (M17a, Zoho Required_Skills); feeds matching later. */
+    requiredSkills: text("required_skills"),
+    /** Hot-job flag (M17a, Zoho Is_Hot_Job_Opening); badge on list + detail. */
+    isHot: boolean("is_hot").notNull().default(false),
+    /** Structured address (M17a, Zoho City/State/Country/Zip); `location` stays as display text. */
+    city: text("city"),
+    state: text("state"),
+    country: text("country"),
+    postalCode: text("postal_code"),
     /** Number of openings for this role. */
     positions: integer("positions").notNull().default(1),
     /** Free-text salary preserved verbatim, plus optional structured range. */
@@ -490,6 +502,8 @@ export const jobs = pgTable(
     salaryPeriod: text("salary_period"),
     openedAt: timestamp("opened_at", { withTimezone: true }).notNull().defaultNow(),
     targetCloseAt: timestamp("target_close_at", { withTimezone: true }),
+    /** Auto-set when status enters Filled/Cancelled/Declined; cleared on reopen (M17a, Zoho Date_Closed). */
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     customFields: jsonb("custom_fields").$type<Record<string, unknown>>(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: createdAt(),

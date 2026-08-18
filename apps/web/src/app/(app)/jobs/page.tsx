@@ -94,7 +94,16 @@ export default function JobsPage() {
       key: "title",
       header: "Title",
       sortable: true,
-      render: (row) => <span className="font-medium">{row.title}</span>
+      render: (row) => (
+        <span className="font-medium">
+          {row.isHot ? (
+            <span title="Hot job opening" className="mr-1">
+              🔥
+            </span>
+          ) : null}
+          {row.title}
+        </span>
+      )
     },
     {
       key: "company",

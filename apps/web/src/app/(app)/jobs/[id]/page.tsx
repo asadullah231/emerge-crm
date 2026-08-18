@@ -128,7 +128,19 @@ export default function JobRecordPage() {
           </span>
         </span>
       }
-      badges={<JobStatusBadge status={record.status} />}
+      badges={
+        <span className="flex items-center gap-1.5">
+          <JobStatusBadge status={record.status} />
+          {record.isHot ? (
+            <span
+              title="Hot job opening"
+              className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-600"
+            >
+              🔥 Hot
+            </span>
+          ) : null}
+        </span>
+      }
       actions={
         canWrite ? (
           isDeleted ? (
@@ -296,11 +308,63 @@ export default function JobRecordPage() {
             onSave={save("location")}
           />
           <InlineField
+            label="City"
+            value={record.city}
+            canEdit={canEdit}
+            saving={update.isPending}
+            onSave={save("city")}
+          />
+          <InlineField
+            label="Province / State"
+            value={record.state}
+            canEdit={canEdit}
+            saving={update.isPending}
+            onSave={save("state")}
+          />
+          <InlineField
+            label="Country"
+            value={record.country}
+            canEdit={canEdit}
+            saving={update.isPending}
+            onSave={save("country")}
+          />
+          <InlineField
+            label="Postal code"
+            value={record.postalCode}
+            canEdit={canEdit}
+            saving={update.isPending}
+            onSave={save("postalCode")}
+          />
+          <InlineField
             label="Positions"
             value={String(record.positions)}
             canEdit={canEdit}
             saving={update.isPending}
             onSave={saveNumber("positions")}
+          />
+          <InlineField
+            label="Target date"
+            value={record.targetCloseAt ? String(record.targetCloseAt).slice(0, 10) : null}
+            canEdit={canEdit}
+            saving={update.isPending}
+            placeholder="YYYY-MM-DD"
+            onSave={(v) => {
+              const d = v ? new Date(v) : null;
+              if (d && Number.isNaN(d.getTime())) return;
+              update.mutate({ id: record.id, patch: { targetCloseAt: d } });
+            }}
+          />
+          <InlineField
+            label="Hot job opening"
+            value={record.isHot ? "yes" : "no"}
+            canEdit={canEdit}
+            saving={update.isPending}
+            options={[
+              { value: "no", label: "No" },
+              { value: "yes", label: "Yes" }
+            ]}
+            render={() => (record.isHot ? "🔥 Yes" : "No")}
+            onSave={(v) => update.mutate({ id: record.id, patch: { isHot: v === "yes" } })}
           />
           <InlineField
             label="Salary"
@@ -330,6 +394,14 @@ export default function JobRecordPage() {
             saving={update.isPending}
             onSave={saveNumber("salaryMax")}
           />
+          <InlineField
+            label="Salary period"
+            value={record.salaryPeriod}
+            canEdit={canEdit}
+            saving={update.isPending}
+            placeholder="year / day / hour"
+            onSave={save("salaryPeriod")}
+          />
         </FieldGrid>
         <div className="mt-2">
           <InlineField
@@ -351,6 +423,17 @@ export default function JobRecordPage() {
             type="textarea"
             render={(v) => <span className="whitespace-pre-wrap">{v}</span>}
             onSave={save("clientCallSummary")}
+          />
+        </div>
+        <div className="mt-2">
+          <InlineField
+            label="Required skills"
+            value={record.requiredSkills}
+            canEdit={canEdit}
+            saving={update.isPending}
+            type="textarea"
+            render={(v) => <span className="whitespace-pre-wrap">{v}</span>}
+            onSave={save("requiredSkills")}
           />
         </div>
       </RecordSection>
@@ -425,8 +508,9 @@ export default function JobRecordPage() {
       </RecordSection>
 
       <p className="text-xs text-[var(--muted)]">
-        Opened {new Date(record.openedAt).toLocaleDateString()} - Last updated{" "}
-        {new Date(record.updatedAt).toLocaleString()}
+        Opened {new Date(record.openedAt).toLocaleDateString()}
+        {record.closedAt ? ` - Closed ${new Date(record.closedAt).toLocaleDateString()}` : ""} -
+        Last updated {new Date(record.updatedAt).toLocaleString()}
       </p>
 
       <AssociateModal

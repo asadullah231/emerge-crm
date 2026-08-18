@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, inArray, isNull, isNotNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import {
+  applicationStatusHistory,
   applications,
   attachments,
   companies,
@@ -35,6 +36,13 @@ export const jobInput = z.object({
   location: optionalText(255),
   description: optionalText(20000),
   clientCallSummary: optionalText(20000),
+  requiredSkills: optionalText(5000),
+  isHot: z.boolean().optional(),
+  city: optionalText(120),
+  state: optionalText(120),
+  country: optionalText(120),
+  postalCode: optionalText(20),
+  targetCloseAt: z.coerce.date().nullable().optional(),
   positions: z.number().int().min(1).max(9999).optional(),
   salaryText: optionalText(120),
   salaryMin: z.number().int().min(0).nullable().optional(),
@@ -44,6 +52,17 @@ export const jobInput = z.object({
 });
 
 const ownerCols = { ownerName: users.name, ownerEmail: users.email };
+
+/** Statuses that close a job; entering one stamps closedAt, leaving clears it (M17a). */
+const CLOSED_STATUSES: ReadonlyArray<(typeof jobStatus.enumValues)[number]> = [
+  "filled",
+  "cancelled",
+  "declined"
+];
+
+function isClosedStatus(status: (typeof jobStatus.enumValues)[number]): boolean {
+  return CLOSED_STATUSES.includes(status);
+}
 
 /** Confirms the company exists in the workspace (and is not trashed). */
 async function assertCompany(tx: Transaction, companyId: string): Promise<void> {
@@ -114,11 +133,14 @@ export const jobsRouter = router({
             employmentType: jobs.employmentType,
             workMode: jobs.workMode,
             location: jobs.location,
+            isHot: jobs.isHot,
             positions: jobs.positions,
             companyId: jobs.companyId,
             companyName: companies.name,
             ownerId: jobs.ownerId,
             openedAt: jobs.openedAt,
+            targetCloseAt: jobs.targetCloseAt,
+            closedAt: jobs.closedAt,
             deletedAt: jobs.deletedAt,
             createdAt: jobs.createdAt,
             updatedAt: jobs.updatedAt,
@@ -154,6 +176,13 @@ export const jobsRouter = router({
           location: jobs.location,
           description: jobs.description,
           clientCallSummary: jobs.clientCallSummary,
+          requiredSkills: jobs.requiredSkills,
+          isHot: jobs.isHot,
+          city: jobs.city,
+          state: jobs.state,
+          country: jobs.country,
+          postalCode: jobs.postalCode,
+          closedAt: jobs.closedAt,
           positions: jobs.positions,
           salaryText: jobs.salaryText,
           salaryMin: jobs.salaryMin,
@@ -245,6 +274,14 @@ export const jobsRouter = router({
         location: input.location ?? null,
         description: input.description ?? null,
         clientCallSummary: input.clientCallSummary ?? null,
+        requiredSkills: input.requiredSkills ?? null,
+        isHot: input.isHot ?? false,
+        city: input.city ?? null,
+        state: input.state ?? null,
+        country: input.country ?? null,
+        postalCode: input.postalCode ?? null,
+        targetCloseAt: input.targetCloseAt ?? null,
+        closedAt: isClosedStatus(input.status ?? "open") ? new Date() : null,
         positions: input.positions ?? 1,
         salaryText: input.salaryText ?? null,
         salaryMin: input.salaryMin ?? null,
@@ -324,9 +361,21 @@ export const jobsRouter = router({
           "hiringContactId" in input.patch ? input.patch.hiringContactId : undefined;
         await assertHiringContact(ctx.tx, contactId, companyId);
       }
+      // Entering a closed status stamps closedAt; leaving one clears it (M17a).
+      let closedAtPatch: { closedAt: Date | null } | Record<string, never> = {};
+      if (input.patch.status) {
+        const [cur] = await ctx.tx
+          .select({ closedAt: jobs.closedAt })
+          .from(jobs)
+          .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)));
+        if (!cur) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+        closedAtPatch = {
+          closedAt: isClosedStatus(input.patch.status) ? (cur.closedAt ?? new Date()) : null
+        };
+      }
       const [updated] = await ctx.tx
         .update(jobs)
-        .set({ ...input.patch })
+        .set({ ...input.patch, ...closedAtPatch })
         .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)))
         .returning();
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
@@ -344,9 +393,18 @@ export const jobsRouter = router({
   changeStatus: workspaceProcedure
     .input(z.object({ id: z.string().uuid(), status: z.enum(jobStatus.enumValues) }))
     .mutation(async ({ ctx, input }) => {
+      const [cur] = await ctx.tx
+        .select({ closedAt: jobs.closedAt })
+        .from(jobs)
+        .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)));
+      if (!cur) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
       const [updated] = await ctx.tx
         .update(jobs)
-        .set({ status: input.status })
+        .set({
+          status: input.status,
+          // Entering a closed status stamps closedAt; reopening clears it (M17a).
+          closedAt: isClosedStatus(input.status) ? (cur.closedAt ?? new Date()) : null
+        })
         .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)))
         .returning({ id: jobs.id, humanId: jobs.humanId, status: jobs.status });
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
@@ -370,13 +428,54 @@ export const jobsRouter = router({
         .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)))
         .returning({ id: jobs.id, humanId: jobs.humanId });
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+
+      // Zoho parity (M17a): trashing a job archives its live applications so
+      // nothing keeps moving through a dead pipeline. History records why.
+      const liveApps = await ctx.tx
+        .select({
+          id: applications.id,
+          statusKey: applications.statusKey,
+          stage: applications.stage
+        })
+        .from(applications)
+        .where(
+          and(
+            eq(applications.jobId, input.id),
+            isNull(applications.deletedAt),
+            ne(applications.stage, "archived")
+          )
+        );
+      if (liveApps.length > 0) {
+        await ctx.tx
+          .update(applications)
+          .set({ stage: "archived", statusKey: "archived", stageEnteredAt: new Date() })
+          .where(
+            inArray(
+              applications.id,
+              liveApps.map((a) => a.id)
+            )
+          );
+        await ctx.tx.insert(applicationStatusHistory).values(
+          liveApps.map((a) => ({
+            workspaceId: ctx.workspaceId,
+            applicationId: a.id,
+            fromStatusKey: a.statusKey,
+            toStatusKey: "archived",
+            fromStage: a.stage,
+            toStage: "archived" as const,
+            actorUserId: ctx.session.user.id,
+            note: "Archived: job opening moved to trash"
+          }))
+        );
+      }
+
       await writeAudit({
         workspaceId: ctx.workspaceId,
         actorUserId: ctx.session.user.id,
         action: "job.deleted",
         targetType: "job",
         targetId: deleted.id,
-        meta: { humanId: deleted.humanId }
+        meta: { humanId: deleted.humanId, archivedApplications: liveApps.length }
       });
       return deleted;
     }),

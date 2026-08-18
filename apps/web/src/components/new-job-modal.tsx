@@ -29,6 +29,8 @@ export function NewJobModal({
   const [workMode, setWorkMode] = useState("onsite");
   const [location, setLocation] = useState("");
   const [positions, setPositions] = useState("1");
+  const [targetDate, setTargetDate] = useState("");
+  const [isHot, setIsHot] = useState(false);
   const [clientCallSummary, setClientCallSummary] = useState("");
   const [creatingCompany, setCreatingCompany] = useState(false);
   // Optional intake documents, uploaded right after the job is created (M15).
@@ -56,6 +58,8 @@ export function NewJobModal({
     setWorkMode("onsite");
     setLocation("");
     setPositions("1");
+    setTargetDate("");
+    setIsHot(false);
     setClientCallSummary("");
     setUploadError(null);
     setCreatedId(null);
@@ -80,6 +84,8 @@ export function NewJobModal({
           workMode: workMode as "onsite" | "hybrid" | "remote",
           location: location.trim() || null,
           clientCallSummary: clientCallSummary.trim() || null,
+          targetCloseAt: targetDate ? new Date(targetDate) : null,
+          isHot,
           positions: Number.isFinite(n) && n > 0 ? n : 1
         });
       } catch {
@@ -245,6 +251,28 @@ export function NewJobModal({
               value={positions}
               onChange={(e) => setPositions(e.target.value)}
             />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="job-target-date">Target date</Label>
+            <Input
+              id="job-target-date"
+              type="date"
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+            />
+          </div>
+          <div className="flex items-end pb-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={isHot}
+                onChange={(e) => setIsHot(e.target.checked)}
+                className="h-4 w-4 rounded border-[var(--border)]"
+              />
+              Hot job opening
+            </label>
           </div>
         </div>
         <div>
