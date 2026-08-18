@@ -41,43 +41,45 @@ approved to start** (several are currently stale relative to this table - see
 ## Versioning
 
 Semantic versioning. Each completed milestone bumps the minor version and gets a
-git tag + GitHub release. `v1.0.0` ships at Milestone 19.
+git tag + GitHub release. `v1.0.0` ships at Milestone 20.
 
 ## Phases
 
 - **Phase 1 - Core desk + switch-over (M0–M9):** the objects and workflows our
   team uses daily in Zoho, ending with migration (done) + parsing + search. At
   the end of Phase 1 the agency lives in Emerge as its daily ATS.
-- **Phase 2 - Client workflow & recruiting depth (M10–M14):** first-class client
-  sendouts, interviews, offers/placements, email, agency analytics.
-- **Phase 3 - Intelligence & platform (M15–M19):** AI matching, public surfaces,
+- **Phase 2 - Client workflow & recruiting depth (M10–M15):** first-class client
+  sendouts, interviews, offers/placements, email, agency analytics, and the
+  first client-feedback round (intake flow + job collaboration).
+- **Phase 3 - Intelligence & platform (M16–M20):** AI matching, public surfaces,
   API, compliance, hardening, v1.0.
 
 ## Milestone overview
 
-| #   | Milestone                                              | Version | Status   | Depends on | Complexity | Audit gaps closed                 |
-| --- | ------------------------------------------------------ | ------- | -------- | ---------- | ---------- | --------------------------------- |
-| M0  | Project Foundation                                     | v0.1.0  | Done     | –          | M          | –                                 |
-| M1  | Auth, Workspaces, Users & Roles                        | v0.2.0  | Done     | M0         | L          | platform                          |
-| M2  | Companies & Contacts                                   | v0.3.0  | Done     | M1         | M          | core                              |
-| M3  | Candidates, CV Upload & Dedupe                         | v0.4.0  | Done     | M1         | L          | core                              |
-| M4  | Jobs (client-owned, AM-routed)                         | v0.5.0  | Done     | M2         | M          | core                              |
-| M5  | Applications: Pipeline, Statuses & Kanban              | v0.6.0  | Done     | M3, M4     | L          | core                              |
-| M6  | Notes, @Mentions, Timeline & Notifications             | v0.7.0  | Done     | M2–M5      | L          | collaboration                     |
-| M8  | Zoho Migration & Import Engine                         | v0.8.0  | Done     | M2–M6      | L          | migration                         |
-| -   | **Attachment (CV) backfill** (engine phase + data run) | done    | **Done** | M8         | S          | **H2** done                       |
-| M7  | Resume Parsing & Bulk CV Intake + per-workspace AI     | v0.9.0  | Done     | M3         | L          | **H6**, M-parse                   |
-| M9  | Global Search, Filters, Saved Views & Bulk Actions     | v0.10.0 | Done     | M2–M5      | L          | **H3**, M2, M-tags                |
-| M10 | Client Submissions & Feedback                          | v0.11.0 | Done     | M5, M6     | M          | **H8**, submissions               |
-| M11 | Interviews & Tasks (lite)                              | v0.12.0 | Done     | M5, M6     | M          | **H1**, Reviews-lite, To-Dos-lite |
-| M12 | Offers, Placements & Job Revenue                       | v0.13.0 | Done     | M5         | M          | **H7**, Forecasts                 |
-| M13 | Email Integration                                      | v0.14.0 | Done     | M6         | L          | **H4**, Mail-merge                |
-| M14 | Agency Reports & Analytics                             | v0.15.0 | Done     | M5, M10    | M          | Reports/Dashboards/Metrics        |
-| M15 | Candidate Matching & Semantic Search                   | v0.16.0 | Planned  | M7, M9     | L          | Zia matching                      |
-| M16 | Public API, Webhooks & Career Page                     | v0.17.0 | Planned  | M9         | L          | **H5**, career site, job boards   |
-| M17 | Compliance: GDPR, Blocklist & Data Tools               | v0.18.0 | Planned  | M8         | M          | Compliance/GDPR                   |
-| M18 | Security, Performance & Production Hardening           | v0.19.0 | Planned  | all        | L          | platform                          |
-| M19 | v1.0 Production Release                                | v1.0.0  | Planned  | M18        | M          | –                                 |
+| #   | Milestone                                              | Version | Status   | Depends on  | Complexity | Audit gaps closed                 |
+| --- | ------------------------------------------------------ | ------- | -------- | ----------- | ---------- | --------------------------------- |
+| M0  | Project Foundation                                     | v0.1.0  | Done     | –           | M          | –                                 |
+| M1  | Auth, Workspaces, Users & Roles                        | v0.2.0  | Done     | M0          | L          | platform                          |
+| M2  | Companies & Contacts                                   | v0.3.0  | Done     | M1          | M          | core                              |
+| M3  | Candidates, CV Upload & Dedupe                         | v0.4.0  | Done     | M1          | L          | core                              |
+| M4  | Jobs (client-owned, AM-routed)                         | v0.5.0  | Done     | M2          | M          | core                              |
+| M5  | Applications: Pipeline, Statuses & Kanban              | v0.6.0  | Done     | M3, M4      | L          | core                              |
+| M6  | Notes, @Mentions, Timeline & Notifications             | v0.7.0  | Done     | M2–M5       | L          | collaboration                     |
+| M8  | Zoho Migration & Import Engine                         | v0.8.0  | Done     | M2–M6       | L          | migration                         |
+| -   | **Attachment (CV) backfill** (engine phase + data run) | done    | **Done** | M8          | S          | **H2** done                       |
+| M7  | Resume Parsing & Bulk CV Intake + per-workspace AI     | v0.9.0  | Done     | M3          | L          | **H6**, M-parse                   |
+| M9  | Global Search, Filters, Saved Views & Bulk Actions     | v0.10.0 | Done     | M2–M5       | L          | **H3**, M2, M-tags                |
+| M10 | Client Submissions & Feedback                          | v0.11.0 | Done     | M5, M6      | M          | **H8**, submissions               |
+| M11 | Interviews & Tasks (lite)                              | v0.12.0 | Done     | M5, M6      | M          | **H1**, Reviews-lite, To-Dos-lite |
+| M12 | Offers, Placements & Job Revenue                       | v0.13.0 | Done     | M5          | M          | **H7**, Forecasts                 |
+| M13 | Email Integration                                      | v0.14.0 | Done     | M6          | L          | **H4**, Mail-merge                |
+| M14 | Agency Reports & Analytics                             | v0.15.0 | Done     | M5, M10     | M          | Reports/Dashboards/Metrics        |
+| M15 | Client Feedback R1: Intake Flow & Job Collaboration    | v0.16.0 | Done     | M5, M7, M13 | S          | client feedback (Mo)              |
+| M16 | Candidate Matching & Semantic Search                   | v0.17.0 | Planned  | M7, M9      | L          | Zia matching                      |
+| M17 | Public API, Webhooks & Career Page                     | v0.18.0 | Planned  | M9          | L          | **H5**, career site, job boards   |
+| M18 | Compliance: GDPR, Blocklist & Data Tools               | v0.19.0 | Planned  | M8          | M          | Compliance/GDPR                   |
+| M19 | Security, Performance & Production Hardening           | v0.20.0 | Planned  | all         | L          | platform                          |
+| M20 | v1.0 Production Release                                | v1.0.0  | Planned  | M19         | M          | –                                 |
 
 Complexity scale: S (days), M (about a week), L (1–2 weeks), XL (2–3 weeks).
 Estimates assume one primary developer + AI tooling.
@@ -97,7 +99,7 @@ milestone (or explicitly deferred). Nothing is orphaned.
 | H2       | Candidate CV attachments → download (1,293 files)          | **Attachment backfill** (data task, before M7)                            |
 | H3       | Global search across modules                               | **M9**                                                                    |
 | H4       | Send email from a record                                   | **M13**                                                                   |
-| H5       | Career site + web-to-candidate form                        | **M16** (behind toggle; MEDIUM in practice - no CareerSite records exist) |
+| H5       | Career site + web-to-candidate form                        | **M17** (behind toggle; MEDIUM in practice - no CareerSite records exist) |
 | H6       | Resume parser + Resume Inbox                               | **M7** (parser); Resume Inbox → post-1.0                                  |
 | H7       | Multi-status offer flow (made/accepted/withdrawn + expiry) | **M12**                                                                   |
 | H8       | Client sees "submitted" candidates (review/approve/reject) | **M10** via tokened share links (full contact _login_ portal → post-1.0)  |
@@ -115,15 +117,15 @@ milestone (or explicitly deferred). Nothing is orphaned.
 | M7 (audit)  | Approval process (multi-step)          | post-1.0 (0 approval records in Zoho)                       |
 | M8 (audit)  | Blueprint (generic status FSM)         | **M5** stage-map already covers it; generalise post-1.0     |
 | M9 (audit)  | Mail merge (bulk personalised email)   | **M13** (rides on email)                                    |
-| M10 (audit) | Job publishing to career site + boards | **M16**                                                     |
+| M10 (audit) | Job publishing to career site + boards | **M17**                                                     |
 | M11 (audit) | Formatted / branded resume             | post-1.0                                                    |
 | M12 (audit) | Calendar booking (self-book link)      | post-1.0 (interview scheduling lands in M11)                |
-| M13 (audit) | Zia matching (AI candidate↔job)        | **M15**                                                     |
+| M13 (audit) | Zia matching (AI candidate↔job)        | **M16**                                                     |
 | M14 (audit) | Reports + dashboards module            | **M14**                                                     |
 | M15 (audit) | Forecasts (revenue from placements)    | **M12**                                                     |
 | M16 (audit) | Candidate portal                       | post-1.0                                                    |
 | M17 (audit) | Vendor portal                          | post-1.0                                                    |
-| M18 (audit) | Compliance / GDPR module               | **M17**                                                     |
+| M18 (audit) | Compliance / GDPR module               | **M18**                                                     |
 | M19 (audit) | Sandbox                                | N/A (dev + staging DBs already exist)                       |
 | M20 (audit) | Custom buttons / functions (Deluge)    | post-1.0 (replace with our webhook + automation engine)     |
 | M21 (audit) | Marketplace extensions                 | N/A                                                         |
@@ -131,7 +133,7 @@ milestone (or explicitly deferred). Nothing is orphaned.
 ### LOW (Zoho ships it, zero data in our org - deliberately not built)
 
 Campaigns, To-Dos as full module (Tasks-lite lands in M11), SMS/telephony,
-social publishing, job-board multiposting (unless M16), territories, Recruiter
+social publishing, job-board multiposting (unless M17), territories, Recruiter
 Inbox, video-interview providers, convert-as-employee/temp. All listed under
 **Post-1.0 backlog / Not copied**.
 
@@ -505,7 +507,60 @@ schedule dialog.
 `Manage_Reports_Dashboards` + `Schedule_Reports`. Full custom-report builder →
 post-1.0.
 
-## M15 - Candidate Matching & Semantic Search · v0.16.0 · depends M7, M9
+## M15 - Client Feedback R1: Intake Flow & Job Collaboration · v0.16.0 · depends M5, M7, M13
+
+**Objective.** First client-feedback round (Mo, 17 Aug 2026): close the gap
+between CV intake and the pipeline, and make posting a job a team event: quick
+client creation, the client call captured on the job, its documents attached,
+and the whole team notified by email.
+
+**Features.**
+
+- Parse-to-pipeline: confirming a parsed CV can associate the candidate with an
+  open job opening, tag the account manager (@mention notification) and save
+  call notes, all in one step.
+- Quick-create client from inside the New job opening modal.
+- Client call summary field on jobs, included in the new-job email.
+- Job attachments: job description + client meeting summary files (+ other),
+  with Zoho-style category labels.
+- New-job email to every active member (minus the poster) with the job facts,
+  the client call summary and a deep link.
+- Zoho-familiar terminology: "Job Openings" and "Clients" across nav and pages.
+
+**Database/API.** `jobs.client_call_summary`; `attachment_kind` gains
+`job_description` + `client_meeting_summary`; `POST /api/jobs/[id]/documents`;
+`jobs.get` returns attachments; `parsing.confirm` gains
+`jobId`/`notifyUserId`/`callNotes` (creates the application + status history +
+@mention note); `EmailJob` gains `job-posted` (rendered by `@emerge/email`).
+
+**UI.** New job opening modal (quick-create client, call summary textarea, two
+file inputs); job record Attachments section + Client call summary field; parse
+Review modal "Pipeline" block (job select defaults the AM, call notes);
+renamed nav and page labels.
+
+**Dependencies.** M5 (applications), M6 (mentions/notifications), M7 (parser),
+M13 (email infra).
+
+**Acceptance criteria.**
+
+1. Confirming a parsed CV with a job selected creates the application
+   (screening entry status + history row) and the @mention lands in the AM's
+   notification bell.
+2. A job posted with a call summary emails every other active member the
+   summary and a working deep link.
+3. JD + meeting summary files upload from the create modal and the job record,
+   download via presigned URL, and delete.
+4. A client created from inside the job modal is selected in place without
+   leaving the form.
+5. **Verify against Zoho:** mirrors Zoho's parse → Associate → note-with-@mention
+   pattern, categorized Job Opening attachments, module naming (Job Openings,
+   Clients) and workflow email alerts on Job Opening create.
+
+**Zoho reference.** Candidates parse + Associate Job Openings, Notes @mentions,
+Job Opening attachments (Job Summary / Others), Clients module naming, workflow
+email alerts on record create.
+
+## M16 - Candidate Matching & Semantic Search · v0.17.0 · depends M7, M9
 
 **Objective.** "Find candidates for this job" / "find jobs for this candidate"
 over the real 1,300+ corpus. Closes audit **Zia matching (M13-audit)**.
@@ -537,7 +592,7 @@ post-migration corpus (done).
 **Zoho reference.** Zia matching (`getZiaMatchingCandidates/JobOpenings` +
 refine), Data Enriched (306).
 
-## M16 - Public API, Webhooks & Career Page · v0.17.0 · depends M9
+## M17 - Public API, Webhooks & Career Page · v0.18.0 · depends M9
 
 **Objective.** Open the platform + (optionally) the public candidate-acquisition
 surface. Closes audit **H5** (career site + web-to-candidate) and **M10-audit**
@@ -575,7 +630,7 @@ confirmations.
 Job Boards (`JobBoards_Free/Paid`), custom functions/webhooks. Paid job-board
 multiposting → post-1.0.
 
-## M17 - Compliance: GDPR, Blocklist & Data Tools · v0.18.0 · depends M8
+## M18 - Compliance: GDPR, Blocklist & Data Tools · v0.19.0 · depends M8
 
 **Objective.** UK/EU compliance the agency needs. Closes audit **Compliance /
 GDPR (M18-audit)** and surfaces the blocklist/opt-out flags already imported.
@@ -608,7 +663,7 @@ badge, export/erase actions.
 **Zoho reference.** Manage Compliance + Compliance Reports/Metrics, GDPR timeline
 (133/134/207), Is_Blocked/Lock_Status, Email_Opt_Out, Unsubscribe form.
 
-## M18 - Security, Performance & Production Hardening · v0.19.0 · depends all
+## M19 - Security, Performance & Production Hardening · v0.20.0 · depends all
 
 **Objective.** Make it safe + fast at real scale before v1.
 
@@ -631,11 +686,11 @@ rate-limit + audit middleware coverage.
 3. Security checklist passes (no unauthorized route, RLS holds under adversarial
    tests).
 4. **Verify against Zoho:** N/A (internal quality gate) - instead, a full
-   regression pass confirms M1–M17 still match their Zoho-reference behaviour.
+   regression pass confirms M1–M18 still match their Zoho-reference behaviour.
 
 **Zoho reference.** N/A (platform hardening).
 
-## M19 - v1.0 Production Release · v1.0.0 · depends M18
+## M20 - v1.0 Production Release · v1.0.0 · depends M19
 
 **Objective.** Ship 1.0: docs site, self-host guide (Docker), demo seed, upgrade
 path, release.
@@ -647,7 +702,7 @@ upgrade/migration path notes, release + announcement.
 
 **UI.** Docs/marketing surfaces; polish pass.
 
-**Dependencies.** M18.
+**Dependencies.** M19.
 
 **Acceptance criteria.** Fresh self-host from the guide comes up healthy;
 demo seed loads; upgrade path documented; `v1.0.0` tagged + released.
@@ -672,11 +727,12 @@ file from the block above and delete/rename the stale one:
 | M12 Offers/Placements        | `m11-offers-placements.md` → `m12-...`                                         |
 | M13 Email                    | `m12-email.md` → `m13-...`                                                     |
 | M14 Reports                  | `m15-reports-analytics.md` → `m14-...`                                         |
-| M15 Matching                 | `m13-matching.md` → `m15-...`                                                  |
-| M16 API/Webhooks/Career      | `m17-api-integrations.md` + `m09-career-portal.md` → `m16-...`                 |
-| M17 Compliance               | _(new)_                                                                        |
-| M18 Hardening                | `m18-hardening.md` (correct number)                                            |
-| M19 v1.0                     | `m19-v1-release.md` (correct number)                                           |
+| M15 Client Feedback R1       | _(shipped 17 Aug 2026 straight from the block above; no standalone file)_      |
+| M16 Matching                 | `m13-matching.md` → `m16-...`                                                  |
+| M17 API/Webhooks/Career      | `m17-api-integrations.md` + `m09-career-portal.md` (number now correct)        |
+| M18 Compliance               | _(new)_                                                                        |
+| M19 Hardening                | `m18-hardening.md` → `m19-...`                                                 |
+| M20 v1.0                     | `m19-v1-release.md` → `m20-...`                                                |
 | - automation (M14 old)       | `m14-automation.md` → post-1.0 backlog                                         |
 | - candidate portal (M16 old) | `m16-candidate-portal.md` → post-1.0 backlog                                   |
 

@@ -388,14 +388,19 @@ export const candidateExperience = pgTable(
   (t) => [index("candidate_experience_candidate_idx").on(t.candidateId)]
 );
 
-export const attachmentKind = pgEnum("attachment_kind", ["cv", "formatted_cv", "other"]);
+export const attachmentKind = pgEnum("attachment_kind", [
+  "cv",
+  "formatted_cv",
+  "other",
+  "job_description",
+  "client_meeting_summary"
+]);
 export type AttachmentKind = (typeof attachmentKind.enumValues)[number];
 
 /**
  * Polymorphic file attachments in S3-compatible storage (MinIO in dev). The
- * candidate's primary CV is an attachment with kind=cv. entityType is
- * "candidate" for now; more subjects (application, note) arrive in later
- * milestones.
+ * candidate's primary CV is an attachment with kind=cv. Jobs carry their own
+ * documents (M15): kind=job_description and kind=client_meeting_summary.
  */
 export const attachments = pgTable(
   "attachments",
@@ -472,6 +477,8 @@ export const jobs = pgTable(
     location: text("location"),
     /** Long-form job description; plain long text for now (M4 scope). */
     description: text("description"),
+    /** Client call summary captured at intake (M15); included in the new-job email. */
+    clientCallSummary: text("client_call_summary"),
     /** Number of openings for this role. */
     positions: integer("positions").notNull().default(1),
     /** Free-text salary preserved verbatim, plus optional structured range. */

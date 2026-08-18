@@ -16,8 +16,8 @@ export type NotableEntityType = (typeof NOTABLE_ENTITY_TYPES)[number];
 /** Human labels + the route prefix each entity links to. */
 export const ENTITY_META: Record<NotableEntityType, { label: string; path: string }> = {
   candidate: { label: "Candidate", path: "/candidates" },
-  job: { label: "Job", path: "/jobs" },
-  company: { label: "Company", path: "/companies" },
+  job: { label: "Job Opening", path: "/jobs" },
+  company: { label: "Client", path: "/companies" },
   contact: { label: "Contact", path: "/contacts" },
   application: { label: "Application", path: "/applications" }
 };

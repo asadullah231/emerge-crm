@@ -1,19 +1,26 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { parsedResumeSchema } from "@emerge/core";
 import {
+  applicationStatusHistory,
+  applications,
   attachments,
   candidateEducation,
   candidateExperience,
   candidates,
+  jobs,
+  notes,
   parseJobs,
-  parseJobStatus
+  parseJobStatus,
+  users
 } from "@emerge/db";
 import { writeAudit } from "../audit";
 import { humanId, nextCounter } from "../counters";
 import { enqueueParse } from "../parse-queue";
 import { router, workspaceProcedure } from "../trpc";
+import { ensureDefaultStatuses, entryStatusForStage } from "./applications";
+import { fanOutMentions } from "./notes";
 
 const statusEnum = z.enum(parseJobStatus.enumValues);
 
@@ -73,6 +80,10 @@ export const parsingRouter = router({
    * education/experience sub-records, and the uploaded CV re-linked as a
    * kind=cv attachment. Marks the parse job confirmed. Dedupe is surfaced in the
    * review UI via candidates.duplicates; merging uses candidates.merge.
+   *
+   * M15 additions, all optional: associate the new candidate with a job
+   * opening (creates the application), and leave call notes that @mention the
+   * account manager (rides on the M6 notes + notifications machinery).
    */
   confirm: workspaceProcedure
     .input(
@@ -81,7 +92,10 @@ export const parsingRouter = router({
         candidate: parsedResumeSchema.extend({
           lastName: z.string().trim().min(1, "Last name is required").max(125)
         }),
-        ownerId: z.string().uuid().nullable().optional()
+        ownerId: z.string().uuid().nullable().optional(),
+        jobId: z.string().uuid().nullable().optional(),
+        notifyUserId: z.string().uuid().nullable().optional(),
+        callNotes: z.string().trim().max(10000).nullable().optional()
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -184,7 +198,103 @@ export const parsingRouter = router({
           via: "parser"
         }
       });
-      return { candidateId: cand.id, humanId: cand.humanId };
+
+      // Optionally put the new candidate straight on a job's pipeline (M15).
+      let applicationId: string | null = null;
+      if (input.jobId) {
+        const [job] = await ctx.tx
+          .select({ id: jobs.id })
+          .from(jobs)
+          .where(and(eq(jobs.id, input.jobId), isNull(jobs.deletedAt)));
+        if (!job) throw new TRPCError({ code: "BAD_REQUEST", message: "Job opening not found" });
+        await ensureDefaultStatuses(ctx.tx, ctx.workspaceId);
+        const entryStatus = await entryStatusForStage(ctx.tx, "screening");
+        const nextApp = await nextCounter(ctx.tx, ctx.workspaceId, "application");
+        const [app] = await ctx.tx
+          .insert(applications)
+          .values({
+            workspaceId: ctx.workspaceId,
+            humanId: humanId("APP", nextApp),
+            candidateId: cand.id,
+            jobId: input.jobId,
+            stage: "screening",
+            statusKey: entryStatus,
+            ownerId: input.ownerId ?? ctx.session.user.id,
+            source: "parser",
+            stageEnteredAt: new Date()
+          })
+          .returning();
+        if (!app) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await ctx.tx.insert(applicationStatusHistory).values({
+          workspaceId: ctx.workspaceId,
+          applicationId: app.id,
+          toStatusKey: entryStatus,
+          toStage: "screening",
+          actorUserId: ctx.session.user.id
+        });
+        await writeAudit({
+          workspaceId: ctx.workspaceId,
+          actorUserId: ctx.session.user.id,
+          action: "application.created",
+          targetType: "application",
+          targetId: app.id,
+          meta: { humanId: app.humanId, via: "parser" }
+        });
+        applicationId = app.id;
+      }
+
+      // Optionally leave call notes that @mention the account manager (M15).
+      if (input.callNotes || input.notifyUserId) {
+        let mentionName: string | null = null;
+        if (input.notifyUserId) {
+          const [u] = await ctx.tx
+            .select({ name: users.name })
+            .from(users)
+            .where(eq(users.id, input.notifyUserId));
+          mentionName = u?.name ?? null;
+        }
+        const body = [
+          mentionName ? `@${mentionName}` : null,
+          input.callNotes?.trim() ||
+            (applicationId
+              ? "Candidate added to the pipeline from CV parsing."
+              : "Candidate created from CV parsing.")
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+        const entityType = applicationId ? "application" : "candidate";
+        const entityId = applicationId ?? cand.id;
+        const [note] = await ctx.tx
+          .insert(notes)
+          .values({
+            workspaceId: ctx.workspaceId,
+            entityType,
+            entityId,
+            authorId: ctx.session.user.id,
+            body
+          })
+          .returning();
+        if (note) {
+          const notified = await fanOutMentions(ctx.tx, {
+            workspaceId: ctx.workspaceId,
+            noteId: note.id,
+            entityType,
+            entityId,
+            authorId: ctx.session.user.id,
+            mentionUserIds: input.notifyUserId ? [input.notifyUserId] : []
+          });
+          await writeAudit({
+            workspaceId: ctx.workspaceId,
+            actorUserId: ctx.session.user.id,
+            action: "note.created",
+            targetType: entityType,
+            targetId: entityId,
+            meta: { noteId: note.id, mentioned: notified.length, via: "parser" }
+          });
+        }
+      }
+
+      return { candidateId: cand.id, humanId: cand.humanId, applicationId };
     }),
 
   /** Re-queue a failed (or stuck) parse for another attempt. */

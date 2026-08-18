@@ -13,9 +13,9 @@ import { getCurrentSession } from "@/server/auth/current";
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/candidates", label: "Candidates" },
-  { href: "/companies", label: "Companies" },
+  { href: "/companies", label: "Clients" },
   { href: "/contacts", label: "Contacts" },
-  { href: "/jobs", label: "Jobs" },
+  { href: "/jobs", label: "Job Openings" },
   { href: "/pipeline", label: "Pipeline" },
   { href: "/interviews", label: "Interviews" },
   { href: "/revenue", label: "Revenue" },

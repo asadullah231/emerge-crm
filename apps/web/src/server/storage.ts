@@ -86,8 +86,31 @@ export async function putObject(key: string, body: Buffer, contentType: string):
 }
 
 /**
+ * Fetch an object for app-proxied downloads. Files are capped at 15 MB, so
+ * streaming them through the app is cheap, works with a storage endpoint that
+ * is only reachable inside the Docker network (prod MinIO), and keeps every
+ * download behind the app's own auth.
+ */
+export async function getObject(key: string): Promise<{
+  stream: ReadableStream;
+  contentType: string | undefined;
+  contentLength: number | undefined;
+}> {
+  const { client, bucket } = getClient();
+  const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  if (!res.Body) throw new Error("Object has no body");
+  return {
+    stream: res.Body.transformToWebStream(),
+    contentType: res.ContentType,
+    contentLength: res.ContentLength
+  };
+}
+
+/**
  * Short-lived presigned GET URL that forces a download with the original
- * filename. Used by the download route handler as a redirect target.
+ * filename. Only useful when S3_ENDPOINT is browser-reachable; the app now
+ * serves downloads through /api/attachments/[id]/download instead (M15 fix:
+ * prod MinIO lives on the internal Docker network).
  */
 export async function getPresignedDownloadUrl(
   key: string,

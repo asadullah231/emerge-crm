@@ -10,6 +10,21 @@ export type EmailJob =
       acceptUrl: string;
     }
   | {
+      /** Team-wide heads-up when a new job opening is posted (M15). */
+      type: "job-posted";
+      to: string[];
+      jobTitle: string;
+      jobHumanId: string;
+      companyName: string;
+      location: string | null;
+      employmentType: string;
+      workMode: string;
+      positions: number;
+      postedByName: string;
+      clientCallSummary: string | null;
+      jobUrl: string;
+    }
+  | {
       /** A pre-rendered email sent from a record (M13). The worker delivers it
        * and updates the `emails` row (status/messageId) by id. */
       type: "record";
