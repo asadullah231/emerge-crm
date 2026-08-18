@@ -67,11 +67,17 @@ export function TimelinePanel({
           );
         } else if (e.kind === "status") {
           const stage = STAGE_LABELS[(e.toStage ?? "") as ApplicationStageKey] ?? e.toStage;
+          const noteSnippet = e.note
+            ? e.note.split("\n").slice(0, 3).join(" — ").slice(0, 240)
+            : null;
           text = (
             <>
               moved to <span className="font-medium">{stage}</span>
               {e.toStatusKey ? (
                 <span className="text-[var(--muted)]"> ({titleCase(e.toStatusKey)})</span>
+              ) : null}
+              {noteSnippet ? (
+                <div className="mt-1 whitespace-pre-wrap text-[var(--muted)]">{noteSnippet}</div>
               ) : null}
             </>
           );
