@@ -1,6 +1,6 @@
-import { and, ilike, isNull, or } from "drizzle-orm";
+import { and, eq, ilike, isNull, or } from "drizzle-orm";
 import { z } from "zod";
-import { candidates, companies, contacts, jobs } from "@emerge/db";
+import { candidates, companies, contacts, jobs, users } from "@emerge/db";
 import { router, workspaceProcedure } from "../trpc";
 
 export type SearchHit = {
@@ -54,7 +54,8 @@ export const searchRouter = router({
                 ilike(candidates.email, term),
                 ilike(candidates.title, term),
                 ilike(candidates.currentEmployer, term),
-                ilike(candidates.humanId, term)
+                ilike(candidates.humanId, term),
+                ilike(candidates.skills, term)
               )
             )
           )
@@ -105,13 +106,27 @@ export const searchRouter = router({
             id: jobs.id,
             humanId: jobs.humanId,
             title: jobs.title,
-            location: jobs.location
+            location: jobs.location,
+            companyName: companies.name
           })
           .from(jobs)
+          .leftJoin(companies, eq(companies.id, jobs.companyId))
+          .leftJoin(users, eq(users.id, jobs.ownerId))
           .where(
             and(
               isNull(jobs.deletedAt),
-              or(ilike(jobs.title, term), ilike(jobs.humanId, term), ilike(jobs.location, term))
+              or(
+                ilike(jobs.title, term),
+                ilike(jobs.humanId, term),
+                ilike(jobs.location, term),
+                ilike(jobs.city, term),
+                ilike(jobs.country, term),
+                ilike(jobs.description, term),
+                ilike(jobs.clientCallSummary, term),
+                ilike(jobs.requiredSkills, term),
+                ilike(companies.name, term),
+                ilike(users.name, term)
+              )
             )
           )
           .limit(input.perType)
@@ -133,7 +148,7 @@ export const searchRouter = router({
           id: j.id,
           humanId: j.humanId,
           label: j.title,
-          sublabel: j.location,
+          sublabel: j.companyName ?? j.location,
           href: `/jobs/${j.id}`
         });
       for (const co of comps)

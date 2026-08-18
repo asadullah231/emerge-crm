@@ -3,15 +3,50 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
-## Unreleased - Milestone 16: Client Feedback R2, Mention Emails & Stage Comments
+## v0.18.0 - Milestone 17a: Job Openings Parity, Fields & Data Integrity (2026-08-18)
 
-Planned (Mo's second feedback round, 18 Aug 2026). Planned milestones shifted
-by one: Matching is now M17 / v0.18.0 and v1.0.0 ships at M21. Spec:
-`docs/roadmap.md` §M16.
+First slice of the Job Openings parity sweep driven by the deep Zoho audit of
+18 Aug (vault: "Zoho vs Emerge - Job Openings gap analysis"). Planned
+milestones shifted by one: Matching is now M18 / v0.21.0 and v1.0.0 ships at
+M22.
 
-### Planned
+### Added
 
-- Email fan-out for @mentions on any record (notes create/update) — in
+- **Auto close date.** New `jobs.closed_at` (migration 0025) stamped when a
+  job enters Filled / Cancelled / Declined and cleared on reopen (Zoho
+  `Date_Closed` behaviour). Shown on the job record footer.
+- **New job fields end to end:** target date (create modal + record), salary
+  period, required skills, structured address (city / province / country /
+  postal code), and a hot-job flag with a 🔥 badge on the list and record
+  (Zoho `Is_Hot_Job_Opening`).
+- **Three new job statuses** matching Zoho's picklist: Waiting for approval,
+  Declined, Submitted by client; "Open" is now labelled "In-progress".
+- **Trash integrity fix.** Trashing a job now archives its live applications
+  with a status-history note (Zoho "Archived from Jobs" parity) instead of
+  leaving them active on a dead pipeline.
+- **Wider job search.** The command palette now matches jobs on description,
+  client call summary, required skills, city, country, client name and owner
+  name; job hits show the client as the sublabel.
+- **Skill chips.** Candidate Skills and job Required skills render as pill
+  chips with a +N expander (Zoho Skill Set look) instead of a comma blob;
+  editing stays a textarea. Candidate list search and the command palette now
+  match on skills, so searching a skill finds the people who have it.
+- **Structured job descriptions.** Migrated one-line JDs render with bold
+  section headings (Job Role, Location, Salary, ...) and bulleted Must-haves /
+  Requirements; the stored text is untouched and editing opens the raw
+  textarea.
+- **Kanban usability.** Pipeline columns now stretch to fill the screen (no
+  horizontal scrollbar on wide displays) and the board auto-scrolls, both
+  sideways and inside a column, while a card is dragged near an edge, so a
+  card can travel Screening to Archived in one motion.
+
+## v0.17.0 - Milestone 16: Client Feedback R2, Mention Emails & Stage Comments (2026-08-18)
+
+Mo's second feedback round.
+
+### Added
+
+- Email fan-out for @mentions on any record (notes create/update), in
   addition to the in-app bell.
 - Atomic application stage change with an optional inline note (mentions
   supported) and a required rejection reason when moving to Rejected.

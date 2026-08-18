@@ -77,7 +77,8 @@ export const candidatesRouter = router({
           candidates.email,
           candidates.title,
           candidates.currentEmployer,
-          candidates.humanId
+          candidates.humanId,
+          candidates.skills
         ],
         defaultSort: "lastName"
       });
