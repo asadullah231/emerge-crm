@@ -18,6 +18,7 @@ import {
   RecordSection,
   RecordShell
 } from "@/components/record";
+import { JobDescriptionView } from "@/components/job-description-view";
 import { JobDocuments } from "@/components/job-documents";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
@@ -411,7 +412,7 @@ export default function JobRecordPage() {
             canEdit={canEdit}
             saving={update.isPending}
             type="textarea"
-            render={(v) => <span className="whitespace-pre-wrap">{v}</span>}
+            render={(v) => <JobDescriptionView text={v} />}
             onSave={save("description")}
           />
         </div>
