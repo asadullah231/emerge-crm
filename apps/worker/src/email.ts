@@ -6,6 +6,7 @@ import { emails, withWorkspace, type Database } from "@emerge/db";
 import {
   renderInvitationEmail,
   renderJobPostedEmail,
+  renderMentionEmail,
   renderPasswordResetEmail
 } from "@emerge/email";
 
@@ -17,6 +18,16 @@ export type EmailJob =
       workspaceName: string;
       inviterName: string;
       acceptUrl: string;
+    }
+  | {
+      /** Email fan-out when a member is @mentioned in a note (M16). */
+      type: "mention";
+      to: string;
+      authorName: string;
+      entityLabel: string;
+      entityKind: string;
+      entityUrl: string;
+      noteBodyPreview: string;
     }
   | {
       /** Team-wide heads-up when a new job opening is posted (M15). */
@@ -100,6 +111,14 @@ function renderEmail(job: Exclude<EmailJob, { type: "record" }>): {
         inviterName: job.inviterName,
         workspaceName: job.workspaceName,
         acceptUrl: job.acceptUrl
+      });
+    case "mention":
+      return renderMentionEmail({
+        authorName: job.authorName,
+        entityLabel: job.entityLabel,
+        entityKind: job.entityKind,
+        entityUrl: job.entityUrl,
+        noteBodyPreview: job.noteBodyPreview
       });
     case "job-posted":
       return renderJobPostedEmail({

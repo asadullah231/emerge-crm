@@ -3,6 +3,22 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## Unreleased - Milestone 16: Client Feedback R2, Mention Emails & Stage Comments
+
+Planned (Mo's second feedback round, 18 Aug 2026). Planned milestones shifted
+by one: Matching is now M17 / v0.18.0 and v1.0.0 ships at M21. Spec:
+`docs/roadmap.md` §M16.
+
+### Planned
+
+- Email fan-out for @mentions on any record (notes create/update) — in
+  addition to the in-app bell.
+- Atomic application stage change with an optional inline note (mentions
+  supported) and a required rejection reason when moving to Rejected.
+- "Move to next stage" widget on the application record page + matching
+  modal on kanban drop.
+- Rejection reason surfaced on the application header + timeline entry.
+
 ## v0.16.0 - Milestone 15: Client Feedback R1, Intake Flow & Job Collaboration (2026-08-17)
 
 First client-feedback round (Mo). Planned milestones shifted by one: Matching is

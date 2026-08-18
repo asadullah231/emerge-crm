@@ -10,6 +10,8 @@ import {
   type ApplicationStageKey
 } from "@/lib/applications";
 import { candidateName } from "@/components/new-candidate-modal";
+import { Modal } from "@/components/modal";
+import { StageChangeForm } from "@/components/stage-change-form";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 
 type Board = RouterOutputs["applications"]["board"];
@@ -22,8 +24,10 @@ function daysInStage(since: string | Date): number {
 
 /**
  * Application kanban: 7 stage columns with native HTML5 drag-and-drop. Dropping
- * a card into a column moves the application to that stage (dropping into
- * Rejected prompts for a reason). Read-only users see the board but cannot move.
+ * a card into a column opens a modal (M16) with the same fields as the record
+ * page — optional comment with @mentions and a required rejection reason when
+ * moving into Rejected. The optimistic move only commits after the modal is
+ * confirmed. Read-only users see the board but cannot move cards.
  */
 export function ApplicationKanban({
   jobId,
@@ -37,8 +41,10 @@ export function ApplicationKanban({
   const utils = trpc.useUtils();
   const input = { jobId };
   const board = trpc.applications.board.useQuery(input);
+  const members = trpc.members.list.useQuery(undefined, { enabled: canWrite });
   const [dragId, setDragId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ card: Card; toStage: ApplicationStageKey } | null>(null);
 
   const statusLabel = (key: string) =>
     board.data?.statuses.find((s) => s.key === key)?.label ?? key;
@@ -55,10 +61,11 @@ export function ApplicationKanban({
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) utils.applications.board.setData(input, ctx.prev);
     },
+    onSuccess: () => {
+      setPending(null);
+    },
     onSettled: invalidate
   });
-
-  const changeStatus = trpc.applications.changeStatus.useMutation({ onSettled: invalidate });
 
   const drop = (stage: ApplicationStageKey) => {
     setOverStage(null);
@@ -67,12 +74,7 @@ export function ApplicationKanban({
     if (!id || !canWrite) return;
     const card = findCard(board.data, id);
     if (!card || card.stage === stage) return;
-    if (stage === "rejected") {
-      const reason = window.prompt("Reason for rejection (optional):", "") ?? "";
-      changeStatus.mutate({ id, statusKey: "rejected", rejectionReason: reason || null });
-      return;
-    }
-    changeStage.mutate({ id, stage });
+    setPending({ card, toStage: stage });
   };
 
   if (board.isLoading) {
@@ -87,61 +89,103 @@ export function ApplicationKanban({
   }
 
   const columns = board.data?.columns ?? {};
+  const activeMembers = (members.data ?? [])
+    .filter((m) => !m.deactivatedAt)
+    .map((m) => ({ userId: m.userId, name: m.name }));
 
   return (
-    <div className="overflow-x-auto">
-      <div className="flex min-w-max gap-3 pb-2">
-        {APPLICATION_STAGES.map((stage) => {
-          const cards = columns[stage] ?? [];
-          return (
-            <div
-              key={stage}
-              onDragOver={(e) => {
-                if (!canWrite) return;
-                e.preventDefault();
-                setOverStage(stage);
-              }}
-              onDragLeave={() => setOverStage((s) => (s === stage ? null : s))}
-              onDrop={() => drop(stage)}
-              className={cn(
-                "flex w-64 flex-col rounded-lg border bg-[var(--card)]",
-                overStage === stage
-                  ? "border-[var(--brand-secondary)] ring-1 ring-[var(--brand-secondary)]"
-                  : "border-[var(--border)]"
-              )}
-            >
-              <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
-                <span className={cn("text-sm font-semibold", STAGE_ACCENT[stage])}>
-                  {STAGE_LABELS[stage]}
-                </span>
-                <span className="rounded-full bg-[var(--background)] px-2 py-0.5 text-xs text-[var(--muted)]">
-                  {cards.length}
-                </span>
+    <>
+      <div className="overflow-x-auto">
+        <div className="flex min-w-max gap-3 pb-2">
+          {APPLICATION_STAGES.map((stage) => {
+            const cards = columns[stage] ?? [];
+            return (
+              <div
+                key={stage}
+                onDragOver={(e) => {
+                  if (!canWrite) return;
+                  e.preventDefault();
+                  setOverStage(stage);
+                }}
+                onDragLeave={() => setOverStage((s) => (s === stage ? null : s))}
+                onDrop={() => drop(stage)}
+                className={cn(
+                  "flex w-64 flex-col rounded-lg border bg-[var(--card)]",
+                  overStage === stage
+                    ? "border-[var(--brand-secondary)] ring-1 ring-[var(--brand-secondary)]"
+                    : "border-[var(--border)]"
+                )}
+              >
+                <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
+                  <span className={cn("text-sm font-semibold", STAGE_ACCENT[stage])}>
+                    {STAGE_LABELS[stage]}
+                  </span>
+                  <span className="rounded-full bg-[var(--background)] px-2 py-0.5 text-xs text-[var(--muted)]">
+                    {cards.length}
+                  </span>
+                </div>
+                <div className="flex max-h-[65vh] min-h-24 flex-1 flex-col gap-2 overflow-y-auto p-2">
+                  {cards.map((card) => (
+                    <KanbanCard
+                      key={card.id}
+                      card={card}
+                      statusLabel={statusLabel(card.statusKey)}
+                      canWrite={canWrite}
+                      showJob={showJob}
+                      onDragStart={() => setDragId(card.id)}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setOverStage(null);
+                      }}
+                    />
+                  ))}
+                  {cards.length === 0 ? (
+                    <p className="px-1 py-6 text-center text-xs text-[var(--muted)]">Empty</p>
+                  ) : null}
+                </div>
               </div>
-              <div className="flex max-h-[65vh] min-h-24 flex-1 flex-col gap-2 overflow-y-auto p-2">
-                {cards.map((card) => (
-                  <KanbanCard
-                    key={card.id}
-                    card={card}
-                    statusLabel={statusLabel(card.statusKey)}
-                    canWrite={canWrite}
-                    showJob={showJob}
-                    onDragStart={() => setDragId(card.id)}
-                    onDragEnd={() => {
-                      setDragId(null);
-                      setOverStage(null);
-                    }}
-                  />
-                ))}
-                {cards.length === 0 ? (
-                  <p className="px-1 py-6 text-center text-xs text-[var(--muted)]">Empty</p>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+
+      <Modal
+        title={
+          pending
+            ? `Move ${candidateName({
+                firstName: pending.card.candidateFirstName,
+                lastName: pending.card.candidateLastName
+              })} to ${STAGE_LABELS[pending.toStage]}`
+            : ""
+        }
+        open={Boolean(pending)}
+        onClose={() => {
+          if (!changeStage.isPending) setPending(null);
+        }}
+      >
+        {pending ? (
+          <StageChangeForm
+            currentStage={pending.card.stage as ApplicationStageKey}
+            defaultStage={pending.toStage}
+            lockStage
+            members={activeMembers}
+            saving={changeStage.isPending}
+            error={changeStage.error?.message ?? null}
+            onCancel={() => setPending(null)}
+            submitLabel="Move"
+            onSubmit={(opts) =>
+              changeStage.mutate({
+                id: pending.card.id,
+                stage: opts.stage,
+                noteBody: opts.noteBody,
+                mentionUserIds: opts.mentionUserIds,
+                rejectionReason: opts.rejectionReason
+              })
+            }
+          />
+        ) : null}
+      </Modal>
+    </>
   );
 }
 

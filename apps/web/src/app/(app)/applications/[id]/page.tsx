@@ -12,6 +12,7 @@ import { InterviewsPanel } from "@/components/interviews-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { OffersPanel } from "@/components/offers-panel";
 import { TasksPanel } from "@/components/tasks-panel";
+import { StageChangeForm } from "@/components/stage-change-form";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { SubmitToClientModal } from "@/components/submit-to-client-modal";
 import { TimelinePanel } from "@/components/timeline-panel";
@@ -54,6 +55,12 @@ export default function ApplicationRecordPage() {
 
   const refresh = () => utils.applications.get.invalidate({ id: params.id });
   const changeStatus = trpc.applications.changeStatus.useMutation({ onSuccess: refresh });
+  const changeStage = trpc.applications.changeStage.useMutation({
+    onSuccess: () => {
+      refresh();
+      utils.applications.board.invalidate();
+    }
+  });
   const updateMeta = trpc.applications.updateMeta.useMutation({ onSuccess: refresh });
   const softDelete = trpc.applications.softDelete.useMutation({
     onSuccess: () => router.push("/pipeline")
@@ -83,6 +90,9 @@ export default function ApplicationRecordPage() {
       .filter((m) => !m.deactivatedAt || m.userId === record.ownerId)
       .map((m) => ({ value: m.userId, label: m.name }))
   ];
+  const activeMembers = (members.data ?? [])
+    .filter((m) => !m.deactivatedAt)
+    .map((m) => ({ userId: m.userId, name: m.name }));
 
   const setStatus = (key: string | null) => {
     if (!key || key === record.statusKey) return;
@@ -149,7 +159,35 @@ export default function ApplicationRecordPage() {
           This application is in the trash. Restore it to make changes.
         </div>
       ) : null}
+      {record.rejectionReason && record.stage === "rejected" ? (
+        <div
+          role="alert"
+          className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700"
+        >
+          <span className="font-semibold">Rejected:</span> {record.rejectionReason}
+        </div>
+      ) : null}
       <FormError message={changeStatus.error?.message ?? updateMeta.error?.message} />
+
+      {canEdit ? (
+        <RecordSection title="Move to next stage">
+          <StageChangeForm
+            currentStage={record.stage as ApplicationStageKey}
+            members={activeMembers}
+            saving={changeStage.isPending}
+            error={changeStage.error?.message ?? null}
+            onSubmit={(opts) =>
+              changeStage.mutate({
+                id: record.id,
+                stage: opts.stage,
+                noteBody: opts.noteBody,
+                mentionUserIds: opts.mentionUserIds,
+                rejectionReason: opts.rejectionReason
+              })
+            }
+          />
+        </RecordSection>
+      ) : null}
 
       <RecordSection title="Pipeline">
         <FieldGrid>
