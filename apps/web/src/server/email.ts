@@ -10,6 +10,16 @@ export type EmailJob =
       acceptUrl: string;
     }
   | {
+      /** Email fan-out when a member is @mentioned in a note (M16). */
+      type: "mention";
+      to: string;
+      authorName: string;
+      entityLabel: string;
+      entityKind: string;
+      entityUrl: string;
+      noteBodyPreview: string;
+    }
+  | {
       /** Team-wide heads-up when a new job opening is posted (M15). */
       type: "job-posted";
       to: string[];

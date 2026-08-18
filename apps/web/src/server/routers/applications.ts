@@ -8,6 +8,7 @@ import {
   applications,
   candidates,
   jobs,
+  notes,
   users,
   type Transaction
 } from "@emerge/db";
@@ -19,7 +20,9 @@ import {
 import { writeAudit } from "../audit";
 import { humanId, nextCounter } from "../counters";
 import { trashCutoff } from "../list-query";
+import { sendMentionEmails } from "../mention-emails";
 import { router, workspaceProcedure } from "../trpc";
+import { fanOutMentions } from "./notes";
 
 const candidateCols = {
   candidateHumanId: candidates.humanId,
@@ -76,6 +79,99 @@ export async function entryStatusForStage(tx: Transaction, stage: string): Promi
 }
 
 const stageEnum = z.enum(applicationStage.enumValues);
+
+/**
+ * Rejection reason is required when transitioning INTO the rejected stage,
+ * and forbidden otherwise (M16). Keeps the field trimmed + capped.
+ */
+function coerceRejectionReason(
+  toStage: (typeof applicationStage.enumValues)[number],
+  provided: string | null | undefined
+): string | null {
+  const trimmed = provided?.trim() || null;
+  if (toStage === "rejected") {
+    if (!trimmed) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "A rejection reason is required when rejecting an application"
+      });
+    }
+    return trimmed;
+  }
+  if (trimmed) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A rejection reason only applies when rejecting"
+    });
+  }
+  return null;
+}
+
+/**
+ * Compose the short status-history `note` line so the timeline entry reads
+ * naturally — includes the rejection reason (when rejecting) and, optionally,
+ * the recruiter's comment.
+ */
+function composeTransitionNote(
+  rejectionReason: string | null,
+  noteBody: string | null | undefined
+): string | null {
+  const trimmed = noteBody?.trim() || null;
+  if (rejectionReason && trimmed) return `Rejected — ${rejectionReason}\n${trimmed}`;
+  if (rejectionReason) return `Rejected — ${rejectionReason}`;
+  return trimmed;
+}
+
+/**
+ * Persist an optional inline comment as a first-class note on the application
+ * (so it appears in the Notes panel and can be edited/deleted), fan out any
+ * @mentions and email them (M16). Failures on email enqueue don't roll back
+ * the enclosing status change.
+ */
+async function attachTransitionNote(
+  tx: Transaction,
+  opts: {
+    workspaceId: string;
+    applicationId: string;
+    authorId: string;
+    authorName: string;
+    body: string;
+    mentionUserIds: string[];
+  }
+): Promise<void> {
+  const [note] = await tx
+    .insert(notes)
+    .values({
+      workspaceId: opts.workspaceId,
+      entityType: "application",
+      entityId: opts.applicationId,
+      authorId: opts.authorId,
+      body: opts.body
+    })
+    .returning();
+  if (!note) return;
+  const notified = await fanOutMentions(tx, {
+    workspaceId: opts.workspaceId,
+    noteId: note.id,
+    entityType: "application",
+    entityId: opts.applicationId,
+    authorId: opts.authorId,
+    mentionUserIds: opts.mentionUserIds
+  });
+  if (notified.length > 0) {
+    try {
+      await sendMentionEmails(tx, {
+        authorName: opts.authorName,
+        entityType: "application",
+        entityId: opts.applicationId,
+        noteBody: opts.body,
+        recipientIds: notified
+      });
+    } catch (err) {
+      console.error("[applications.stage-change] mention email enqueue failed:", err);
+    }
+  }
+}
 
 export const applicationsRouter = router({
   /** The workspace status dictionary (seeded on demand), for pickers. */
@@ -318,14 +414,22 @@ export const applicationsRouter = router({
       return created;
     }),
 
-  /** Change the fine status; the stage follows the status's stage. */
+  /**
+   * Change the fine status; the stage follows the status's stage.
+   *
+   * M16 additions (all optional except when rejecting): `noteBody` becomes a
+   * first-class note on the application; `mentionUserIds` fan out to the bell
+   * AND email; `rejectionReason` is REQUIRED when the target stage is
+   * `rejected` and forbidden otherwise. All in one transaction.
+   */
   changeStatus: workspaceProcedure
     .input(
       z.object({
         id: z.string().uuid(),
         statusKey: z.string().min(1),
         rejectionReason: z.string().trim().max(2000).nullable().optional(),
-        note: z.string().trim().max(500).nullable().optional()
+        noteBody: z.string().trim().max(10000).nullable().optional(),
+        mentionUserIds: z.array(z.string().uuid()).max(50).optional()
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -338,13 +442,16 @@ export const applicationsRouter = router({
       if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
 
       const stageChanged = current.stage !== target.stage;
+      const rejectionReason = stageChanged
+        ? coerceRejectionReason(target.stage, input.rejectionReason)
+        : current.rejectionReason;
+
       const [updated] = await ctx.tx
         .update(applications)
         .set({
           statusKey: target.key,
           stage: target.stage,
-          rejectionReason:
-            input.rejectionReason !== undefined ? input.rejectionReason : current.rejectionReason,
+          rejectionReason,
           stageEnteredAt: stageChanged ? new Date() : current.stageEnteredAt
         })
         .where(eq(applications.id, input.id))
@@ -357,8 +464,20 @@ export const applicationsRouter = router({
         fromStage: current.stage,
         toStage: target.stage,
         actorUserId: ctx.session.user.id,
-        note: input.note ?? null
+        note: composeTransitionNote(rejectionReason, input.noteBody)
       });
+
+      if (input.noteBody?.trim()) {
+        await attachTransitionNote(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          applicationId: input.id,
+          authorId: ctx.session.user.id,
+          authorName: ctx.session.user.name,
+          body: input.noteBody.trim(),
+          mentionUserIds: input.mentionUserIds ?? []
+        });
+      }
+
       await writeAudit({
         workspaceId: ctx.workspaceId,
         actorUserId: ctx.session.user.id,
@@ -370,13 +489,19 @@ export const applicationsRouter = router({
       return updated;
     }),
 
-  /** Kanban move: set the stage and snap to that stage's entry status. */
+  /**
+   * Kanban move: set the stage and snap to that stage's entry status. Same M16
+   * shape as changeStatus (noteBody + mentionUserIds + rejectionReason with
+   * the reject-only invariant), so both surfaces behave identically.
+   */
   changeStage: workspaceProcedure
     .input(
       z.object({
         id: z.string().uuid(),
         stage: stageEnum,
-        note: z.string().trim().max(500).nullable().optional()
+        rejectionReason: z.string().trim().max(2000).nullable().optional(),
+        noteBody: z.string().trim().max(10000).nullable().optional(),
+        mentionUserIds: z.array(z.string().uuid()).max(50).optional()
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -388,10 +513,16 @@ export const applicationsRouter = router({
       if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
       if (current.stage === input.stage) return current;
 
+      const rejectionReason = coerceRejectionReason(input.stage, input.rejectionReason);
       const entryStatus = await entryStatusForStage(ctx.tx, input.stage);
       const [updated] = await ctx.tx
         .update(applications)
-        .set({ stage: input.stage, statusKey: entryStatus, stageEnteredAt: new Date() })
+        .set({
+          stage: input.stage,
+          statusKey: entryStatus,
+          rejectionReason,
+          stageEnteredAt: new Date()
+        })
         .where(eq(applications.id, input.id))
         .returning();
       await ctx.tx.insert(applicationStatusHistory).values({
@@ -402,8 +533,20 @@ export const applicationsRouter = router({
         fromStage: current.stage,
         toStage: input.stage,
         actorUserId: ctx.session.user.id,
-        note: input.note ?? null
+        note: composeTransitionNote(rejectionReason, input.noteBody)
       });
+
+      if (input.noteBody?.trim()) {
+        await attachTransitionNote(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          applicationId: input.id,
+          authorId: ctx.session.user.id,
+          authorName: ctx.session.user.name,
+          body: input.noteBody.trim(),
+          mentionUserIds: input.mentionUserIds ?? []
+        });
+      }
+
       await writeAudit({
         workspaceId: ctx.workspaceId,
         actorUserId: ctx.session.user.id,

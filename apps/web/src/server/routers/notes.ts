@@ -10,8 +10,9 @@ import {
   users,
   type Transaction
 } from "@emerge/db";
-import { DEFAULT_NOTE_TEMPLATES, NOTABLE_ENTITY_TYPES } from "@/lib/notes";
+import { DEFAULT_NOTE_TEMPLATES, NOTABLE_ENTITY_TYPES, type NotableEntityType } from "@/lib/notes";
 import { writeAudit } from "../audit";
+import { sendMentionEmails } from "../mention-emails";
 import { roleAtLeast, router, workspaceProcedure } from "../trpc";
 
 const entityType = z.enum(NOTABLE_ENTITY_TYPES);
@@ -146,6 +147,20 @@ export const notesRouter = router({
         authorId: ctx.session.user.id,
         mentionUserIds: input.mentionUserIds ?? []
       });
+      // Email fan-out (M16). A queue outage must never fail the note write.
+      if (notified.length > 0) {
+        try {
+          await sendMentionEmails(ctx.tx, {
+            authorName: ctx.session.user.name,
+            entityType: input.entityType,
+            entityId: input.entityId,
+            noteBody: input.body,
+            recipientIds: notified
+          });
+        } catch (err) {
+          console.error("[notes.create] mention email enqueue failed:", err);
+        }
+      }
       await writeAudit({
         workspaceId: ctx.workspaceId,
         actorUserId: ctx.session.user.id,
@@ -182,7 +197,7 @@ export const notesRouter = router({
         const existingSet = new Set(existing.map((e) => e.userId));
         const added = input.mentionUserIds.filter((id) => !existingSet.has(id));
         if (added.length > 0) {
-          await fanOutMentions(ctx.tx, {
+          const notified = await fanOutMentions(ctx.tx, {
             workspaceId: ctx.workspaceId,
             noteId: input.id,
             entityType: note.entityType,
@@ -190,6 +205,19 @@ export const notesRouter = router({
             authorId: ctx.session.user.id,
             mentionUserIds: added
           });
+          if (notified.length > 0) {
+            try {
+              await sendMentionEmails(ctx.tx, {
+                authorName: ctx.session.user.name,
+                entityType: note.entityType as NotableEntityType,
+                entityId: note.entityId,
+                noteBody: input.body,
+                recipientIds: notified
+              });
+            } catch (err) {
+              console.error("[notes.update] mention email enqueue failed:", err);
+            }
+          }
         }
       }
       return updated;
