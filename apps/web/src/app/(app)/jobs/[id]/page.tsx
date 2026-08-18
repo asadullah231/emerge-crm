@@ -20,6 +20,7 @@ import {
 } from "@/components/record";
 import { JobDocuments } from "@/components/job-documents";
 import { NotesPanel } from "@/components/notes-panel";
+import { SkillChips } from "@/components/skill-chips";
 import { JobRevenuePanel } from "@/components/revenue-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { TasksPanel } from "@/components/tasks-panel";
@@ -432,7 +433,7 @@ export default function JobRecordPage() {
             canEdit={canEdit}
             saving={update.isPending}
             type="textarea"
-            render={(v) => <span className="whitespace-pre-wrap">{v}</span>}
+            render={(v) => <SkillChips skills={v} />}
             onSave={save("requiredSkills")}
           />
         </div>

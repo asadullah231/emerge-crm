@@ -54,7 +54,8 @@ export const searchRouter = router({
                 ilike(candidates.email, term),
                 ilike(candidates.title, term),
                 ilike(candidates.currentEmployer, term),
-                ilike(candidates.humanId, term)
+                ilike(candidates.humanId, term),
+                ilike(candidates.skills, term)
               )
             )
           )
