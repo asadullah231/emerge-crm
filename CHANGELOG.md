@@ -27,6 +27,14 @@ M22.
 - **Wider job search.** The command palette now matches jobs on description,
   client call summary, required skills, city, country, client name and owner
   name; job hits show the client as the sublabel.
+- **Skill chips.** Candidate Skills and job Required skills render as pill
+  chips with a +N expander (Zoho Skill Set look) instead of a comma blob;
+  editing stays a textarea. Candidate list search and the command palette now
+  match on skills, so searching a skill finds the people who have it.
+- **Structured job descriptions.** Migrated one-line JDs render with bold
+  section headings (Job Role, Location, Salary, ...) and bulleted Must-haves /
+  Requirements; the stored text is untouched and editing opens the raw
+  textarea.
 
 ## v0.17.0 - Milestone 16: Client Feedback R2, Mention Emails & Stage Comments (2026-08-18)
 
