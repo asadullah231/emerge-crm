@@ -68,8 +68,14 @@ export const submissionsRouter = router({
       if (!job) throw new TRPCError({ code: "BAD_REQUEST", message: "Job not found" });
 
       const apps = await ctx.tx
-        .select({ id: applications.id })
+        .select({
+          id: applications.id,
+          isBlocked: candidates.isBlocked,
+          firstName: candidates.firstName,
+          lastName: candidates.lastName
+        })
         .from(applications)
+        .innerJoin(candidates, eq(candidates.id, applications.candidateId))
         .where(
           and(
             inArray(applications.id, input.applicationIds),
@@ -79,6 +85,17 @@ export const submissionsRouter = router({
         );
       if (apps.length === 0) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "No valid applications for this job" });
+      }
+      // Blocklist (M20): blocked candidates cannot be submitted to a client.
+      const blocked = apps.filter((a) => a.isBlocked);
+      if (blocked.length > 0) {
+        const names = blocked
+          .map((b) => [b.firstName, b.lastName].filter(Boolean).join(" "))
+          .join(", ");
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Blocked candidate(s) cannot be submitted: ${names}`
+        });
       }
 
       const { token, tokenHash } = makeShareToken();
