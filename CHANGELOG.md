@@ -35,6 +35,10 @@ M22.
   section headings (Job Role, Location, Salary, ...) and bulleted Must-haves /
   Requirements; the stored text is untouched and editing opens the raw
   textarea.
+- **Kanban usability.** Pipeline columns now stretch to fill the screen (no
+  horizontal scrollbar on wide displays) and the board auto-scrolls, both
+  sideways and inside a column, while a card is dragged near an edge, so a
+  card can travel Screening to Archived in one motion.
 
 ## v0.17.0 - Milestone 16: Client Feedback R2, Mention Emails & Stage Comments (2026-08-18)
 
