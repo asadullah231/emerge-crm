@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/form";
 import { TAG_COLORS, type TaggableType } from "@/components/tag-editor";
@@ -19,7 +19,8 @@ export function BulkBar({
   onClear,
   onDone,
   onExport,
-  onMailMerge
+  onMailMerge,
+  extraActions
 }: {
   entityType: TaggableType;
   selectedIds: string[];
@@ -30,6 +31,8 @@ export function BulkBar({
   onExport: () => void;
   /** When provided, shows a "Mail merge" action (record types that can be emailed). */
   onMailMerge?: () => void;
+  /** Entity-specific bulk actions rendered alongside the shared ones (M17b). */
+  extraActions?: ReactNode;
 }) {
   const [tagOpen, setTagOpen] = useState(false);
   const tagRef = useRef<HTMLDivElement>(null);
@@ -69,6 +72,8 @@ export function BulkBar({
         <Button variant="outline" className="px-3 py-1.5" onClick={onExport}>
           Export CSV
         </Button>
+
+        {canWrite && !showTrash ? extraActions : null}
 
         {canWrite && !showTrash && onMailMerge ? (
           <Button variant="outline" className="px-3 py-1.5" onClick={onMailMerge}>
