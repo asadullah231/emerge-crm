@@ -208,10 +208,13 @@ export const CANDIDATE_SOURCE_OPTIONS = [
 ];
 
 export const JOB_STATUS_OPTIONS = [
-  { value: "open", label: "Open" },
+  { value: "open", label: "In-progress" },
+  { value: "waiting_approval", label: "Waiting for approval" },
+  { value: "submitted_by_client", label: "Submitted by client" },
   { value: "on_hold", label: "On hold" },
   { value: "filled", label: "Filled" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "declined", label: "Declined" },
   { value: "inactive", label: "Inactive" }
 ];
 
@@ -230,9 +233,12 @@ export const JOB_WORK_MODE_OPTIONS = [
 export function JobStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     open: "bg-green-500/10 text-green-600",
+    waiting_approval: "bg-amber-500/10 text-amber-600",
+    submitted_by_client: "bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]",
     on_hold: "bg-amber-500/10 text-amber-600",
     filled: "bg-[var(--brand-secondary)]/10 text-[var(--brand-secondary)]",
     cancelled: "bg-red-500/10 text-red-600",
+    declined: "bg-red-500/10 text-red-600",
     inactive: "bg-zinc-500/10 text-[var(--muted)]"
   };
   const label = JOB_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;

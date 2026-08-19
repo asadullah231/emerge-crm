@@ -10,6 +10,7 @@ import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
 import { CommunicationPanel } from "@/components/communication-panel";
 import { NotesPanel } from "@/components/notes-panel";
+import { SkillChips } from "@/components/skill-chips";
 import { TagEditor } from "@/components/tag-editor";
 import { TasksPanel } from "@/components/tasks-panel";
 import { TimelinePanel } from "@/components/timeline-panel";
@@ -291,6 +292,7 @@ export default function CandidateRecordPage() {
             canEdit={canEdit}
             saving={update.isPending}
             type="textarea"
+            render={(v) => <SkillChips skills={v} />}
             onSave={save("skills")}
           />
         </div>
