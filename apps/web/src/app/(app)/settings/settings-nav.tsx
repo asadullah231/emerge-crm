@@ -10,6 +10,7 @@ const TABS = [
   { href: "/settings/members", label: "Members" },
   { href: "/settings/ai", label: "AI" },
   { href: "/settings/api", label: "API & Webhooks" },
+  { href: "/settings/compliance", label: "Compliance" },
   { href: "/settings/email-templates", label: "Email templates" },
   { href: "/settings/audit-log", label: "Audit log" }
 ];

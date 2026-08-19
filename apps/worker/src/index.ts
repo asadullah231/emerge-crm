@@ -3,6 +3,7 @@ import IORedis from "ioredis";
 import { APP_NAME, APP_VERSION } from "@emerge/core";
 import { createDb } from "@emerge/db";
 import { startEmailWorker } from "./email";
+import { sweepRetention } from "./compliance/retention";
 import { sendDueInterviewReminders } from "./interviews/reminders";
 import { expireOverdueOffers } from "./offers/expiry";
 import { startParseWorker } from "./parse/worker";
@@ -34,6 +35,9 @@ const worker = new Worker(
     } else if (job.name === "dispatch-webhooks") {
       const n = await dispatchDueWebhooks(db);
       if (n > 0) console.log(`[worker] delivered ${n} webhook(s)`);
+    } else if (job.name === "retention-sweep") {
+      const n = await sweepRetention(db);
+      if (n > 0) console.log(`[worker] retention: trashed ${n} stale candidate(s)`);
     }
   },
   { connection }
@@ -72,6 +76,13 @@ await queue.upsertJobScheduler(
   "dispatch-webhooks-scheduler",
   { every: 60_000 },
   { name: "dispatch-webhooks" }
+);
+
+// Retention sweep: trash stale candidates per workspace policy, daily (M20).
+await queue.upsertJobScheduler(
+  "retention-sweep-scheduler",
+  { every: 24 * 60 * 60_000 },
+  { name: "retention-sweep" }
 );
 
 const emailWorker = startEmailWorker(connection, db);

@@ -150,6 +150,8 @@ export const candidatesRouter = router({
           noticePeriod: candidates.noticePeriod,
           source: candidates.source,
           ownerId: candidates.ownerId,
+          emailOptOut: candidates.emailOptOut,
+          isBlocked: candidates.isBlocked,
           deletedAt: candidates.deletedAt,
           createdAt: candidates.createdAt,
           updatedAt: candidates.updatedAt,
