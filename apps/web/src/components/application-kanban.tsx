@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@emerge/ui";
 import {
@@ -45,6 +45,43 @@ export function ApplicationKanban({
   const [dragId, setDragId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<string | null>(null);
   const [pending, setPending] = useState<{ card: Card; toStage: ApplicationStageKey } | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+
+  // Edge auto-scroll while dragging: keep a rAF loop alive for the whole drag
+  // and nudge the board horizontally / the hovered column vertically whenever
+  // the cursor sits inside an edge band. Lets you drag Screening -> Archived in
+  // one motion without letting go to scroll.
+  useEffect(() => {
+    if (!dragId) return;
+    const EDGE = 64; // px band from an edge where scrolling kicks in
+    const speed = (dist: number) => Math.min(20, Math.max(4, dist / 3));
+    let raf = 0;
+
+    const step = () => {
+      const p = pointer.current;
+      const board = boardRef.current;
+      if (p && board) {
+        const b = board.getBoundingClientRect();
+        if (p.x < b.left + EDGE) board.scrollLeft -= speed(b.left + EDGE - p.x);
+        else if (p.x > b.right - EDGE) board.scrollLeft += speed(p.x - (b.right - EDGE));
+
+        const under = document.elementFromPoint(p.x, p.y);
+        const col = under?.closest<HTMLElement>("[data-kanban-col]");
+        if (col) {
+          const c = col.getBoundingClientRect();
+          if (p.y < c.top + EDGE) col.scrollTop -= speed(c.top + EDGE - p.y);
+          else if (p.y > c.bottom - EDGE) col.scrollTop += speed(p.y - (c.bottom - EDGE));
+        }
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(raf);
+      pointer.current = null;
+    };
+  }, [dragId]);
 
   const statusLabel = (key: string) =>
     board.data?.statuses.find((s) => s.key === key)?.label ?? key;
@@ -95,8 +132,14 @@ export function ApplicationKanban({
 
   return (
     <>
-      <div className="overflow-x-auto">
-        <div className="flex min-w-max gap-3 pb-2">
+      <div
+        ref={boardRef}
+        className="overflow-x-auto"
+        onDragOver={(e) => {
+          if (canWrite) pointer.current = { x: e.clientX, y: e.clientY };
+        }}
+      >
+        <div className="flex gap-3 pb-2">
           {APPLICATION_STAGES.map((stage) => {
             const cards = columns[stage] ?? [];
             return (
@@ -110,7 +153,7 @@ export function ApplicationKanban({
                 onDragLeave={() => setOverStage((s) => (s === stage ? null : s))}
                 onDrop={() => drop(stage)}
                 className={cn(
-                  "flex w-64 flex-col rounded-lg border bg-[var(--card)]",
+                  "flex min-w-52 flex-1 flex-col rounded-lg border bg-[var(--card)]",
                   overStage === stage
                     ? "border-[var(--brand-secondary)] ring-1 ring-[var(--brand-secondary)]"
                     : "border-[var(--border)]"
@@ -124,7 +167,10 @@ export function ApplicationKanban({
                     {cards.length}
                   </span>
                 </div>
-                <div className="flex max-h-[65vh] min-h-24 flex-1 flex-col gap-2 overflow-y-auto p-2">
+                <div
+                  data-kanban-col
+                  className="flex max-h-[65vh] min-h-24 flex-1 flex-col gap-2 overflow-y-auto p-2"
+                >
                   {cards.map((card) => (
                     <KanbanCard
                       key={card.id}
