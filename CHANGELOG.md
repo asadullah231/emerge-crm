@@ -3,6 +3,34 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.22.0 - Milestone 19: Public API, Webhooks and Career Page (2026-08-19)
+
+Opens the platform: programmatic access, event notifications and a public
+candidate-acquisition surface (Zoho API / webhooks / Web-to-Candidate parity).
+
+### Added
+
+- **Public REST API at /api/v1.** Bearer API keys with per-key scopes
+  (read:candidates, read:jobs, read:applications, write:candidates); list and
+  detail endpoints for candidates, jobs and applications plus candidate
+  creation. Keys are hashed at rest, shown once, rate limited, revocable, and
+  every call runs inside the workspace's row-level security.
+- **API keys settings.** Create, scope, revoke and see last-used, under
+  Settings, API and webhooks (admin only).
+- **Outbound webhooks.** Subscriptions per URL with chosen events
+  (application.status_changed, candidate.created, job.created), HMAC-SHA256
+  signed deliveries, automatic retries with exponential backoff (5 attempts)
+  and a per-subscription delivery log with errors.
+- **Public careers page.** Publish/Unpublish on the job record puts an open
+  job on /careers/{workspace}; the public page lists published jobs and each
+  job has an apply form. Applications land in Screening with
+  source=careersite, candidates dedupe by email, and the pipeline shows them
+  instantly (Zoho Web-to-Candidate parity). Rate limited, no login.
+
+### Changed
+
+- Candidate source picklist gains "Career site".
+
 ## v0.21.0 - Milestone 18: Candidate Matching and Semantic Search (2026-08-19)
 
 "Find candidates for this job" and "find jobs for this candidate" over the real

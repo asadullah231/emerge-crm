@@ -271,7 +271,8 @@ export const candidateSource = pgEnum("candidate_source", [
   "manual",
   "import",
   "referral",
-  "api"
+  "api",
+  "careersite"
 ]);
 export type CandidateSource = (typeof candidateSource.enumValues)[number];
 
@@ -1510,3 +1511,112 @@ export const reportSchedules = pgTable(
   ]
 );
 export type ReportSchedule = typeof reportSchedules.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// M19: Public API, webhooks and career page.
+// ---------------------------------------------------------------------------
+
+/**
+ * Public REST API keys (M19). The plaintext key is shown once at creation;
+ * only its sha256 hash is stored. Scopes gate each endpoint, e.g.
+ * "read:candidates", "read:jobs", "read:applications", "write:candidates".
+ */
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Display prefix of the key ("emk_ab12cd34"), safe to show in lists. */
+    prefix: text("prefix").notNull(),
+    keyHash: text("key_hash").notNull(),
+    scopes: text("scopes").array().notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt()
+  },
+  (t) => [
+    uniqueIndex("api_keys_hash_unique").on(t.keyHash),
+    index("api_keys_workspace_idx").on(t.workspaceId)
+  ]
+);
+export type ApiKey = typeof apiKeys.$inferSelect;
+
+/** Outbound webhook subscriptions (M19): which URLs get which events. */
+export const webhookSubscriptions = pgTable(
+  "webhook_subscriptions",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    /** Event keys, e.g. "application.status_changed", "job.created". */
+    events: text("events").array().notNull(),
+    /** HMAC-SHA256 signing secret for the X-Emerge-Signature header. */
+    secret: text("secret").notNull(),
+    active: boolean("active").notNull().default(true),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [index("webhook_subscriptions_workspace_idx").on(t.workspaceId)]
+);
+export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
+
+export const webhookDeliveryStatus = pgEnum("webhook_delivery_status", [
+  "pending",
+  "delivered",
+  "failed"
+]);
+
+/** One queued/attempted webhook delivery; the worker sweeps due pending rows. */
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => webhookSubscriptions.id, { onDelete: "cascade" }),
+    event: text("event").notNull(),
+    payload: jsonb("payload").notNull(),
+    status: webhookDeliveryStatus("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull(),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    createdAt: createdAt()
+  },
+  (t) => [
+    index("webhook_deliveries_due_idx").on(t.status, t.nextAttemptAt),
+    index("webhook_deliveries_sub_idx").on(t.workspaceId, t.subscriptionId, t.createdAt)
+  ]
+);
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+
+/** Jobs published to the public careers page (M19). One row = published. */
+export const publicJobPostings = pgTable(
+  "public_job_postings",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    publishedById: uuid("published_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt()
+  },
+  (t) => [
+    uniqueIndex("public_job_postings_job_unique").on(t.jobId),
+    index("public_job_postings_workspace_idx").on(t.workspaceId)
+  ]
+);
+export type PublicJobPosting = typeof publicJobPostings.$inferSelect;

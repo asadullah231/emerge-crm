@@ -7,6 +7,7 @@ import { sendDueInterviewReminders } from "./interviews/reminders";
 import { expireOverdueOffers } from "./offers/expiry";
 import { startParseWorker } from "./parse/worker";
 import { deliverDueReports } from "./reports/deliver";
+import { dispatchDueWebhooks } from "./webhooks/dispatch";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
@@ -30,6 +31,9 @@ const worker = new Worker(
     } else if (job.name === "interview-reminders") {
       const n = await sendDueInterviewReminders(db);
       if (n > 0) console.log(`[worker] sent ${n} interview reminder(s)`);
+    } else if (job.name === "dispatch-webhooks") {
+      const n = await dispatchDueWebhooks(db);
+      if (n > 0) console.log(`[worker] delivered ${n} webhook(s)`);
     }
   },
   { connection }
@@ -61,6 +65,13 @@ await queue.upsertJobScheduler(
   "interview-reminders-scheduler",
   { every: 5 * 60_000 },
   { name: "interview-reminders" }
+);
+
+// Webhook dispatcher: deliver due pending webhook events (M19).
+await queue.upsertJobScheduler(
+  "dispatch-webhooks-scheduler",
+  { every: 60_000 },
+  { name: "dispatch-webhooks" }
 );
 
 const emailWorker = startEmailWorker(connection, db);

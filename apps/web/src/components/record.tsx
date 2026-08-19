@@ -204,7 +204,8 @@ export const CANDIDATE_SOURCE_OPTIONS = [
   { value: "parser", label: "Resume parser" },
   { value: "import", label: "Import" },
   { value: "referral", label: "Referral" },
-  { value: "api", label: "API" }
+  { value: "api", label: "API" },
+  { value: "careersite", label: "Career site" }
 ];
 
 export const JOB_STATUS_OPTIONS = [
