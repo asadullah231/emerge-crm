@@ -16,6 +16,7 @@ import { reportSchedulesRouter } from "./report-schedules";
 import { reportsRouter } from "./reports";
 import { interviewsRouter } from "./interviews";
 import { jobsRouter } from "./jobs";
+import { matchingRouter } from "./matching";
 import { membersRouter } from "./members";
 import { notesRouter } from "./notes";
 import { notificationsRouter } from "./notifications";
@@ -44,6 +45,7 @@ export const appRouter = router({
   ai: aiRouter,
   bulk: bulkRouter,
   workspace: workspaceRouter,
+  matching: matchingRouter,
   members: membersRouter,
   companies: companiesRouter,
   contacts: contactsRouter,

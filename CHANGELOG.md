@@ -3,6 +3,27 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.21.0 - Milestone 18: Candidate Matching and Semantic Search (2026-08-19)
+
+"Find candidates for this job" and "find jobs for this candidate" over the real
+corpus, closing the Zoho Zia matching audit item.
+
+### Added
+
+- **Matching candidates on the job record.** Every live candidate is scored
+  against the job (skills 55, title 25, description mentions 10, location 10)
+  and the top 10 show with score badges, matched-skill chips, an In-pipeline
+  marker and one-click Associate.
+- **AI rank.** One button refines the shortlist through the workspace's own
+  LLM (the same bring-your-own-key settings the CV parser uses): each
+  candidate gets an AI score and a one-line recruiter-style reason, including
+  implied skills the lexical scorer cannot see.
+- **Matching jobs on the candidate record:** the same scoring against every
+  open job, with Associate.
+- **AI search on the candidates list.** The query is expanded into related
+  skills, tools and titles (React also finds Next.js and Redux) and candidates
+  matching any term are listed with the terms they matched.
+
 ## v0.20.0 - Milestone 17c: Hiring Pipeline Tab and Record Depth (2026-08-19)
 
 Third slice of the Job Openings parity sweep, centered on the Hiring Pipeline
