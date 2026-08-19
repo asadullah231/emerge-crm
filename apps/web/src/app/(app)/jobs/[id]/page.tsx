@@ -22,6 +22,7 @@ import { CommunicationPanel } from "@/components/communication-panel";
 import { JobDescriptionView } from "@/components/job-description-view";
 import { JobDocuments } from "@/components/job-documents";
 import { JobInterviewsPanel } from "@/components/job-interviews-panel";
+import { JobMatchesPanel } from "@/components/matching-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
 import { JobRevenuePanel } from "@/components/revenue-panel";
@@ -504,6 +505,10 @@ export default function JobRecordPage() {
           </div>
         )}
         <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
+      </RecordSection>
+
+      <RecordSection title="Matching candidates">
+        <JobMatchesPanel jobId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Interviews">
