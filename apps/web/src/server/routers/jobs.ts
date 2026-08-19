@@ -1,5 +1,19 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, gte, inArray, isNull, isNotNull, ne } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  isNotNull,
+  ne,
+  sql,
+  type SQL
+} from "drizzle-orm";
 import { z } from "zod";
 import {
   applicationStatusHistory,
@@ -16,7 +30,7 @@ import {
 } from "@emerge/db";
 import { APPLICATION_STAGES } from "@/lib/applications";
 import { writeAudit } from "../audit";
-import { humanId, nextCounter } from "../counters";
+import { bumpCounter, humanId, nextCounter } from "../counters";
 import { enqueueEmail } from "../email";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
@@ -64,6 +78,63 @@ function isClosedStatus(status: (typeof jobStatus.enumValues)[number]): boolean 
   return CLOSED_STATUSES.includes(status);
 }
 
+/**
+ * Structured filters shared by list and exportCsv (M17b). Every filter is
+ * optional; the export endpoint honors exactly what the list shows.
+ */
+const jobListFilters = z.object({
+  status: z.enum(jobStatus.enumValues).optional(),
+  ownerId: z.string().uuid().optional(),
+  companyId: z.string().uuid().optional(),
+  country: z.string().trim().max(120).optional(),
+  employmentType: z.enum(jobEmploymentType.enumValues).optional(),
+  workMode: z.enum(jobWorkMode.enumValues).optional(),
+  isHot: z.boolean().optional(),
+  /** Preset "Recent": only jobs opened in the last N days. */
+  openedWithinDays: z.number().int().min(1).max(365).optional()
+});
+
+type JobListFilters = z.infer<typeof jobListFilters>;
+
+function jobFilterClauses(f: JobListFilters): (SQL | undefined)[] {
+  return [
+    f.status ? eq(jobs.status, f.status) : undefined,
+    f.ownerId ? eq(jobs.ownerId, f.ownerId) : undefined,
+    f.companyId ? eq(jobs.companyId, f.companyId) : undefined,
+    // ilike without wildcards = case-insensitive equality for the dropdown value.
+    f.country ? ilike(jobs.country, f.country) : undefined,
+    f.employmentType ? eq(jobs.employmentType, f.employmentType) : undefined,
+    f.workMode ? eq(jobs.workMode, f.workMode) : undefined,
+    f.isHot ? eq(jobs.isHot, true) : undefined,
+    f.openedWithinDays
+      ? gte(jobs.openedAt, new Date(Date.now() - f.openedWithinDays * 86_400_000))
+      : undefined
+  ];
+}
+
+/** Sort/search whitelist shared by list and exportCsv. */
+const JOB_LIST_OPTS = {
+  sortable: {
+    title: jobs.title,
+    humanId: jobs.humanId,
+    status: jobs.status,
+    location: jobs.location,
+    openedAt: jobs.openedAt,
+    createdAt: jobs.createdAt,
+    updatedAt: jobs.updatedAt
+  },
+  searchable: [jobs.title, jobs.humanId, jobs.location],
+  defaultSort: "openedAt"
+};
+
+const bulkIds = z.array(z.string().uuid()).min(1).max(500);
+
+function csvCell(v: string | number | boolean | Date | null | undefined): string {
+  if (v === null || v === undefined) return "";
+  const s = v instanceof Date ? v.toISOString().slice(0, 10) : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
 /** Confirms the company exists in the workspace (and is not trashed). */
 async function assertCompany(tx: Transaction, companyId: string): Promise<void> {
   const [company] = await tx
@@ -98,21 +169,9 @@ async function assertHiringContact(
 
 export const jobsRouter = router({
   list: workspaceProcedure
-    .input(listInput.extend({ status: z.enum(jobStatus.enumValues).optional() }))
+    .input(listInput.extend(jobListFilters.shape))
     .query(async ({ ctx, input }) => {
-      const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
-        sortable: {
-          title: jobs.title,
-          humanId: jobs.humanId,
-          status: jobs.status,
-          location: jobs.location,
-          openedAt: jobs.openedAt,
-          createdAt: jobs.createdAt,
-          updatedAt: jobs.updatedAt
-        },
-        searchable: [jobs.title, jobs.humanId, jobs.location],
-        defaultSort: "openedAt"
-      });
+      const { orderBy, searchWhere, limit, offset } = buildListClauses(input, JOB_LIST_OPTS);
       const deletedWhere = input.deleted
         ? and(isNotNull(jobs.deletedAt), gte(jobs.deletedAt, trashCutoff()))
         : isNull(jobs.deletedAt);
@@ -120,8 +179,7 @@ export const jobsRouter = router({
         input.tagIds && input.tagIds.length > 0
           ? inArray(jobs.id, taggedEntityIds(ctx.tx, "job", input.tagIds))
           : undefined;
-      const statusWhere = input.status ? eq(jobs.status, input.status) : undefined;
-      const where = and(deletedWhere, searchWhere, tagWhere, statusWhere);
+      const where = and(deletedWhere, searchWhere, tagWhere, ...jobFilterClauses(input));
 
       const [rows, [totalRow]] = await Promise.all([
         ctx.tx
@@ -500,5 +558,408 @@ export const jobsRouter = router({
         meta: { humanId: restored.humanId }
       });
       return restored;
+    }),
+
+  /** Distinct values that feed the list filter dropdowns (M17b). */
+  filterOptions: workspaceProcedure.query(async ({ ctx }) => {
+    const rows = await ctx.tx
+      .selectDistinct({ country: jobs.country })
+      .from(jobs)
+      .where(and(isNull(jobs.deletedAt), isNotNull(jobs.country)))
+      .orderBy(asc(jobs.country));
+    return { countries: rows.map((r) => r.country).filter((c): c is string => Boolean(c)) };
+  }),
+
+  /** Bulk status change with the same closedAt semantics as changeStatus (M17b). */
+  bulkChangeStatus: workspaceProcedure
+    .input(z.object({ ids: bulkIds, status: z.enum(jobStatus.enumValues) }))
+    .mutation(async ({ ctx, input }) => {
+      const updated = await ctx.tx
+        .update(jobs)
+        .set({
+          status: input.status,
+          // Entering a closed status keeps an existing stamp, else stamps now;
+          // reopening clears it. COALESCE keeps this a single bulk statement.
+          closedAt: isClosedStatus(input.status) ? sql`COALESCE(${jobs.closedAt}, NOW())` : null
+        })
+        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt)))
+        .returning({ id: jobs.id });
+      if (updated.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No matching jobs found" });
+      }
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "job.bulk_status_changed",
+        targetType: "job",
+        targetId: updated[0]!.id,
+        meta: { count: updated.length, status: input.status }
+      });
+      return { updated: updated.length };
+    }),
+
+  /** Bulk owner reassignment (Zoho "Mass Transfer" parity, M17b). */
+  bulkReassignOwner: workspaceProcedure
+    .input(z.object({ ids: bulkIds, ownerId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [member] = await ctx.tx
+        .select({ userId: memberships.userId })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.workspaceId, ctx.workspaceId),
+            eq(memberships.userId, input.ownerId),
+            isNull(memberships.deactivatedAt)
+          )
+        );
+      if (!member) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The new owner must be an active team member"
+        });
+      }
+      const updated = await ctx.tx
+        .update(jobs)
+        .set({ ownerId: input.ownerId })
+        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt)))
+        .returning({ id: jobs.id });
+      if (updated.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No matching jobs found" });
+      }
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "job.bulk_owner_reassigned",
+        targetType: "job",
+        targetId: updated[0]!.id,
+        meta: { count: updated.length, ownerId: input.ownerId }
+      });
+      return { updated: updated.length };
+    }),
+
+  /** Bulk update of a safe field subset (Zoho "Update Fields" parity, M17b). */
+  bulkUpdateFields: workspaceProcedure
+    .input(
+      z.object({
+        ids: bulkIds,
+        patch: z
+          .object({
+            employmentType: z.enum(jobEmploymentType.enumValues).optional(),
+            workMode: z.enum(jobWorkMode.enumValues).optional(),
+            isHot: z.boolean().optional(),
+            targetCloseAt: z.coerce.date().nullable().optional()
+          })
+          .refine((p) => Object.keys(p).length > 0, {
+            message: "Pick at least one field to update"
+          })
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updated = await ctx.tx
+        .update(jobs)
+        .set(input.patch)
+        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt)))
+        .returning({ id: jobs.id });
+      if (updated.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No matching jobs found" });
+      }
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "job.bulk_fields_updated",
+        targetType: "job",
+        targetId: updated[0]!.id,
+        meta: { count: updated.length, fields: Object.keys(input.patch) }
+      });
+      return { updated: updated.length };
+    }),
+
+  /**
+   * Server-side CSV export honoring the full current filter set (search, tags,
+   * every structured filter, sort). Exports the whole result set, not just the
+   * visible page, capped at 10,000 rows (M17b).
+   */
+  exportCsv: workspaceProcedure
+    .input(listInput.omit({ page: true, pageSize: true }).extend(jobListFilters.shape))
+    .query(async ({ ctx, input }) => {
+      const { orderBy, searchWhere } = buildListClauses(
+        { ...input, page: 1, pageSize: 50 },
+        JOB_LIST_OPTS
+      );
+      const deletedWhere = input.deleted
+        ? and(isNotNull(jobs.deletedAt), gte(jobs.deletedAt, trashCutoff()))
+        : isNull(jobs.deletedAt);
+      const tagWhere =
+        input.tagIds && input.tagIds.length > 0
+          ? inArray(jobs.id, taggedEntityIds(ctx.tx, "job", input.tagIds))
+          : undefined;
+      const where = and(deletedWhere, searchWhere, tagWhere, ...jobFilterClauses(input));
+
+      const rows = await ctx.tx
+        .select({
+          humanId: jobs.humanId,
+          title: jobs.title,
+          companyName: companies.name,
+          status: jobs.status,
+          employmentType: jobs.employmentType,
+          workMode: jobs.workMode,
+          location: jobs.location,
+          city: jobs.city,
+          country: jobs.country,
+          positions: jobs.positions,
+          isHot: jobs.isHot,
+          ownerName: users.name,
+          openedAt: jobs.openedAt,
+          targetCloseAt: jobs.targetCloseAt,
+          closedAt: jobs.closedAt
+        })
+        .from(jobs)
+        .leftJoin(companies, eq(companies.id, jobs.companyId))
+        .leftJoin(users, eq(users.id, jobs.ownerId))
+        .where(where)
+        .orderBy(orderBy, asc(jobs.id))
+        .limit(10000);
+
+      const header = [
+        "ID",
+        "Title",
+        "Client",
+        "Status",
+        "Employment type",
+        "Work mode",
+        "Location",
+        "City",
+        "Country",
+        "Positions",
+        "Hot",
+        "Owner",
+        "Opened",
+        "Target date",
+        "Closed"
+      ].join(",");
+      const lines = rows.map((r) =>
+        [
+          r.humanId,
+          r.title,
+          r.companyName,
+          r.status,
+          r.employmentType,
+          r.workMode,
+          r.location,
+          r.city,
+          r.country,
+          r.positions,
+          r.isHot ? "yes" : "no",
+          r.ownerName,
+          r.openedAt,
+          r.targetCloseAt,
+          r.closedAt
+        ]
+          .map(csvCell)
+          .join(",")
+      );
+      return { csv: [header, ...lines].join("\r\n"), count: rows.length };
+    }),
+
+  /**
+   * CSV import of job openings (M17b, mirrors candidates import). Rows are
+   * pre-mapped on the client; this validates enums, resolves the client company
+   * by name (optionally creating missing ones) and inserts with sequential
+   * human ids. `dryRun` returns the same report without writing.
+   */
+  importJobs: workspaceProcedure
+    .input(
+      z.object({
+        rows: z
+          .array(z.record(z.string(), z.string()))
+          .max(2000, "Import is limited to 2,000 rows per run"),
+        createMissingCompanies: z.boolean().default(true),
+        dryRun: z.boolean().default(false)
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const errors: { row: number; message: string }[] = [];
+      const statusSet = new Set<string>(jobStatus.enumValues);
+      const empSet = new Set<string>(jobEmploymentType.enumValues);
+      const modeSet = new Set<string>(jobWorkMode.enumValues);
+      const normEnum = (v: string) =>
+        v
+          .trim()
+          .toLowerCase()
+          .replace(/[\s-]+/g, "_");
+
+      type Prepared = {
+        row: number;
+        companyName: string;
+        values: {
+          title: string;
+          status: (typeof jobStatus.enumValues)[number];
+          employmentType: (typeof jobEmploymentType.enumValues)[number];
+          workMode: (typeof jobWorkMode.enumValues)[number];
+          location: string | null;
+          city: string | null;
+          country: string | null;
+          positions: number;
+          salaryText: string | null;
+          description: string | null;
+          requiredSkills: string | null;
+          targetCloseAt: Date | null;
+          isHot: boolean;
+        };
+      };
+      const prepared: Prepared[] = [];
+
+      input.rows.forEach((raw, i) => {
+        const rowNum = i + 1;
+        const pick = (k: string) => {
+          const v = raw[k]?.trim();
+          return v ? v : null;
+        };
+        const title = pick("title");
+        if (!title) {
+          errors.push({ row: rowNum, message: "Missing job title" });
+          return;
+        }
+        const companyName = pick("companyName");
+        if (!companyName) {
+          errors.push({ row: rowNum, message: "Missing client company" });
+          return;
+        }
+        const rawStatus = pick("status");
+        const status = rawStatus ? normEnum(rawStatus) : "open";
+        if (!statusSet.has(status)) {
+          errors.push({ row: rowNum, message: `Unknown status "${rawStatus}"` });
+          return;
+        }
+        const rawEmp = pick("employmentType");
+        const employmentType = rawEmp ? normEnum(rawEmp) : "permanent";
+        if (!empSet.has(employmentType)) {
+          errors.push({ row: rowNum, message: `Unknown employment type "${rawEmp}"` });
+          return;
+        }
+        const rawMode = pick("workMode");
+        const workMode = rawMode ? normEnum(rawMode) : "onsite";
+        if (!modeSet.has(workMode)) {
+          errors.push({ row: rowNum, message: `Unknown work mode "${rawMode}"` });
+          return;
+        }
+        const rawPositions = pick("positions");
+        const positions = rawPositions ? Number.parseInt(rawPositions, 10) : 1;
+        if (!Number.isInteger(positions) || positions < 1 || positions > 9999) {
+          errors.push({ row: rowNum, message: `Invalid positions "${rawPositions}"` });
+          return;
+        }
+        const rawTarget = pick("targetDate");
+        let targetCloseAt: Date | null = null;
+        if (rawTarget) {
+          const d = new Date(rawTarget);
+          if (Number.isNaN(d.getTime())) {
+            errors.push({ row: rowNum, message: `Invalid target date "${rawTarget}"` });
+            return;
+          }
+          targetCloseAt = d;
+        }
+        const rawHot = pick("isHot")?.toLowerCase() ?? null;
+        prepared.push({
+          row: rowNum,
+          companyName,
+          values: {
+            title,
+            status: status as (typeof jobStatus.enumValues)[number],
+            employmentType: employmentType as (typeof jobEmploymentType.enumValues)[number],
+            workMode: workMode as (typeof jobWorkMode.enumValues)[number],
+            location: pick("location"),
+            city: pick("city"),
+            country: pick("country"),
+            positions,
+            salaryText: pick("salaryText"),
+            description: pick("description"),
+            requiredSkills: pick("requiredSkills"),
+            targetCloseAt,
+            isHot: rawHot === "yes" || rawHot === "true" || rawHot === "1"
+          }
+        });
+      });
+
+      // Resolve client companies by case-insensitive name.
+      const existing = await ctx.tx
+        .select({ id: companies.id, name: companies.name })
+        .from(companies)
+        .where(isNull(companies.deletedAt));
+      const companyByName = new Map(existing.map((c) => [c.name.trim().toLowerCase(), c.id]));
+      const missingNames = [
+        ...new Set(
+          prepared
+            .map((p) => p.companyName)
+            .filter((n) => !companyByName.has(n.trim().toLowerCase()))
+        )
+      ];
+
+      let importable = prepared;
+      if (!input.createMissingCompanies && missingNames.length > 0) {
+        const missingSet = new Set(missingNames.map((n) => n.trim().toLowerCase()));
+        importable = prepared.filter((p) => {
+          if (missingSet.has(p.companyName.trim().toLowerCase())) {
+            errors.push({ row: p.row, message: `Client company "${p.companyName}" not found` });
+            return false;
+          }
+          return true;
+        });
+      }
+
+      const report = {
+        total: input.rows.length,
+        valid: importable.length,
+        created: importable.length,
+        companiesCreated: input.createMissingCompanies ? missingNames.length : 0,
+        errors,
+        dryRun: input.dryRun
+      };
+      if (input.dryRun || importable.length === 0) return report;
+
+      if (input.createMissingCompanies && missingNames.length > 0) {
+        const inserted = await ctx.tx
+          .insert(companies)
+          .values(
+            missingNames.map((name) => ({
+              workspaceId: ctx.workspaceId,
+              name,
+              status: "prospect" as const,
+              ownerId: ctx.session.user.id
+            }))
+          )
+          .returning({ id: companies.id, name: companies.name });
+        for (const c of inserted) companyByName.set(c.name.trim().toLowerCase(), c.id);
+      }
+
+      // Reserve the whole human-id block in one statement, then batch-insert.
+      const top = await bumpCounter(ctx.tx, ctx.workspaceId, "job", importable.length);
+      const first = top - importable.length + 1;
+      const created = await ctx.tx
+        .insert(jobs)
+        .values(
+          importable.map((p, i) => ({
+            workspaceId: ctx.workspaceId,
+            humanId: humanId("JOB", first + i),
+            companyId: companyByName.get(p.companyName.trim().toLowerCase())!,
+            ownerId: ctx.session.user.id,
+            ...p.values,
+            closedAt: isClosedStatus(p.values.status) ? new Date() : null
+          }))
+        )
+        .returning({ id: jobs.id });
+
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "job.imported",
+        targetType: "job",
+        targetId: created[0]?.id ?? "",
+        meta: {
+          count: created.length,
+          companiesCreated: input.createMissingCompanies ? missingNames.length : 0
+        }
+      });
+      return { ...report, created: created.length };
     })
 });

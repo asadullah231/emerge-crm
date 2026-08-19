@@ -93,3 +93,48 @@ export function autoMap(headers: string[]): Record<ImportableField, number | nul
     skills: findBy("skill")
   };
 }
+
+/** Job fields a CSV column can map to (jobs import, M17b). */
+export const JOB_IMPORTABLE_FIELDS = [
+  { key: "title", label: "Job title (required)" },
+  { key: "companyName", label: "Client company (required)" },
+  { key: "status", label: "Status" },
+  { key: "employmentType", label: "Employment type" },
+  { key: "workMode", label: "Work mode" },
+  { key: "location", label: "Location" },
+  { key: "city", label: "City" },
+  { key: "country", label: "Country" },
+  { key: "positions", label: "Positions" },
+  { key: "salaryText", label: "Salary" },
+  { key: "description", label: "Description" },
+  { key: "requiredSkills", label: "Required skills" },
+  { key: "targetDate", label: "Target date" },
+  { key: "isHot", label: "Hot job (yes/no)" }
+] as const;
+
+export type JobImportableField = (typeof JOB_IMPORTABLE_FIELDS)[number]["key"];
+
+/** Best-effort auto-mapping of CSV headers to job fields by fuzzy name. */
+export function autoMapJobs(headers: string[]): Record<JobImportableField, number | null> {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+  const findBy = (...needles: string[]) => {
+    const idx = headers.findIndex((h) => needles.some((n) => norm(h).includes(n)));
+    return idx === -1 ? null : idx;
+  };
+  return {
+    title: findBy("postingtitle", "jobtitle", "title", "role", "position"),
+    companyName: findBy("clientname", "client", "companyname", "company", "account"),
+    status: findBy("jobopeningstatus", "status"),
+    employmentType: findBy("employmenttype", "jobtype"),
+    workMode: findBy("workmode", "remote"),
+    location: findBy("location"),
+    city: findBy("city", "town"),
+    country: findBy("country"),
+    positions: findBy("numberofpositions", "positions", "openings"),
+    salaryText: findBy("salary", "rate"),
+    description: findBy("jobdescription", "description"),
+    requiredSkills: findBy("skill"),
+    targetDate: findBy("targetdate", "closingdate", "deadline"),
+    isHot: findBy("hot")
+  };
+}

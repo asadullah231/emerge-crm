@@ -41,6 +41,21 @@ export const STAGE_ACCENT: Record<ApplicationStageKey, string> = {
   archived: "text-[var(--muted)]"
 };
 
+/**
+ * Small stage-dot colors for the kanban board. These are semantic pipeline
+ * colors (not brand accents): each column gets a distinct, muted dot so the
+ * stages read at a glance, with green/red reserved for hired/rejected.
+ */
+export const STAGE_DOT: Record<ApplicationStageKey, string> = {
+  screening: "bg-[var(--brand-secondary)]",
+  submitted: "bg-sky-500",
+  interview: "bg-violet-500",
+  offered: "bg-amber-500",
+  hired: "bg-green-500",
+  rejected: "bg-red-500",
+  archived: "bg-zinc-400"
+};
+
 export type DefaultStatus = {
   key: string;
   label: string;

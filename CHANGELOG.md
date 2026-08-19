@@ -3,6 +3,34 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.19.0 - Milestone 17b: Job Openings Views, Bulk Actions and Import (2026-08-19)
+
+Second slice of the Job Openings parity sweep: list power features matching
+Zoho's views, mass actions and import.
+
+### Added
+
+- **Preset views.** All / Mine / Recent (30d) / In-progress chips on the jobs
+  list, one click each (Zoho preset views parity).
+- **More filters.** Owner, client, country, employment type, work mode and a
+  hot-only toggle join the status and tag filters; saved views capture all of
+  them.
+- **Bulk actions.** Change status (with the same close-date rules as single
+  edits), reassign owner (Zoho Mass Transfer) and update fields (employment
+  type, work mode, hot flag, target date) on any selection up to 500 jobs.
+- **Full CSV export.** The Export CSV button now exports the entire filtered
+  result set server side (up to 10,000 rows), not just the visible page;
+  selection export stays on the bulk bar.
+- **CSV import wizard.** New /jobs/import mirrors the candidates importer:
+  upload, column auto-mapping, dry-run preview, per-row errors. Client
+  companies are resolved by name and can be created on the fly.
+
+### Changed
+
+- **Pipeline board redesign.** Recessed columns with stage dots, elevated
+  candidate cards with initials avatars, drag auto-scroll, viewport-fit
+  height, thin hover-only scrollbars and polished empty states.
+
 ## v0.18.0 - Milestone 17a: Job Openings Parity, Fields & Data Integrity (2026-08-18)
 
 First slice of the Job Openings parity sweep driven by the deep Zoho audit of
