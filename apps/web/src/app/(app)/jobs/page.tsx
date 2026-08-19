@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { cn } from "@emerge/ui";
 import { DataTable, type DataTableColumn, type SortState } from "@/components/data-table";
 import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
+import { JobsBulkActions } from "@/components/jobs-bulk-actions";
 import { NewJobModal } from "@/components/new-job-modal";
-import { JOB_STATUS_OPTIONS, JobStatusBadge } from "@/components/record";
+import {
+  JOB_EMPLOYMENT_OPTIONS,
+  JOB_STATUS_OPTIONS,
+  JOB_WORK_MODE_OPTIONS,
+  JobStatusBadge
+} from "@/components/record";
 import { TagFilter } from "@/components/tag-editor";
 import { ViewsBar, FieldFilter, type ViewFilters } from "@/components/views-bar";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
@@ -16,11 +24,37 @@ import { useRowSelection } from "@/lib/use-row-selection";
 
 type JobRow = RouterOutputs["jobs"]["list"]["rows"][number];
 
+/** Structured job list filters (M17b). All optional; "" means not filtering. */
+type JobFilters = {
+  status: string;
+  ownerId: string;
+  companyId: string;
+  country: string;
+  employmentType: string;
+  workMode: string;
+  isHot: boolean;
+  recent: boolean;
+};
+
+const EMPTY_FILTERS: JobFilters = {
+  status: "",
+  ownerId: "",
+  companyId: "",
+  country: "",
+  employmentType: "",
+  workMode: "",
+  isHot: false,
+  recent: false
+};
+
+const RECENT_DAYS = 30;
+
 export default function JobsPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const me = trpc.auth.me.useQuery();
   const canWrite = me.data ? me.data.role !== "readonly" : false;
+  const myId = me.data?.user.id ?? "";
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -28,9 +62,26 @@ export default function JobsPage() {
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
-  const [status, setStatus] = useState("");
+  const [filters, setFilters] = useState<JobFilters>(EMPTY_FILTERS);
+  const [exporting, setExporting] = useState(false);
   const debouncedSearch = useDebounced(search.trim());
   const sel = useRowSelection();
+
+  const setFilter = (patch: Partial<JobFilters>) => {
+    setFilters((f) => ({ ...f, ...patch }));
+    setPage(1);
+  };
+
+  const structuredInput = {
+    status: (filters.status || undefined) as JobRow["status"] | undefined,
+    ownerId: filters.ownerId || undefined,
+    companyId: filters.companyId || undefined,
+    country: filters.country || undefined,
+    employmentType: (filters.employmentType || undefined) as JobRow["employmentType"] | undefined,
+    workMode: (filters.workMode || undefined) as JobRow["workMode"] | undefined,
+    isHot: filters.isHot || undefined,
+    openedWithinDays: filters.recent ? RECENT_DAYS : undefined
+  };
 
   const list = trpc.jobs.list.useQuery({
     page,
@@ -39,27 +90,84 @@ export default function JobsPage() {
     sortDir: sort.dir,
     search: debouncedSearch || undefined,
     tagIds: tagIds.length > 0 ? tagIds : undefined,
-    status: (status || undefined) as JobRow["status"] | undefined,
-    deleted: showTrash
+    deleted: showTrash,
+    ...structuredInput
   });
+
+  const members = trpc.members.list.useQuery(undefined, { enabled: !showTrash });
+  const companies = trpc.companies.list.useQuery(
+    { page: 1, pageSize: 200, sortBy: "name", sortDir: "asc", deleted: false },
+    { enabled: !showTrash }
+  );
+  const filterOptions = trpc.jobs.filterOptions.useQuery(undefined, { enabled: !showTrash });
 
   useEffect(
     () => sel.clear(),
-    [debouncedSearch, tagIds, status, showTrash, page, sort.by, sort.dir, sel.clear]
+    [debouncedSearch, tagIds, filters, showTrash, page, sort.by, sort.dir, sel.clear]
   );
+
+  // Preset chips (M17b): exclusive quick views over the structured filters.
+  const noFilters =
+    !filters.status &&
+    !filters.ownerId &&
+    !filters.companyId &&
+    !filters.country &&
+    !filters.employmentType &&
+    !filters.workMode &&
+    !filters.isHot &&
+    !filters.recent;
+  const presets = [
+    { key: "all", label: "All", active: noFilters, apply: () => setFilters(EMPTY_FILTERS) },
+    {
+      key: "mine",
+      label: "Mine",
+      active: filters.ownerId === myId && myId !== "",
+      apply: () => setFilters({ ...EMPTY_FILTERS, ownerId: myId })
+    },
+    {
+      key: "recent",
+      label: `Recent (${RECENT_DAYS}d)`,
+      active: filters.recent,
+      apply: () => setFilters({ ...EMPTY_FILTERS, recent: true })
+    },
+    {
+      key: "inprogress",
+      label: "In-progress",
+      active: filters.status === "open" && !filters.recent && !filters.ownerId,
+      apply: () => setFilters({ ...EMPTY_FILTERS, status: "open" })
+    }
+  ];
 
   const currentFilters: ViewFilters = {
     search: debouncedSearch || undefined,
     tagIds: tagIds.length > 0 ? tagIds : undefined,
     sortBy: sort.by,
     sortDir: sort.dir,
-    fields: status ? { status } : undefined
+    fields: {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.ownerId ? { ownerId: filters.ownerId } : {}),
+      ...(filters.companyId ? { companyId: filters.companyId } : {}),
+      ...(filters.country ? { country: filters.country } : {}),
+      ...(filters.employmentType ? { employmentType: filters.employmentType } : {}),
+      ...(filters.workMode ? { workMode: filters.workMode } : {}),
+      ...(filters.isHot ? { isHot: "1" } : {}),
+      ...(filters.recent ? { recent: "1" } : {})
+    }
   };
   const applyView = (f: ViewFilters) => {
     setSearch(f.search ?? "");
     setTagIds(f.tagIds ?? []);
     setSort({ by: f.sortBy ?? "openedAt", dir: f.sortDir ?? "desc" });
-    setStatus(f.fields?.status ?? "");
+    setFilters({
+      status: f.fields?.status ?? "",
+      ownerId: f.fields?.ownerId ?? "",
+      companyId: f.fields?.companyId ?? "",
+      country: f.fields?.country ?? "",
+      employmentType: f.fields?.employmentType ?? "",
+      workMode: f.fields?.workMode ?? "",
+      isHot: f.fields?.isHot === "1",
+      recent: f.fields?.recent === "1"
+    });
     setPage(1);
   };
 
@@ -76,6 +184,24 @@ export default function JobsPage() {
   const exportSelected = () => {
     const chosen = (list.data?.rows ?? []).filter((r) => sel.selectedIds.has(r.id));
     downloadCsv(`jobs-${chosen.length}.csv`, toCsv(chosen, CSV_COLUMNS));
+  };
+
+  // Full filtered export runs on the server so it covers every page (M17b).
+  const exportAll = async () => {
+    setExporting(true);
+    try {
+      const res = await utils.client.jobs.exportCsv.query({
+        sortBy: sort.by,
+        sortDir: sort.dir,
+        search: debouncedSearch || undefined,
+        tagIds: tagIds.length > 0 ? tagIds : undefined,
+        deleted: showTrash,
+        ...structuredInput
+      });
+      downloadCsv(`job-openings-${res.count}.csv`, res.csv);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const restore = trpc.jobs.restore.useMutation({
@@ -163,6 +289,17 @@ export default function JobsPage() {
           {showTrash ? "Job Openings - Trash" : "Job Openings"}
         </h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportAll} disabled={exporting || list.isLoading}>
+            {exporting ? "Exporting..." : "Export CSV"}
+          </Button>
+          {canWrite && !showTrash ? (
+            <Link
+              href="/jobs/import"
+              className="rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium hover:bg-[var(--background)]"
+            >
+              Import
+            </Link>
+          ) : null}
           <Button
             variant="outline"
             onClick={() => {
@@ -192,16 +329,71 @@ export default function JobsPage() {
 
       {!showTrash ? (
         <>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {presets.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={p.apply}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  p.active
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-[var(--brand-on)]"
+                    : "border-[var(--border)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]"
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex flex-wrap items-center gap-4">
             <FieldFilter
               label="Status"
-              value={status}
-              onChange={(v) => {
-                setStatus(v);
-                setPage(1);
-              }}
+              value={filters.status}
+              onChange={(v) => setFilter({ status: v })}
               options={JOB_STATUS_OPTIONS}
             />
+            <FieldFilter
+              label="Owner"
+              value={filters.ownerId}
+              onChange={(v) => setFilter({ ownerId: v })}
+              options={(members.data ?? [])
+                .filter((m) => !m.deactivatedAt)
+                .map((m) => ({ value: m.userId, label: m.name }))}
+            />
+            <FieldFilter
+              label="Client"
+              value={filters.companyId}
+              onChange={(v) => setFilter({ companyId: v })}
+              options={(companies.data?.rows ?? []).map((c) => ({ value: c.id, label: c.name }))}
+            />
+            <FieldFilter
+              label="Country"
+              value={filters.country}
+              onChange={(v) => setFilter({ country: v })}
+              options={(filterOptions.data?.countries ?? []).map((c) => ({ value: c, label: c }))}
+            />
+            <FieldFilter
+              label="Employment"
+              value={filters.employmentType}
+              onChange={(v) => setFilter({ employmentType: v })}
+              options={[...JOB_EMPLOYMENT_OPTIONS]}
+            />
+            <FieldFilter
+              label="Work mode"
+              value={filters.workMode}
+              onChange={(v) => setFilter({ workMode: v })}
+              options={[...JOB_WORK_MODE_OPTIONS]}
+            />
+            <label className="inline-flex items-center gap-1.5 text-xs text-[var(--muted)]">
+              <input
+                type="checkbox"
+                checked={filters.isHot}
+                onChange={(e) => setFilter({ isHot: e.target.checked })}
+              />
+              Hot only
+            </label>
             <TagFilter
               selected={tagIds}
               onChange={(ids) => {
@@ -229,6 +421,15 @@ export default function JobsPage() {
         onClear={sel.clear}
         onDone={() => utils.jobs.list.invalidate()}
         onExport={exportSelected}
+        extraActions={
+          <JobsBulkActions
+            selectedIds={sel.ids}
+            onDone={() => {
+              utils.jobs.list.invalidate();
+              sel.clear();
+            }}
+          />
+        }
       />
 
       <DataTable
