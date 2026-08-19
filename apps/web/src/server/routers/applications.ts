@@ -28,6 +28,7 @@ import { humanId, nextCounter } from "../counters";
 import { trashCutoff } from "../list-query";
 import { sendMentionEmails } from "../mention-emails";
 import { router, workspaceProcedure } from "../trpc";
+import { emitWebhook } from "../webhooks";
 import { fanOutMentions } from "./notes";
 
 const candidateCols = {
@@ -579,6 +580,14 @@ export const applicationsRouter = router({
         targetId: input.id,
         meta: { from: current.statusKey, to: target.key }
       });
+      await emitWebhook(ctx.tx, ctx.workspaceId, "application.status_changed", {
+        applicationId: input.id,
+        humanId: current.humanId,
+        fromStatus: current.statusKey,
+        toStatus: target.key,
+        fromStage: current.stage,
+        toStage: target.stage
+      });
       return updated;
     }),
 
@@ -647,6 +656,14 @@ export const applicationsRouter = router({
         targetType: "application",
         targetId: input.id,
         meta: { from: current.stage, to: input.stage }
+      });
+      await emitWebhook(ctx.tx, ctx.workspaceId, "application.status_changed", {
+        applicationId: input.id,
+        humanId: current.humanId,
+        fromStatus: current.statusKey,
+        toStatus: entryStatus,
+        fromStage: current.stage,
+        toStage: input.stage
       });
       return updated;
     }),

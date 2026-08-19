@@ -80,7 +80,7 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 22.
 | M16 | Client Feedback R2: Mention Emails & Stage Comments               | v0.17.0         | Done     | M6, M13, M15 | S          | client feedback (Mo)              |
 | M17 | Job Openings Parity Sweep (a: fields, b: list/bulk, c: record UX) | v0.18.0–v0.20.0 | Done     | M4, M5, M15  | L          | Zoho JO audit 18 Aug              |
 | M18 | Candidate Matching & Semantic Search                              | v0.21.0         | Done     | M7, M9       | L          | Zia matching                      |
-| M19 | Public API, Webhooks & Career Page                                | v0.22.0         | Planned  | M9           | L          | **H5**, career site, job boards   |
+| M19 | Public API, Webhooks & Career Page                                | v0.22.0         | Done     | M9           | L          | **H5**, career site, job boards   |
 | M20 | Compliance: GDPR, Blocklist & Data Tools                          | v0.23.0         | Planned  | M8           | M          | Compliance/GDPR                   |
 | M21 | Security, Performance & Production Hardening                      | v0.24.0         | Planned  | all          | L          | platform                          |
 | M22 | v1.0 Production Release                                           | v1.0.0          | Planned  | M21          | M          | –                                 |

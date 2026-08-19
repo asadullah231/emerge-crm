@@ -1,6 +1,7 @@
 import { APP_VERSION } from "@emerge/core";
 import { publicProcedure, router } from "../trpc";
 import { aiRouter } from "./ai";
+import { apiKeysRouter } from "./api-keys";
 import { applicationsRouter } from "./applications";
 import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
@@ -31,6 +32,7 @@ import { tagsRouter } from "./tags";
 import { tasksRouter } from "./tasks";
 import { timelineRouter } from "./timeline";
 import { viewsRouter } from "./views";
+import { webhooksRouter } from "./webhooks";
 import { workspaceRouter } from "./workspace";
 
 export const appRouter = router({
@@ -43,6 +45,7 @@ export const appRouter = router({
   }),
   auth: authRouter,
   ai: aiRouter,
+  apiKeys: apiKeysRouter,
   bulk: bulkRouter,
   workspace: workspaceRouter,
   matching: matchingRouter,
@@ -72,7 +75,8 @@ export const appRouter = router({
   submissions: submissionsRouter,
   tasks: tasksRouter,
   timeline: timelineRouter,
-  views: viewsRouter
+  views: viewsRouter,
+  webhooks: webhooksRouter
 });
 
 export type AppRouter = typeof appRouter;
