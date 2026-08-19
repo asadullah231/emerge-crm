@@ -9,6 +9,7 @@ import { CandidateDocuments } from "@/components/candidate-documents";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
 import { CommunicationPanel } from "@/components/communication-panel";
+import { CandidateMatchesPanel } from "@/components/matching-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
 import { TagEditor } from "@/components/tag-editor";
@@ -296,6 +297,10 @@ export default function CandidateRecordPage() {
             onSave={save("skills")}
           />
         </div>
+      </RecordSection>
+
+      <RecordSection title="Matching jobs">
+        <CandidateMatchesPanel candidateId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Documents">

@@ -70,6 +70,8 @@ export default function CandidatesPage() {
   const restore = trpc.candidates.restore.useMutation({
     onSuccess: () => utils.candidates.list.invalidate()
   });
+  // AI semantic search (M18): expands the query into related terms server-side.
+  const semantic = trpc.matching.semanticCandidates.useMutation();
 
   const CSV_COLUMNS: CsvColumn<CandidateRow>[] = [
     { label: "ID", value: (r) => r.humanId },
@@ -185,17 +187,86 @@ export default function CandidatesPage() {
         </div>
       </div>
 
-      <Input
-        type="search"
-        placeholder="Search by name, email, title, employer or ID..."
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(1);
-        }}
-        className="max-w-md"
-        aria-label="Search candidates"
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          type="search"
+          placeholder="Search by name, email, title, employer or ID..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="max-w-md"
+          aria-label="Search candidates"
+        />
+        {!showTrash ? (
+          <Button
+            variant="outline"
+            disabled={!search.trim() || semantic.isPending}
+            title="Expands your query into related skills and titles with AI, then searches"
+            onClick={() => semantic.mutate({ query: search.trim() })}
+          >
+            {semantic.isPending ? "AI searching..." : "AI search"}
+          </Button>
+        ) : null}
+      </div>
+
+      {semantic.data ? (
+        <div className="space-y-2 rounded-lg border border-[var(--brand-secondary)]/40 bg-[var(--brand-secondary-soft)]/40 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium">
+              AI search: {semantic.data.matches.length} candidate(s) via{" "}
+              {semantic.data.terms.length} related terms
+            </p>
+            <button
+              type="button"
+              onClick={() => semantic.reset()}
+              className="text-xs text-[var(--muted)] hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+          <p className="flex flex-wrap gap-1">
+            {semantic.data.terms.map((t) => (
+              <span
+                key={t}
+                className="rounded-full bg-[var(--card)] px-2 py-0.5 text-[11px] text-[var(--muted)] ring-1 ring-[var(--border)]"
+              >
+                {t}
+              </span>
+            ))}
+          </p>
+          {semantic.data.matches.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">No candidates matched the expanded terms.</p>
+          ) : (
+            <ul className="divide-y divide-[var(--border)]">
+              {semantic.data.matches.map((m) => (
+                <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/candidates/${m.id}`}
+                      className="text-sm font-medium hover:text-[var(--accent)] hover:underline"
+                    >
+                      {candidateName({ firstName: m.firstName, lastName: m.lastName })}
+                    </Link>
+                    {m.title ? <p className="text-xs text-[var(--muted)]">{m.title}</p> : null}
+                  </div>
+                  <span className="flex flex-wrap gap-1">
+                    {m.matchedTerms.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full bg-[var(--brand-secondary-soft)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--brand-secondary)]"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
 
       {!showTrash ? (
         <>
@@ -226,7 +297,9 @@ export default function CandidatesPage() {
         </>
       ) : null}
 
-      <FormError message={list.error?.message ?? restore.error?.message} />
+      <FormError
+        message={list.error?.message ?? restore.error?.message ?? semantic.error?.message}
+      />
 
       <BulkBar
         entityType="candidate"
