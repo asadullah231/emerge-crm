@@ -26,6 +26,7 @@ import {
   jobWorkMode,
   jobs,
   memberships,
+  publicJobPostings,
   users
 } from "@emerge/db";
 import { APPLICATION_STAGES } from "@/lib/applications";
@@ -34,6 +35,7 @@ import { bumpCounter, humanId, nextCounter } from "../counters";
 import { enqueueEmail } from "../email";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
+import { emitWebhook } from "../webhooks";
 import { entityTags, taggedEntityIds } from "./tags";
 import type { Transaction } from "@emerge/db";
 
@@ -310,7 +312,43 @@ export const jobsRouter = router({
         total: stageRows.reduce((sum, r) => sum + r.count, 0),
         byStage
       };
-      return { ...job, hiringContact, tags, attachments: files, pipeline };
+      const [posting] = await ctx.tx
+        .select({ id: publicJobPostings.id })
+        .from(publicJobPostings)
+        .where(eq(publicJobPostings.jobId, job.id));
+      return { ...job, hiringContact, tags, attachments: files, pipeline, isPublished: !!posting };
+    }),
+
+  /** Publish/unpublish a job on the public careers page (M19). */
+  setPublished: workspaceProcedure
+    .input(z.object({ id: z.string().uuid(), published: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const [job] = await ctx.tx
+        .select({ id: jobs.id, humanId: jobs.humanId })
+        .from(jobs)
+        .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)));
+      if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+      if (input.published) {
+        await ctx.tx
+          .insert(publicJobPostings)
+          .values({
+            workspaceId: ctx.workspaceId,
+            jobId: input.id,
+            publishedById: ctx.session.user.id
+          })
+          .onConflictDoNothing();
+      } else {
+        await ctx.tx.delete(publicJobPostings).where(eq(publicJobPostings.jobId, input.id));
+      }
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: input.published ? "job.published" : "job.unpublished",
+        targetType: "job",
+        targetId: input.id,
+        meta: { humanId: job.humanId }
+      });
+      return { id: input.id, published: input.published };
     }),
 
   create: workspaceProcedure.input(jobInput).mutation(async ({ ctx, input }) => {
@@ -398,6 +436,12 @@ export const jobsRouter = router({
     } catch (err) {
       console.error("[jobs.create] job-posted email enqueue failed:", err);
     }
+    await emitWebhook(ctx.tx, ctx.workspaceId, "job.created", {
+      jobId: created.id,
+      humanId: created.humanId,
+      title: created.title,
+      status: created.status
+    });
     return created;
   }),
 

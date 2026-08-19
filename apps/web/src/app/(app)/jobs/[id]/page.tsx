@@ -71,6 +71,7 @@ export default function JobRecordPage() {
       router.push(`/jobs/${created.id}`);
     }
   });
+  const setPublished = trpc.jobs.setPublished.useMutation({ onSuccess: refresh });
 
   // Contacts of the current client, for the hiring-contact picker.
   const client = trpc.companies.get.useQuery(
@@ -190,6 +191,24 @@ export default function JobRecordPage() {
                 {duplicate.isPending ? "Duplicating..." : "Duplicate"}
               </Button>
               <Button
+                variant="outline"
+                disabled={setPublished.isPending}
+                title={
+                  record.isPublished
+                    ? "Remove this job from the public careers page"
+                    : "List this job on the public careers page"
+                }
+                onClick={() =>
+                  setPublished.mutate({ id: record.id, published: !record.isPublished })
+                }
+              >
+                {setPublished.isPending
+                  ? "Saving..."
+                  : record.isPublished
+                    ? "Unpublish"
+                    : "Publish"}
+              </Button>
+              <Button
                 variant="danger"
                 disabled={softDelete.isPending}
                 onClick={() => {
@@ -214,12 +233,26 @@ export default function JobRecordPage() {
           This job is in the trash. Restore it to make changes.
         </div>
       ) : null}
+      {record.isPublished && me.data?.workspace ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[var(--brand-secondary)]/40 bg-[var(--brand-secondary-soft)] px-3 py-2 text-sm">
+          <span>This job is live on the public careers page.</span>
+          <a
+            href={`/careers/${me.data.workspace.id}/${record.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[var(--brand-secondary)] hover:underline"
+          >
+            View public page
+          </a>
+        </div>
+      ) : null}
       <FormError
         message={
           update.error?.message ??
           changeStatus.error?.message ??
           softDelete.error?.message ??
-          restore.error?.message
+          restore.error?.message ??
+          setPublished.error?.message
         }
       />
 

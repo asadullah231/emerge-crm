@@ -1,0 +1,1 @@
+ALTER TYPE "public"."candidate_source" ADD VALUE 'careersite';
