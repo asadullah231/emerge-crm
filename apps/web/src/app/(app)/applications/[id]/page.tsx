@@ -8,6 +8,7 @@ import { Button, FormError } from "@/components/form";
 import { candidateName } from "@/components/new-candidate-modal";
 import { FieldGrid, InlineField, RecordSection, RecordShell } from "@/components/record";
 import { CommunicationPanel } from "@/components/communication-panel";
+import { HiringPipelineTab } from "@/components/hiring-pipeline-tab";
 import { InterviewsPanel } from "@/components/interviews-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { OffersPanel } from "@/components/offers-panel";
@@ -47,6 +48,7 @@ export default function ApplicationRecordPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const [submitting, setSubmitting] = useState(false);
+  const [tab, setTab] = useState<"pipeline" | "overview">("pipeline");
 
   const me = trpc.auth.me.useQuery();
   const app = trpc.applications.get.useQuery({ id: params.id });
@@ -169,157 +171,217 @@ export default function ApplicationRecordPage() {
       ) : null}
       <FormError message={changeStatus.error?.message ?? updateMeta.error?.message} />
 
-      {canEdit ? (
-        <RecordSection title="Move to next stage">
-          <StageChangeForm
-            currentStage={record.stage as ApplicationStageKey}
-            members={activeMembers}
-            saving={changeStage.isPending}
-            error={changeStage.error?.message ?? null}
-            onSubmit={(opts) =>
-              changeStage.mutate({
-                id: record.id,
-                stage: opts.stage,
-                noteBody: opts.noteBody,
-                mentionUserIds: opts.mentionUserIds,
-                rejectionReason: opts.rejectionReason
-              })
+      <div className="flex gap-1 border-b border-[var(--border)]">
+        {(
+          [
+            { key: "pipeline", label: "Hiring Pipeline" },
+            { key: "overview", label: "Overview" }
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={cn(
+              "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              tab === t.key
+                ? "border-[var(--brand-secondary)] text-[var(--foreground)]"
+                : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "pipeline" ? (
+        <HiringPipelineTab
+          record={record}
+          statuses={statuses.data ?? []}
+          members={activeMembers}
+          canEdit={canEdit}
+          onNavigate={(sectionId) => {
+            if (sectionId === "section-documents") {
+              router.push(`/candidates/${record.candidateId}`);
+              return;
             }
-          />
-        </RecordSection>
+            setTab("overview");
+            window.setTimeout(() => {
+              document.getElementById(sectionId)?.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+              });
+            }, 60);
+          }}
+        />
       ) : null}
 
-      <RecordSection title="Pipeline">
-        <FieldGrid>
-          <InlineField
-            label="Candidate"
-            value={name}
-            canEdit={false}
-            onSave={() => {}}
-            render={() => (
-              <Link
-                href={`/candidates/${record.candidateId}`}
-                className="text-[var(--accent)] hover:underline"
-              >
-                {name}
-              </Link>
-            )}
-          />
-          <InlineField
-            label="Job"
-            value={record.jobTitle}
-            canEdit={false}
-            onSave={() => {}}
-            render={() => (
-              <Link href={`/jobs/${record.jobId}`} className="text-[var(--accent)] hover:underline">
-                {record.jobTitle}
-              </Link>
-            )}
-          />
-          <InlineField
-            label="Status"
-            value={record.statusKey}
-            canEdit={canEdit}
-            saving={changeStatus.isPending}
-            options={statusOptions}
-            render={() => currentStatusLabel}
-            onSave={setStatus}
-          />
-          <InlineField
-            label="Stage"
-            value={record.stage}
-            canEdit={false}
-            onSave={() => {}}
-            render={() => STAGE_LABELS[record.stage as ApplicationStageKey] ?? record.stage}
-          />
-          <InlineField
-            label="Owner (sourcer)"
-            value={record.ownerId ?? ""}
-            canEdit={canEdit}
-            saving={updateMeta.isPending}
-            options={ownerOptions}
-            placeholder="Unassigned"
-            onSave={(v) => updateMeta.mutate({ id: record.id, patch: { ownerId: v || null } })}
-          />
-          <InlineField
-            label="Rating"
-            value={record.rating !== null ? String(record.rating) : ""}
-            canEdit={canEdit}
-            saving={updateMeta.isPending}
-            options={RATING_OPTIONS}
-            placeholder="Not rated"
-            onSave={(v) =>
-              updateMeta.mutate({ id: record.id, patch: { rating: v ? parseInt(v, 10) : null } })
-            }
-          />
-        </FieldGrid>
-        {record.rejectionReason ? (
-          <p className="mt-2 rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-600">
-            Rejection reason: {record.rejectionReason}
-          </p>
+      <div className={tab === "overview" ? "space-y-6" : "hidden"}>
+        {canEdit ? (
+          <RecordSection title="Move to next stage">
+            <StageChangeForm
+              currentStage={record.stage as ApplicationStageKey}
+              members={activeMembers}
+              saving={changeStage.isPending}
+              error={changeStage.error?.message ?? null}
+              onSubmit={(opts) =>
+                changeStage.mutate({
+                  id: record.id,
+                  stage: opts.stage,
+                  noteBody: opts.noteBody,
+                  mentionUserIds: opts.mentionUserIds,
+                  rejectionReason: opts.rejectionReason
+                })
+              }
+            />
+          </RecordSection>
         ) : null}
-      </RecordSection>
 
-      <RecordSection title="Interviews">
-        <InterviewsPanel applicationId={record.id} canWrite={canEdit} />
-      </RecordSection>
+        <RecordSection title="Pipeline">
+          <FieldGrid>
+            <InlineField
+              label="Candidate"
+              value={name}
+              canEdit={false}
+              onSave={() => {}}
+              render={() => (
+                <Link
+                  href={`/candidates/${record.candidateId}`}
+                  className="text-[var(--accent)] hover:underline"
+                >
+                  {name}
+                </Link>
+              )}
+            />
+            <InlineField
+              label="Job"
+              value={record.jobTitle}
+              canEdit={false}
+              onSave={() => {}}
+              render={() => (
+                <Link
+                  href={`/jobs/${record.jobId}`}
+                  className="text-[var(--accent)] hover:underline"
+                >
+                  {record.jobTitle}
+                </Link>
+              )}
+            />
+            <InlineField
+              label="Status"
+              value={record.statusKey}
+              canEdit={canEdit}
+              saving={changeStatus.isPending}
+              options={statusOptions}
+              render={() => currentStatusLabel}
+              onSave={setStatus}
+            />
+            <InlineField
+              label="Stage"
+              value={record.stage}
+              canEdit={false}
+              onSave={() => {}}
+              render={() => STAGE_LABELS[record.stage as ApplicationStageKey] ?? record.stage}
+            />
+            <InlineField
+              label="Owner (sourcer)"
+              value={record.ownerId ?? ""}
+              canEdit={canEdit}
+              saving={updateMeta.isPending}
+              options={ownerOptions}
+              placeholder="Unassigned"
+              onSave={(v) => updateMeta.mutate({ id: record.id, patch: { ownerId: v || null } })}
+            />
+            <InlineField
+              label="Rating"
+              value={record.rating !== null ? String(record.rating) : ""}
+              canEdit={canEdit}
+              saving={updateMeta.isPending}
+              options={RATING_OPTIONS}
+              placeholder="Not rated"
+              onSave={(v) =>
+                updateMeta.mutate({ id: record.id, patch: { rating: v ? parseInt(v, 10) : null } })
+              }
+            />
+          </FieldGrid>
+          {record.rejectionReason ? (
+            <p className="mt-2 rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-600">
+              Rejection reason: {record.rejectionReason}
+            </p>
+          ) : null}
+        </RecordSection>
 
-      <RecordSection title="Tasks">
-        <TasksPanel entityType="application" entityId={record.id} canWrite={canEdit} />
-      </RecordSection>
+        <div id="section-interviews">
+          <RecordSection title="Interviews">
+            <InterviewsPanel applicationId={record.id} canWrite={canEdit} />
+          </RecordSection>
+        </div>
 
-      <RecordSection title="Client submissions">
-        <SubmissionsLog
-          mode="application"
-          id={record.id}
-          canWrite={canEdit}
-          showCandidate={false}
-        />
-      </RecordSection>
+        <div id="section-tasks">
+          <RecordSection title="Tasks">
+            <TasksPanel entityType="application" entityId={record.id} canWrite={canEdit} />
+          </RecordSection>
+        </div>
 
-      <RecordSection title="Offer & placement">
-        <OffersPanel applicationId={record.id} canWrite={canEdit} />
-      </RecordSection>
+        <div id="section-submissions">
+          <RecordSection title="Client submissions">
+            <SubmissionsLog
+              mode="application"
+              id={record.id}
+              canWrite={canEdit}
+              showCandidate={false}
+            />
+          </RecordSection>
+        </div>
 
-      <RecordSection title="History">
-        {record.history.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No transitions yet.</p>
-        ) : (
-          <ol className="space-y-2">
-            {record.history.map((h) => (
-              <li key={h.id} className="flex items-start justify-between gap-3 text-sm">
-                <span>
-                  {h.fromStatusKey ? (
-                    <>
-                      <span className="text-[var(--muted)]">{h.fromStatusKey}</span>
-                      {" -> "}
-                    </>
-                  ) : (
-                    <span className="text-[var(--muted)]">Created as </span>
-                  )}
-                  <span className="font-medium">{h.toStatusKey}</span>
-                  {h.note ? <span className="text-[var(--muted)]"> ({h.note})</span> : null}
-                </span>
-                <span className="whitespace-nowrap text-xs text-[var(--muted)]">
-                  {h.actorName ? `${h.actorName} · ` : ""}
-                  {new Date(h.createdAt).toLocaleDateString()}
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </RecordSection>
-      <RecordSection title="Communication">
-        <CommunicationPanel entityType="application" entityId={record.id} canWrite={canEdit} />
-      </RecordSection>
+        <RecordSection title="Offer & placement">
+          <OffersPanel applicationId={record.id} canWrite={canEdit} />
+        </RecordSection>
 
-      <RecordSection title="Notes">
-        <NotesPanel entityType="application" entityId={record.id} canWrite={canEdit} />
-      </RecordSection>
+        <RecordSection title="History">
+          {record.history.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">No transitions yet.</p>
+          ) : (
+            <ol className="space-y-2">
+              {record.history.map((h) => (
+                <li key={h.id} className="flex items-start justify-between gap-3 text-sm">
+                  <span>
+                    {h.fromStatusKey ? (
+                      <>
+                        <span className="text-[var(--muted)]">{h.fromStatusKey}</span>
+                        {" -> "}
+                      </>
+                    ) : (
+                      <span className="text-[var(--muted)]">Created as </span>
+                    )}
+                    <span className="font-medium">{h.toStatusKey}</span>
+                    {h.note ? <span className="text-[var(--muted)]"> ({h.note})</span> : null}
+                  </span>
+                  <span className="whitespace-nowrap text-xs text-[var(--muted)]">
+                    {h.actorName ? `${h.actorName} · ` : ""}
+                    {new Date(h.createdAt).toLocaleDateString()}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </RecordSection>
+        <div id="section-communication">
+          <RecordSection title="Communication">
+            <CommunicationPanel entityType="application" entityId={record.id} canWrite={canEdit} />
+          </RecordSection>
+        </div>
 
-      <RecordSection title="Timeline">
-        <TimelinePanel entityType="application" entityId={record.id} />
-      </RecordSection>
+        <div id="section-notes">
+          <RecordSection title="Notes">
+            <NotesPanel entityType="application" entityId={record.id} canWrite={canEdit} />
+          </RecordSection>
+        </div>
+
+        <RecordSection title="Timeline">
+          <TimelinePanel entityType="application" entityId={record.id} />
+        </RecordSection>
+      </div>
 
       <SubmitToClientModal
         open={submitting}

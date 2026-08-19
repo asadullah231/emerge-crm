@@ -6,9 +6,14 @@ import {
   applicationStatusHistory,
   applicationStatuses,
   applications,
+  attachments,
   candidates,
+  emails,
+  interviews,
   jobs,
   notes,
+  submissions,
+  tasks,
   users,
   type Transaction
 } from "@emerge/db";
@@ -317,6 +322,82 @@ export const applicationsRouter = router({
         .where(eq(applicationStatusHistory.applicationId, app.id))
         .orderBy(desc(applicationStatusHistory.createdAt));
       return { ...app, history };
+    }),
+
+  /**
+   * Related-list counts for the Hiring Pipeline tab sidebar (M17c). One round
+   * trip for all six lists; candidate-level attachments are counted separately
+   * from application ones because documents live on the candidate record.
+   */
+  relatedCounts: workspaceProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const [app] = await ctx.tx
+        .select({ id: applications.id, candidateId: applications.candidateId })
+        .from(applications)
+        .where(eq(applications.id, input.id));
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+
+      const one = async (q: Promise<{ total: number }[]>) => (await q)[0]?.total ?? 0;
+      const [noteCount, docCount, interviewCount, submissionCount, taskCount, emailCount] =
+        await Promise.all([
+          one(
+            ctx.tx
+              .select({ total: count() })
+              .from(notes)
+              .where(
+                and(
+                  eq(notes.entityType, "application"),
+                  eq(notes.entityId, app.id),
+                  isNull(notes.deletedAt)
+                )
+              )
+          ),
+          one(
+            ctx.tx
+              .select({ total: count() })
+              .from(attachments)
+              .where(
+                and(
+                  eq(attachments.entityType, "candidate"),
+                  eq(attachments.entityId, app.candidateId),
+                  isNull(attachments.deletedAt)
+                )
+              )
+          ),
+          one(
+            ctx.tx
+              .select({ total: count() })
+              .from(interviews)
+              .where(eq(interviews.applicationId, app.id))
+          ),
+          one(
+            ctx.tx
+              .select({ total: count() })
+              .from(submissions)
+              .where(eq(submissions.applicationId, app.id))
+          ),
+          one(
+            ctx.tx
+              .select({ total: count() })
+              .from(tasks)
+              .where(and(eq(tasks.entityType, "application"), eq(tasks.entityId, app.id)))
+          ),
+          one(
+            ctx.tx
+              .select({ total: count() })
+              .from(emails)
+              .where(and(eq(emails.entityType, "application"), eq(emails.entityId, app.id)))
+          )
+        ]);
+      return {
+        notes: noteCount,
+        documents: docCount,
+        interviews: interviewCount,
+        submissions: submissionCount,
+        tasks: taskCount,
+        emails: emailCount
+      };
     }),
 
   /** Associate a candidate to a job (unique pair). Restores a trashed pair. */
