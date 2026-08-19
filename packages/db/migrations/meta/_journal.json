@@ -183,6 +183,13 @@
       "when": 1787032996479,
       "tag": "0025_complete_ezekiel",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1787106439491,
+      "tag": "0026_flowery_scalphunter",
+      "breakpoints": true
     }
   ]
 }

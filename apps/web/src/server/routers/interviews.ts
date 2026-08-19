@@ -107,6 +107,29 @@ export const interviewsRouter = router({
       });
     }),
 
+  /** All interviews across a job's applications (job record related list, M17c). */
+  byJob: workspaceProcedure
+    .input(z.object({ jobId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.tx
+        .select({
+          id: interviews.id,
+          humanId: interviews.humanId,
+          applicationId: interviews.applicationId,
+          type: interviews.type,
+          status: interviews.status,
+          scheduledAt: interviews.scheduledAt,
+          durationMins: interviews.durationMins,
+          candidateFirstName: candidates.firstName,
+          candidateLastName: candidates.lastName
+        })
+        .from(interviews)
+        .innerJoin(applications, eq(applications.id, interviews.applicationId))
+        .innerJoin(candidates, eq(candidates.id, applications.candidateId))
+        .where(eq(applications.jobId, input.jobId))
+        .orderBy(desc(interviews.scheduledAt));
+    }),
+
   get: workspaceProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {

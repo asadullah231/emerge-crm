@@ -560,6 +560,62 @@ export const jobsRouter = router({
       return restored;
     }),
 
+  /**
+   * Duplicate a job opening (M17c, Zoho Clone parity). Copies every content
+   * field, resets status to open with a fresh human id and "(Copy)" title;
+   * applications, notes and attachments are NOT copied.
+   */
+  duplicate: workspaceProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [src] = await ctx.tx
+        .select()
+        .from(jobs)
+        .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)));
+      if (!src) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+      const next = await nextCounter(ctx.tx, ctx.workspaceId, "job");
+      const [created] = await ctx.tx
+        .insert(jobs)
+        .values({
+          workspaceId: ctx.workspaceId,
+          humanId: humanId("JOB", next),
+          title: `${src.title} (Copy)`,
+          companyId: src.companyId,
+          hiringContactId: src.hiringContactId,
+          ownerId: ctx.session.user.id,
+          status: "open",
+          employmentType: src.employmentType,
+          workMode: src.workMode,
+          location: src.location,
+          description: src.description,
+          clientCallSummary: src.clientCallSummary,
+          requiredSkills: src.requiredSkills,
+          isHot: src.isHot,
+          city: src.city,
+          state: src.state,
+          country: src.country,
+          postalCode: src.postalCode,
+          targetCloseAt: src.targetCloseAt,
+          positions: src.positions,
+          salaryText: src.salaryText,
+          salaryMin: src.salaryMin,
+          salaryMax: src.salaryMax,
+          salaryCurrency: src.salaryCurrency,
+          salaryPeriod: src.salaryPeriod
+        })
+        .returning({ id: jobs.id, humanId: jobs.humanId });
+      if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "job.duplicated",
+        targetType: "job",
+        targetId: created.id,
+        meta: { from: src.humanId, humanId: created.humanId }
+      });
+      return created;
+    }),
+
   /** Distinct values that feed the list filter dropdowns (M17b). */
   filterOptions: workspaceProcedure.query(async ({ ctx }) => {
     const rows = await ctx.tx

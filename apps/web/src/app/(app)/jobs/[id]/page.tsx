@@ -18,8 +18,10 @@ import {
   RecordSection,
   RecordShell
 } from "@/components/record";
+import { CommunicationPanel } from "@/components/communication-panel";
 import { JobDescriptionView } from "@/components/job-description-view";
 import { JobDocuments } from "@/components/job-documents";
+import { JobInterviewsPanel } from "@/components/job-interviews-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
 import { JobRevenuePanel } from "@/components/revenue-panel";
@@ -62,6 +64,12 @@ export default function JobRecordPage() {
     }
   });
   const restore = trpc.jobs.restore.useMutation({ onSuccess: refresh });
+  const duplicate = trpc.jobs.duplicate.useMutation({
+    onSuccess: async (created) => {
+      await utils.jobs.list.invalidate();
+      router.push(`/jobs/${created.id}`);
+    }
+  });
 
   // Contacts of the current client, for the hiring-contact picker.
   const client = trpc.companies.get.useQuery(
@@ -173,6 +181,13 @@ export default function JobRecordPage() {
                   </option>
                 ))}
               </select>
+              <Button
+                variant="outline"
+                disabled={duplicate.isPending}
+                onClick={() => duplicate.mutate({ id: record.id })}
+              >
+                {duplicate.isPending ? "Duplicating..." : "Duplicate"}
+              </Button>
               <Button
                 variant="danger"
                 disabled={softDelete.isPending}
@@ -489,6 +504,14 @@ export default function JobRecordPage() {
           </div>
         )}
         <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
+      </RecordSection>
+
+      <RecordSection title="Interviews">
+        <JobInterviewsPanel jobId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Communication">
+        <CommunicationPanel entityType="job" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
 
       <RecordSection title="Client submissions">
