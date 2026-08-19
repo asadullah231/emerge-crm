@@ -94,6 +94,25 @@ export async function sendReportEmail(opts: {
 }
 
 /**
+ * Send an already-rendered email directly from a worker sweep (no queue
+ * round-trip), same as sendReportEmail but without an attachment (M17c).
+ */
+export async function sendPlainEmail(opts: {
+  to: string[];
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<void> {
+  await transporter.sendMail({
+    from: FROM,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text
+  });
+}
+
+/**
  * Presentation only - delegates to the shared @emerge/email design system.
  * The auth/invitation logic still produces the URLs, tokens and expiries; this
  * just renders them into the branded HTML + a plain-text fallback.

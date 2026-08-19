@@ -3,6 +3,7 @@ import IORedis from "ioredis";
 import { APP_NAME, APP_VERSION } from "@emerge/core";
 import { createDb } from "@emerge/db";
 import { startEmailWorker } from "./email";
+import { sendDueInterviewReminders } from "./interviews/reminders";
 import { expireOverdueOffers } from "./offers/expiry";
 import { startParseWorker } from "./parse/worker";
 import { deliverDueReports } from "./reports/deliver";
@@ -26,6 +27,9 @@ const worker = new Worker(
     } else if (job.name === "deliver-reports") {
       const n = await deliverDueReports(db);
       if (n > 0) console.log(`[worker] delivered ${n} scheduled report(s)`);
+    } else if (job.name === "interview-reminders") {
+      const n = await sendDueInterviewReminders(db);
+      if (n > 0) console.log(`[worker] sent ${n} interview reminder(s)`);
     }
   },
   { connection }
@@ -50,6 +54,13 @@ await queue.upsertJobScheduler(
   "deliver-reports-scheduler",
   { every: 5 * 60_000 },
   { name: "deliver-reports" }
+);
+
+// Interview reminders: mail interviewers when a start is within the hour (M17c).
+await queue.upsertJobScheduler(
+  "interview-reminders-scheduler",
+  { every: 5 * 60_000 },
+  { name: "interview-reminders" }
 );
 
 const emailWorker = startEmailWorker(connection, db);
