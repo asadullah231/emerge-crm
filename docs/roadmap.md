@@ -58,32 +58,32 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 22.
 
 ## Milestone overview
 
-| #   | Milestone                                                         | Version         | Status      | Depends on   | Complexity | Audit gaps closed                 |
-| --- | ----------------------------------------------------------------- | --------------- | ----------- | ------------ | ---------- | --------------------------------- |
-| M0  | Project Foundation                                                | v0.1.0          | Done        | –            | M          | –                                 |
-| M1  | Auth, Workspaces, Users & Roles                                   | v0.2.0          | Done        | M0           | L          | platform                          |
-| M2  | Companies & Contacts                                              | v0.3.0          | Done        | M1           | M          | core                              |
-| M3  | Candidates, CV Upload & Dedupe                                    | v0.4.0          | Done        | M1           | L          | core                              |
-| M4  | Jobs (client-owned, AM-routed)                                    | v0.5.0          | Done        | M2           | M          | core                              |
-| M5  | Applications: Pipeline, Statuses & Kanban                         | v0.6.0          | Done        | M3, M4       | L          | core                              |
-| M6  | Notes, @Mentions, Timeline & Notifications                        | v0.7.0          | Done        | M2–M5        | L          | collaboration                     |
-| M8  | Zoho Migration & Import Engine                                    | v0.8.0          | Done        | M2–M6        | L          | migration                         |
-| -   | **Attachment (CV) backfill** (engine phase + data run)            | done            | **Done**    | M8           | S          | **H2** done                       |
-| M7  | Resume Parsing & Bulk CV Intake + per-workspace AI                | v0.9.0          | Done        | M3           | L          | **H6**, M-parse                   |
-| M9  | Global Search, Filters, Saved Views & Bulk Actions                | v0.10.0         | Done        | M2–M5        | L          | **H3**, M2, M-tags                |
-| M10 | Client Submissions & Feedback                                     | v0.11.0         | Done        | M5, M6       | M          | **H8**, submissions               |
-| M11 | Interviews & Tasks (lite)                                         | v0.12.0         | Done        | M5, M6       | M          | **H1**, Reviews-lite, To-Dos-lite |
-| M12 | Offers, Placements & Job Revenue                                  | v0.13.0         | Done        | M5           | M          | **H7**, Forecasts                 |
-| M13 | Email Integration                                                 | v0.14.0         | Done        | M6           | L          | **H4**, Mail-merge                |
-| M14 | Agency Reports & Analytics                                        | v0.15.0         | Done        | M5, M10      | M          | Reports/Dashboards/Metrics        |
-| M15 | Client Feedback R1: Intake Flow & Job Collaboration               | v0.16.0         | Done        | M5, M7, M13  | S          | client feedback (Mo)              |
-| M16 | Client Feedback R2: Mention Emails & Stage Comments               | v0.17.0         | Done        | M6, M13, M15 | S          | client feedback (Mo)              |
-| M17 | Job Openings Parity Sweep (a: fields, b: list/bulk, c: record UX) | v0.18.0–v0.20.0 | In progress | M4, M5, M15  | L          | Zoho JO audit 18 Aug              |
-| M18 | Candidate Matching & Semantic Search                              | v0.21.0         | Planned     | M7, M9       | L          | Zia matching                      |
-| M19 | Public API, Webhooks & Career Page                                | v0.22.0         | Planned     | M9           | L          | **H5**, career site, job boards   |
-| M20 | Compliance: GDPR, Blocklist & Data Tools                          | v0.23.0         | Planned     | M8           | M          | Compliance/GDPR                   |
-| M21 | Security, Performance & Production Hardening                      | v0.24.0         | Planned     | all          | L          | platform                          |
-| M22 | v1.0 Production Release                                           | v1.0.0          | Planned     | M21          | M          | –                                 |
+| #   | Milestone                                                         | Version         | Status   | Depends on   | Complexity | Audit gaps closed                 |
+| --- | ----------------------------------------------------------------- | --------------- | -------- | ------------ | ---------- | --------------------------------- |
+| M0  | Project Foundation                                                | v0.1.0          | Done     | –            | M          | –                                 |
+| M1  | Auth, Workspaces, Users & Roles                                   | v0.2.0          | Done     | M0           | L          | platform                          |
+| M2  | Companies & Contacts                                              | v0.3.0          | Done     | M1           | M          | core                              |
+| M3  | Candidates, CV Upload & Dedupe                                    | v0.4.0          | Done     | M1           | L          | core                              |
+| M4  | Jobs (client-owned, AM-routed)                                    | v0.5.0          | Done     | M2           | M          | core                              |
+| M5  | Applications: Pipeline, Statuses & Kanban                         | v0.6.0          | Done     | M3, M4       | L          | core                              |
+| M6  | Notes, @Mentions, Timeline & Notifications                        | v0.7.0          | Done     | M2–M5        | L          | collaboration                     |
+| M8  | Zoho Migration & Import Engine                                    | v0.8.0          | Done     | M2–M6        | L          | migration                         |
+| -   | **Attachment (CV) backfill** (engine phase + data run)            | done            | **Done** | M8           | S          | **H2** done                       |
+| M7  | Resume Parsing & Bulk CV Intake + per-workspace AI                | v0.9.0          | Done     | M3           | L          | **H6**, M-parse                   |
+| M9  | Global Search, Filters, Saved Views & Bulk Actions                | v0.10.0         | Done     | M2–M5        | L          | **H3**, M2, M-tags                |
+| M10 | Client Submissions & Feedback                                     | v0.11.0         | Done     | M5, M6       | M          | **H8**, submissions               |
+| M11 | Interviews & Tasks (lite)                                         | v0.12.0         | Done     | M5, M6       | M          | **H1**, Reviews-lite, To-Dos-lite |
+| M12 | Offers, Placements & Job Revenue                                  | v0.13.0         | Done     | M5           | M          | **H7**, Forecasts                 |
+| M13 | Email Integration                                                 | v0.14.0         | Done     | M6           | L          | **H4**, Mail-merge                |
+| M14 | Agency Reports & Analytics                                        | v0.15.0         | Done     | M5, M10      | M          | Reports/Dashboards/Metrics        |
+| M15 | Client Feedback R1: Intake Flow & Job Collaboration               | v0.16.0         | Done     | M5, M7, M13  | S          | client feedback (Mo)              |
+| M16 | Client Feedback R2: Mention Emails & Stage Comments               | v0.17.0         | Done     | M6, M13, M15 | S          | client feedback (Mo)              |
+| M17 | Job Openings Parity Sweep (a: fields, b: list/bulk, c: record UX) | v0.18.0–v0.20.0 | Done     | M4, M5, M15  | L          | Zoho JO audit 18 Aug              |
+| M18 | Candidate Matching & Semantic Search                              | v0.21.0         | Planned  | M7, M9       | L          | Zia matching                      |
+| M19 | Public API, Webhooks & Career Page                                | v0.22.0         | Planned  | M9           | L          | **H5**, career site, job boards   |
+| M20 | Compliance: GDPR, Blocklist & Data Tools                          | v0.23.0         | Planned  | M8           | M          | Compliance/GDPR                   |
+| M21 | Security, Performance & Production Hardening                      | v0.24.0         | Planned  | all          | L          | platform                          |
+| M22 | v1.0 Production Release                                           | v1.0.0          | Planned  | M21          | M          | –                                 |
 
 Complexity scale: S (days), M (about a week), L (1–2 weeks), XL (2–3 weeks).
 Estimates assume one primary developer + AI tooling.
