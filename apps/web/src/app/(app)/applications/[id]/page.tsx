@@ -12,6 +12,7 @@ import { HiringPipelineTab } from "@/components/hiring-pipeline-tab";
 import { InterviewsPanel } from "@/components/interviews-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { OffersPanel } from "@/components/offers-panel";
+import { ReviewsPanel } from "@/components/reviews-panel";
 import { TasksPanel } from "@/components/tasks-panel";
 import { StageChangeForm } from "@/components/stage-change-form";
 import { SubmissionsLog } from "@/components/submissions-log";
@@ -314,6 +315,17 @@ export default function ApplicationRecordPage() {
         <div id="section-interviews">
           <RecordSection title="Interviews">
             <InterviewsPanel applicationId={record.id} canWrite={canEdit} />
+          </RecordSection>
+        </div>
+
+        <div id="section-reviews">
+          <RecordSection title="Ratings and reviews">
+            <ReviewsPanel
+              applicationId={record.id}
+              canWrite={canEdit}
+              myUserId={me.data?.user.id}
+              isAdmin={me.data?.role === "admin"}
+            />
           </RecordSection>
         </div>
 

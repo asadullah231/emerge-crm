@@ -3,6 +3,31 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.20.0 - Milestone 17c: Hiring Pipeline Tab and Record Depth (2026-08-19)
+
+Third slice of the Job Openings parity sweep, centered on the Hiring Pipeline
+view the client walked through on the Zoho call.
+
+### Added
+
+- **Hiring Pipeline tab** on the application record (Zoho parity): stage
+  stepper with done/current/pending states and days in stage, a per-status
+  timeline with date ranges, durations, actors and the transition comment, a
+  pinned Current Status badge, and a one-click "Move to next status" action
+  with comment, @mentions and a required rejection reason when the next status
+  rejects. A related-lists sidebar shows live counts (Notes, Documents,
+  Interviews, Reviews, Client submissions, To-dos, Emails) and jumps straight
+  to the matching Overview section.
+- **Ratings and reviews** on the application record: 1 to 5 star reviews from
+  the recruiter, interviewer or client perspective with comments (new
+  `reviews` table, migration 0026); reviewers or admins can delete.
+- **Job record depth:** aggregated Interviews list across the job's
+  applications with a Schedule action, an email Communication panel on the job
+  record, and a Duplicate action that clones a job into a fresh open opening.
+- **Interview reminders.** The worker now emails interviewers and the
+  organizer once when a scheduled interview starts within the hour
+  (`interviews.reminder_sent_at` guards against double sends).
+
 ## v0.19.0 - Milestone 17b: Job Openings Views, Bulk Actions and Import (2026-08-19)
 
 Second slice of the Job Openings parity sweep: list power features matching

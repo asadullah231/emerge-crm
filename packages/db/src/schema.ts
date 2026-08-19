@@ -1111,6 +1111,8 @@ export const interviews = pgTable(
     meetingLink: text("meeting_link"),
     notes: text("notes"),
     cancellationReason: text("cancellation_reason"),
+    /** Stamped by the worker reminder cron so each interview is reminded once (M17c). */
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
     /** iCalendar SEQUENCE; bumped on reschedule/cancel so re-sent invites supersede. */
     sequence: integer("sequence").notNull().default(0),
     organizerId: uuid("organizer_id").references(() => users.id, { onDelete: "set null" }),
@@ -1178,6 +1180,35 @@ export const interviewFeedback = pgTable(
   ]
 );
 export type InterviewFeedback = typeof interviewFeedback.$inferSelect;
+
+export const reviewKind = pgEnum("review_kind", ["recruiter", "interviewer", "client"]);
+export type ReviewKind = (typeof reviewKind.enumValues)[number];
+
+/**
+ * Ratings and Reviews on an application (M17c, Zoho Reviews related list).
+ * Interview-specific scorecards stay in interview_feedback; these are overall
+ * reviews of the candidate for the role from any perspective.
+ */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    reviewerUserId: uuid("reviewer_user_id").references(() => users.id, { onDelete: "set null" }),
+    kind: reviewKind("kind").notNull().default("recruiter"),
+    rating: integer("rating").notNull(),
+    comment: text("comment"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [index("reviews_application_idx").on(t.workspaceId, t.applicationId)]
+);
+export type Review = typeof reviews.$inferSelect;
 
 export const tasks = pgTable(
   "tasks",

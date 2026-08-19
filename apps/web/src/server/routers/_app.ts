@@ -23,6 +23,7 @@ import { offersRouter } from "./offers";
 import { parsingRouter } from "./parsing";
 import { placementsRouter } from "./placements";
 import { revenueRouter } from "./revenue";
+import { reviewsRouter } from "./reviews";
 import { searchRouter } from "./search";
 import { submissionsRouter } from "./submissions";
 import { tagsRouter } from "./tags";
@@ -60,6 +61,7 @@ export const appRouter = router({
   offers: offersRouter,
   placements: placementsRouter,
   revenue: revenueRouter,
+  reviews: reviewsRouter,
   emails: emailsRouter,
   emailTemplates: emailTemplatesRouter,
   reports: reportsRouter,

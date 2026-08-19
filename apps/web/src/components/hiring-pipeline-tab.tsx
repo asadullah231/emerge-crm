@@ -100,6 +100,7 @@ export function HiringPipelineTab({
     { id: "section-documents", label: "Documents", count: counts.data?.documents },
     { id: "section-interviews", label: "Interviews", count: counts.data?.interviews },
     { id: "section-submissions", label: "Client submissions", count: counts.data?.submissions },
+    { id: "section-reviews", label: "Reviews", count: counts.data?.reviews },
     { id: "section-tasks", label: "To-dos", count: counts.data?.tasks },
     { id: "section-communication", label: "Emails", count: counts.data?.emails }
   ];
