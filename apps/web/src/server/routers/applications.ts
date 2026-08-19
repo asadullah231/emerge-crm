@@ -426,10 +426,17 @@ export const applicationsRouter = router({
     .mutation(async ({ ctx, input }) => {
       await ensureDefaultStatuses(ctx.tx, ctx.workspaceId);
       const [candidate] = await ctx.tx
-        .select({ id: candidates.id })
+        .select({ id: candidates.id, isBlocked: candidates.isBlocked })
         .from(candidates)
         .where(and(eq(candidates.id, input.candidateId), isNull(candidates.deletedAt)));
       if (!candidate) throw new TRPCError({ code: "BAD_REQUEST", message: "Candidate not found" });
+      // Blocklist (M20, Zoho Is_Blocked): blocked candidates cannot be associated.
+      if (candidate.isBlocked) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This candidate is on the blocklist and cannot be added to a pipeline"
+        });
+      }
       const [job] = await ctx.tx
         .select({ id: jobs.id })
         .from(jobs)

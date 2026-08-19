@@ -8,6 +8,7 @@ import { authRouter } from "./auth";
 import { bulkRouter } from "./bulk";
 import { candidatesRouter } from "./candidates";
 import { companiesRouter } from "./companies";
+import { complianceRouter } from "./compliance";
 import { contactsRouter } from "./contacts";
 import { dashboardRouter } from "./dashboard";
 import { emailTemplatesRouter } from "./email-templates";
@@ -51,6 +52,7 @@ export const appRouter = router({
   matching: matchingRouter,
   members: membersRouter,
   companies: companiesRouter,
+  compliance: complianceRouter,
   contacts: contactsRouter,
   candidates: candidatesRouter,
   jobs: jobsRouter,

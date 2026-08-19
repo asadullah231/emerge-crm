@@ -9,6 +9,7 @@ import { CandidateDocuments } from "@/components/candidate-documents";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
 import { CommunicationPanel } from "@/components/communication-panel";
+import { CompliancePanel } from "@/components/compliance-panel";
 import { CandidateMatchesPanel } from "@/components/matching-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
@@ -98,7 +99,21 @@ export default function CandidateRecordPage() {
           ) : null}
         </span>
       }
-      badges={<SourceBadge source={record.source} />}
+      badges={
+        <span className="flex flex-wrap items-center gap-1.5">
+          <SourceBadge source={record.source} />
+          {record.isBlocked ? (
+            <span className="inline-flex rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-600 ring-1 ring-red-500/40">
+              Blocked
+            </span>
+          ) : null}
+          {record.emailOptOut ? (
+            <span className="inline-flex rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-600 ring-1 ring-amber-500/40">
+              Email opt-out
+            </span>
+          ) : null}
+        </span>
+      }
       actions={
         canWrite ? (
           isDeleted ? (
@@ -301,6 +316,17 @@ export default function CandidateRecordPage() {
 
       <RecordSection title="Matching jobs">
         <CandidateMatchesPanel candidateId={record.id} canWrite={canEdit} />
+      </RecordSection>
+
+      <RecordSection title="Compliance">
+        <CompliancePanel
+          candidateId={record.id}
+          candidateName={fullName}
+          emailOptOut={record.emailOptOut}
+          isBlocked={record.isBlocked}
+          canWrite={canEdit}
+          isAdmin={me.data?.role === "admin"}
+        />
       </RecordSection>
 
       <RecordSection title="Documents">
