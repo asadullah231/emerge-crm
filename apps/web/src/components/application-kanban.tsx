@@ -129,11 +129,11 @@ export function ApplicationKanban({
 
   if (board.isLoading) {
     return (
-      <div className="flex gap-4 overflow-hidden">
+      <div className="flex gap-3 overflow-hidden">
         {APPLICATION_STAGES.map((stage) => (
           <div
             key={stage}
-            className="h-[480px] min-w-52 flex-1 animate-pulse rounded-xl bg-[var(--surface-sunken)]"
+            className="h-[480px] min-w-48 flex-1 animate-pulse rounded-xl bg-[var(--surface-sunken)]"
           />
         ))}
       </div>
@@ -163,8 +163,8 @@ export function ApplicationKanban({
       >
         <div
           className={cn(
-            "flex gap-4 pb-1",
-            fill ? "h-[calc(100dvh-14rem)] min-h-[480px]" : "h-[65vh] min-h-[420px]"
+            "flex gap-3",
+            fill ? "h-[calc(100dvh-10.5rem)] min-h-[480px]" : "h-[65vh] min-h-[420px]"
           )}
         >
           {APPLICATION_STAGES.map((stage) => {
@@ -181,7 +181,7 @@ export function ApplicationKanban({
                 onDragLeave={() => setOverStage((s) => (s === stage ? null : s))}
                 onDrop={() => drop(stage)}
                 className={cn(
-                  "flex min-w-52 flex-1 flex-col rounded-xl border transition-colors",
+                  "flex min-w-48 flex-1 flex-col rounded-xl border transition-colors",
                   isOver
                     ? "border-[var(--brand-secondary)] bg-[var(--brand-secondary-soft)]"
                     : "border-transparent bg-[var(--surface-sunken)]"

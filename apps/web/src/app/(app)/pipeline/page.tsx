@@ -18,13 +18,13 @@ export default function PipelinePage() {
   });
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Pipeline</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h1 className="text-xl font-semibold tracking-tight">Pipeline</h1>
+          <p className="text-sm text-[var(--muted)]">
             {canWrite
-              ? "Drag candidates between stages to move them through the pipeline."
+              ? "Drag candidates between stages to move them forward."
               : "You have read-only access to the pipeline."}
           </p>
         </div>
@@ -33,7 +33,7 @@ export default function PipelinePage() {
             value={jobId}
             onChange={(e) => setJobId(e.target.value)}
             aria-label="Filter by job"
-            className="w-full max-w-72 appearance-none truncate rounded-lg border border-[var(--border)] bg-[var(--card)] py-2 pl-3.5 pr-9 text-sm shadow-xs outline-none transition-colors focus:border-[var(--brand-secondary)] focus:ring-2 focus:ring-[var(--brand-secondary-soft)]"
+            className="w-full max-w-72 appearance-none truncate rounded-lg border border-[var(--border)] bg-[var(--card)] py-1.5 pl-3 pr-9 text-sm shadow-xs outline-none transition-colors focus:border-[var(--brand-secondary)] focus:ring-2 focus:ring-[var(--brand-secondary-soft)]"
           >
             <option value="">All jobs</option>
             {jobs.data?.rows.map((j) => (
