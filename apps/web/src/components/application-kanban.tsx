@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@emerge/ui";
 import {
   APPLICATION_STAGES,
-  STAGE_ACCENT,
+  STAGE_DOT,
   STAGE_LABELS,
   type ApplicationStageKey
 } from "@/lib/applications";
@@ -22,21 +22,34 @@ function daysInStage(since: string | Date): number {
   return Math.max(0, Math.floor(ms / 86_400_000));
 }
 
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
 /**
  * Application kanban: 7 stage columns with native HTML5 drag-and-drop. Dropping
  * a card into a column opens a modal (M16) with the same fields as the record
  * page — optional comment with @mentions and a required rejection reason when
  * moving into Rejected. The optimistic move only commits after the modal is
  * confirmed. Read-only users see the board but cannot move cards.
+ *
+ * Visual design: columns are recessed surfaces (--surface-sunken) with a stage
+ * dot + count header; cards are elevated on --card with an initials avatar,
+ * status dot footer and quiet hover/drag states. All pipeline logic (drop,
+ * optimistic move, edge auto-scroll) is unchanged.
  */
 export function ApplicationKanban({
   jobId,
   canWrite,
-  showJob = true
+  showJob = true,
+  fill = false
 }: {
   jobId?: string;
   canWrite: boolean;
   showJob?: boolean;
+  /** true on the dedicated Pipeline page: the board stretches to the viewport. */
+  fill?: boolean;
 }) {
   const utils = trpc.useUtils();
   const input = { jobId };
@@ -115,7 +128,16 @@ export function ApplicationKanban({
   };
 
   if (board.isLoading) {
-    return <p className="text-sm text-[var(--muted)]">Loading pipeline...</p>;
+    return (
+      <div className="flex gap-4 overflow-hidden">
+        {APPLICATION_STAGES.map((stage) => (
+          <div
+            key={stage}
+            className="h-[480px] min-w-52 flex-1 animate-pulse rounded-xl bg-[var(--surface-sunken)]"
+          />
+        ))}
+      </div>
+    );
   }
   if (board.error) {
     return (
@@ -134,14 +156,20 @@ export function ApplicationKanban({
     <>
       <div
         ref={boardRef}
-        className="overflow-x-auto"
+        className="kanban-scroll overflow-x-auto"
         onDragOver={(e) => {
           if (canWrite) pointer.current = { x: e.clientX, y: e.clientY };
         }}
       >
-        <div className="flex gap-3 pb-2">
+        <div
+          className={cn(
+            "flex gap-4 pb-1",
+            fill ? "h-[calc(100dvh-14rem)] min-h-[480px]" : "h-[65vh] min-h-[420px]"
+          )}
+        >
           {APPLICATION_STAGES.map((stage) => {
             const cards = columns[stage] ?? [];
+            const isOver = overStage === stage;
             return (
               <div
                 key={stage}
@@ -153,23 +181,27 @@ export function ApplicationKanban({
                 onDragLeave={() => setOverStage((s) => (s === stage ? null : s))}
                 onDrop={() => drop(stage)}
                 className={cn(
-                  "flex min-w-52 flex-1 flex-col rounded-lg border bg-[var(--card)]",
-                  overStage === stage
-                    ? "border-[var(--brand-secondary)] ring-1 ring-[var(--brand-secondary)]"
-                    : "border-[var(--border)]"
+                  "flex min-w-52 flex-1 flex-col rounded-xl border transition-colors",
+                  isOver
+                    ? "border-[var(--brand-secondary)] bg-[var(--brand-secondary-soft)]"
+                    : "border-transparent bg-[var(--surface-sunken)]"
                 )}
               >
-                <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
-                  <span className={cn("text-sm font-semibold", STAGE_ACCENT[stage])}>
+                <div className="flex items-center gap-2 px-3 pb-2 pt-3">
+                  <span
+                    aria-hidden
+                    className={cn("size-2 shrink-0 rounded-full", STAGE_DOT[stage])}
+                  />
+                  <span className="truncate text-[13px] font-semibold tracking-tight">
                     {STAGE_LABELS[stage]}
                   </span>
-                  <span className="rounded-full bg-[var(--background)] px-2 py-0.5 text-xs text-[var(--muted)]">
+                  <span className="ml-auto rounded-md bg-[var(--card)] px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-[var(--muted)] shadow-xs">
                     {cards.length}
                   </span>
                 </div>
                 <div
                   data-kanban-col
-                  className="flex max-h-[65vh] min-h-24 flex-1 flex-col gap-2 overflow-y-auto p-2"
+                  className="kanban-scroll flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2"
                 >
                   {cards.map((card) => (
                     <KanbanCard
@@ -178,6 +210,7 @@ export function ApplicationKanban({
                       statusLabel={statusLabel(card.statusKey)}
                       canWrite={canWrite}
                       showJob={showJob}
+                      isDragging={dragId === card.id}
                       onDragStart={() => setDragId(card.id)}
                       onDragEnd={() => {
                         setDragId(null);
@@ -186,7 +219,16 @@ export function ApplicationKanban({
                     />
                   ))}
                   {cards.length === 0 ? (
-                    <p className="px-1 py-6 text-center text-xs text-[var(--muted)]">Empty</p>
+                    <div
+                      className={cn(
+                        "m-0.5 flex flex-1 items-center justify-center rounded-lg border border-dashed",
+                        isOver ? "border-[var(--brand-secondary)]" : "border-[var(--border)]"
+                      )}
+                    >
+                      <p className="text-xs text-[var(--muted)]">
+                        {dragId ? "Drop here" : "No candidates"}
+                      </p>
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -240,6 +282,7 @@ function KanbanCard({
   statusLabel,
   canWrite,
   showJob,
+  isDragging,
   onDragStart,
   onDragEnd
 }: {
@@ -247,6 +290,7 @@ function KanbanCard({
   statusLabel: string;
   canWrite: boolean;
   showJob: boolean;
+  isDragging: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
@@ -261,27 +305,60 @@ function KanbanCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
-        "rounded-md border border-[var(--border)] bg-[var(--background)] p-2 text-sm",
-        canWrite && "cursor-grab active:cursor-grabbing"
+        "rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 shadow-xs transition-all duration-150",
+        canWrite && "cursor-grab hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing",
+        isDragging && "opacity-40"
       )}
     >
-      <Link
-        href={`/applications/${card.id}`}
-        className="font-medium hover:text-[var(--accent)] hover:underline"
-      >
-        {name}
-      </Link>
-      {card.candidateTitle ? (
-        <p className="truncate text-xs text-[var(--muted)]">{card.candidateTitle}</p>
-      ) : null}
-      {showJob ? (
-        <p className="mt-1 truncate text-xs text-[var(--muted)]">{card.jobTitle}</p>
-      ) : null}
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className="rounded-full bg-[var(--brand-secondary-soft)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--brand-secondary)]">
-          {statusLabel}
+      <div className="flex items-start gap-2.5">
+        <span
+          aria-hidden
+          className="flex size-7 shrink-0 select-none items-center justify-center rounded-full bg-[var(--brand-primary-soft)] text-[11px] font-semibold text-[var(--brand-primary)]"
+        >
+          {initials(name)}
         </span>
-        <span className="text-[10px] text-[var(--muted)]">{days === 0 ? "today" : `${days}d`}</span>
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`/applications/${card.id}`}
+            className="block truncate text-[13px] font-semibold leading-tight hover:text-[var(--accent)] hover:underline"
+          >
+            {name}
+          </Link>
+          {card.candidateTitle ? (
+            <p className="mt-0.5 truncate text-xs text-[var(--muted)]">{card.candidateTitle}</p>
+          ) : null}
+        </div>
+      </div>
+      {showJob ? (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--muted)]">
+          <svg
+            aria-hidden
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            className="size-3 shrink-0"
+          >
+            <rect x="1.5" y="4.5" width="13" height="9" rx="1.5" />
+            <path d="M5.5 4.5v-1a1.5 1.5 0 0 1 1.5-1.5h2a1.5 1.5 0 0 1 1.5 1.5v1M1.5 8h13" />
+          </svg>
+          <span className="truncate">{card.jobTitle}</span>
+        </p>
+      ) : null}
+      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-[var(--border)] pt-2">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-[var(--muted)]">
+          <span
+            aria-hidden
+            className={cn(
+              "size-1.5 shrink-0 rounded-full",
+              STAGE_DOT[card.stage as ApplicationStageKey]
+            )}
+          />
+          <span className="truncate">{statusLabel}</span>
+        </span>
+        <span className="shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
+          {days === 0 ? "today" : `${days}d`}
+        </span>
       </div>
     </div>
   );

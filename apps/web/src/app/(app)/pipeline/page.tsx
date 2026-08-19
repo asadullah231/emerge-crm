@@ -18,33 +18,44 @@ export default function PipelinePage() {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Pipeline</h1>
-        <select
-          value={jobId}
-          onChange={(e) => setJobId(e.target.value)}
-          aria-label="Filter by job"
-          className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
-        >
-          <option value="">All jobs</option>
-          {jobs.data?.rows.map((j) => (
-            <option key={j.id} value={j.id}>
-              {j.title} ({j.humanId})
-            </option>
-          ))}
-        </select>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Pipeline</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {canWrite
+              ? "Drag candidates between stages to move them through the pipeline."
+              : "You have read-only access to the pipeline."}
+          </p>
+        </div>
+        <div className="relative">
+          <select
+            value={jobId}
+            onChange={(e) => setJobId(e.target.value)}
+            aria-label="Filter by job"
+            className="w-full max-w-72 appearance-none truncate rounded-lg border border-[var(--border)] bg-[var(--card)] py-2 pl-3.5 pr-9 text-sm shadow-xs outline-none transition-colors focus:border-[var(--brand-secondary)] focus:ring-2 focus:ring-[var(--brand-secondary-soft)]"
+          >
+            <option value="">All jobs</option>
+            {jobs.data?.rows.map((j) => (
+              <option key={j.id} value={j.id}>
+                {j.title} ({j.humanId})
+              </option>
+            ))}
+          </select>
+          <svg
+            aria-hidden
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]"
+          >
+            <path d="m4 6 4 4 4-4" />
+          </svg>
+        </div>
       </div>
 
-      <p className="text-sm text-[var(--muted)]">
-        {canWrite
-          ? "Drag a candidate between columns to move them through the pipeline."
-          : "You have read-only access to the pipeline."}
-      </p>
-
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-        <ApplicationKanban jobId={jobId || undefined} canWrite={canWrite} showJob={!jobId} />
-      </div>
+      <ApplicationKanban jobId={jobId || undefined} canWrite={canWrite} showJob={!jobId} fill />
     </div>
   );
 }

@@ -34,6 +34,9 @@
 
   /* Interactive accent alias used across the app (links, focus, selected). */
   --accent: var(--brand-secondary);
+
+  /* Recessed surface (kanban columns): sits just below --background. */
+  --surface-sunken: #f1f1f3;
 }
 
 .dark {
@@ -58,11 +61,39 @@
   --brand-on: #ffffff;
 
   --accent: var(--brand-secondary);
+
+  --surface-sunken: #111113;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/*
+ * Quiet scrollbars for kanban surfaces: thin, trackless, and only visible
+ * while the surface is hovered so the board reads as one clean sheet.
+ */
+.kanban-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.kanban-scroll:hover {
+  scrollbar-color: var(--border) transparent;
+}
+.kanban-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.kanban-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+.kanban-scroll:hover::-webkit-scrollbar-thumb {
+  background: var(--border);
 }
 
 /*
