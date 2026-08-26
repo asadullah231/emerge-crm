@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
-import { taskStatus, tasks, users } from "@emerge/db";
+import { taskKind, taskStatus, tasks, users } from "@emerge/db";
 import { NOTABLE_ENTITY_TYPES } from "@/lib/notes";
 import { writeAudit } from "../audit";
 import { router, workspaceProcedure } from "../trpc";
@@ -15,6 +15,7 @@ const entityLink = z
 
 const cols = {
   id: tasks.id,
+  kind: tasks.kind,
   subject: tasks.subject,
   description: tasks.description,
   dueAt: tasks.dueAt,
@@ -65,7 +66,8 @@ export const tasksRouter = router({
           subject: z.string().trim().min(1, "Subject is required").max(255),
           description: z.string().trim().max(5000).nullable().optional(),
           dueAt: z.date().nullable().optional(),
-          assigneeId: z.string().uuid().nullable().optional()
+          assigneeId: z.string().uuid().nullable().optional(),
+          kind: z.enum(taskKind.enumValues).optional()
         })
         .merge(entityLink)
     )
@@ -74,6 +76,7 @@ export const tasksRouter = router({
         .insert(tasks)
         .values({
           workspaceId: ctx.workspaceId,
+          kind: input.kind ?? "task",
           subject: input.subject,
           description: input.description ?? null,
           dueAt: input.dueAt ?? null,

@@ -13,6 +13,7 @@ import { contactsRouter } from "./contacts";
 import { dashboardRouter } from "./dashboard";
 import { emailTemplatesRouter } from "./email-templates";
 import { emailsRouter } from "./emails";
+import { followsRouter } from "./follows";
 import { interviewFeedbackRouter } from "./interview-feedback";
 import { reportSchedulesRouter } from "./report-schedules";
 import { reportsRouter } from "./reports";
@@ -71,6 +72,7 @@ export const appRouter = router({
   reviews: reviewsRouter,
   emails: emailsRouter,
   emailTemplates: emailTemplatesRouter,
+  follows: followsRouter,
   reports: reportsRouter,
   reportSchedules: reportSchedulesRouter,
   search: searchRouter,

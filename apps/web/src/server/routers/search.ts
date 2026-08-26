@@ -124,6 +124,7 @@ export const searchRouter = router({
                 ilike(jobs.description, term),
                 ilike(jobs.clientCallSummary, term),
                 ilike(jobs.requiredSkills, term),
+                ilike(jobs.industry, term),
                 ilike(companies.name, term),
                 ilike(users.name, term)
               )

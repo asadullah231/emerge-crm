@@ -96,7 +96,13 @@ export function NotificationBell() {
                           <span className="min-w-0 flex-1">
                             <span className="text-sm">
                               <span className="font-medium">{n.actorName ?? "Someone"}</span>{" "}
-                              mentioned you {label ? `on a ${label}` : ""}
+                              {n.kind === "followed_update"
+                                ? `updated a ${label ?? "record"} you follow`
+                                : n.kind === "submission_verdict"
+                                  ? `left a client verdict${label ? ` on a ${label}` : ""}`
+                                  : n.kind === "email_reply"
+                                    ? `replied${label ? ` on a ${label}` : ""}`
+                                    : `mentioned you ${label ? `on a ${label}` : ""}`}
                             </span>
                             {snippet ? (
                               <span className="block truncate text-xs text-[var(--muted)]">
