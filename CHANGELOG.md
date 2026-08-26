@@ -3,6 +3,34 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.23.0 - Milestone 20: GDPR, Blocklist and Data Tools (2026-08-19)
+
+UK/EU compliance for the agency, closing the Zoho Manage Compliance audit item.
+
+### Added
+
+- **GDPR export.** One click on the candidate record downloads a JSON package
+  of everything held on them: profile, education, experience, notes,
+  attachments metadata, emails, applications, interviews, submissions, offers,
+  status history and the consent log. Exports are audit-logged.
+- **Right to erase.** Admin-only hard delete with typed-name confirmation:
+  removes the candidate and every child row (applications, interviews,
+  submissions, offers, notes, emails, tasks, files, tags). The audit entry
+  keeps only the human id, no personal data.
+- **Email opt-out.** A flag on the candidate (backfilled from the imported
+  Zoho Email_Opt_Out field) that blocks every email send, including mail
+  merge, with a clear error. Withdrawing email consent flips it automatically.
+- **Blocklist.** A blocked candidate (backfilled from Zoho Is_Blocked) cannot
+  be associated to a job, submitted to a client, or apply through the careers
+  page. Blocked and opt-out badges show on the candidate header.
+- **Consent log.** Per-candidate append-only consent records (data
+  processing, email marketing; granted or withdrawn) with actor and note.
+- **Retention policy.** Workspace setting (months + auto-delete): the worker
+  moves candidates untouched past the retention window with no live
+  applications to the trash daily; the 30-day restore window still applies.
+- **Workspace data export.** Admin JSON export of all live candidates,
+  clients, contacts, jobs and applications, audit-logged.
+
 ## v0.22.0 - Milestone 19: Public API, Webhooks and Career Page (2026-08-19)
 
 Opens the platform: programmatic access, event notifications and a public

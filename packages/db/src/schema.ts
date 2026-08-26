@@ -329,6 +329,10 @@ export const candidates = pgTable(
     /** The sourcer who owns this candidate. */
     ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
     customFields: jsonb("custom_fields").$type<Record<string, unknown>>(),
+    /** GDPR (M20): opted out of emails; enforced at every send path. */
+    emailOptOut: boolean("email_opt_out").notNull().default(false),
+    /** Blocklist (M20, Zoho Is_Blocked): cannot be associated or submitted. */
+    isBlocked: boolean("is_blocked").notNull().default(false),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt()
@@ -1620,3 +1624,53 @@ export const publicJobPostings = pgTable(
   ]
 );
 export type PublicJobPosting = typeof publicJobPostings.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// M20: Compliance - GDPR, consent, retention.
+// ---------------------------------------------------------------------------
+
+export const consentKind = pgEnum("consent_kind", ["data_processing", "email_marketing"]);
+export const consentStatus = pgEnum("consent_status", ["granted", "withdrawn"]);
+
+/** Append-only consent log per candidate (M20, GDPR audit trail). */
+export const consentRecords = pgTable(
+  "consent_records",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => candidates.id, { onDelete: "cascade" }),
+    kind: consentKind("kind").notNull(),
+    status: consentStatus("status").notNull(),
+    note: text("note"),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt()
+  },
+  (t) => [index("consent_records_candidate_idx").on(t.workspaceId, t.candidateId, t.createdAt)]
+);
+export type ConsentRecord = typeof consentRecords.$inferSelect;
+
+/**
+ * Per-workspace retention policy (M20). When autoDelete is on, the worker
+ * soft-deletes candidates untouched for `months` months with no live
+ * applications; trash retention still applies before anything is purged.
+ */
+export const retentionPolicies = pgTable(
+  "retention_policies",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    months: integer("months").notNull().default(36),
+    autoDelete: boolean("auto_delete").notNull().default(false),
+    updatedById: uuid("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [uniqueIndex("retention_policies_workspace_unique").on(t.workspaceId)]
+);
+export type RetentionPolicy = typeof retentionPolicies.$inferSelect;

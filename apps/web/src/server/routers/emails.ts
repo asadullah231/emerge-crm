@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { emailTemplates, emails, type Transaction } from "@emerge/db";
+import { applications, candidates, emailTemplates, emails, type Transaction } from "@emerge/db";
 import { NOTABLE_ENTITY_TYPES } from "@/lib/notes";
 import { writeAudit } from "../audit";
 import { enqueueEmail } from "../email";
@@ -25,6 +25,38 @@ type SendCtx = {
  * workspace transaction. Returns the created row id. `to` overrides the record's
  * resolved recipient (used by the composer); bulk send relies on the default.
  */
+/**
+ * GDPR enforcement (M20): a candidate who opted out of emails cannot be
+ * emailed, whether the send is addressed to the candidate record directly or
+ * to one of their applications. Throws with a clear message.
+ */
+async function assertNotOptedOut(
+  tx: Transaction,
+  entityType: string,
+  entityId: string
+): Promise<void> {
+  let candidateId: string | null = null;
+  if (entityType === "candidate") candidateId = entityId;
+  if (entityType === "application") {
+    const [app] = await tx
+      .select({ candidateId: applications.candidateId })
+      .from(applications)
+      .where(eq(applications.id, entityId));
+    candidateId = app?.candidateId ?? null;
+  }
+  if (!candidateId) return;
+  const [cand] = await tx
+    .select({ emailOptOut: candidates.emailOptOut })
+    .from(candidates)
+    .where(eq(candidates.id, candidateId));
+  if (cand?.emailOptOut) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This candidate has opted out of emails (GDPR). Remove the opt-out first."
+    });
+  }
+}
+
 async function sendOne(
   ctx: SendCtx,
   input: {
@@ -37,6 +69,7 @@ async function sendOne(
     templateId?: string | null;
   }
 ): Promise<string> {
+  await assertNotOptedOut(ctx.tx, input.entityType, input.entityId);
   const merge = await buildMergeData(ctx.tx, input.entityType, input.entityId);
   if (!merge) throw new TRPCError({ code: "BAD_REQUEST", message: "Record not found" });
 

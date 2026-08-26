@@ -69,9 +69,17 @@ export async function POST(req: Request) {
       const email = body.email.toLowerCase();
 
       let [candidate] = await tx
-        .select({ id: candidates.id, humanId: candidates.humanId })
+        .select({
+          id: candidates.id,
+          humanId: candidates.humanId,
+          isBlocked: candidates.isBlocked
+        })
         .from(candidates)
         .where(and(eq(candidates.email, email), isNull(candidates.deletedAt)));
+      // Blocklist (M20): a blocked candidate cannot apply; keep the reason generic.
+      if (candidate?.isBlocked) {
+        return { error: "Could not save your application" as const };
+      }
       let candidateCreated = false;
       if (!candidate) {
         const next = await nextCounter(tx, body.workspaceId, "candidate");
@@ -86,7 +94,11 @@ export async function POST(req: Request) {
             phone: body.phone ?? null,
             source: "careersite"
           })
-          .returning({ id: candidates.id, humanId: candidates.humanId });
+          .returning({
+            id: candidates.id,
+            humanId: candidates.humanId,
+            isBlocked: candidates.isBlocked
+          });
         candidateCreated = true;
       }
       if (!candidate) return { error: "Could not save your application" as const };
