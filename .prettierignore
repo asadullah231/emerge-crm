@@ -7,3 +7,5 @@ pnpm-lock.yaml
 playwright-report
 test-results
 packages/db/migrations
+.claude/
+.attachments/
