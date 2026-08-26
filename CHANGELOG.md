@@ -3,6 +3,42 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.24.0 - Job Openings: Zoho Feature Parity (2026-08-21)
+
+Closes the remaining Job Openings gaps from the client's full Zoho Recruit
+feature inventory (118 features audited 21 Aug). Existing features untouched.
+
+### Added
+
+- **Quick view drawer.** An eye icon on every jobs-list row opens a slide-in
+  preview with Details, Job description and Notes tabs, plus an "Open record"
+  jump, without leaving the list (Zoho peek panel).
+- **Column chooser.** A Columns menu on the jobs list toggles ID, Client,
+  Status, Location, Industry, Positions, Owner, Opened and Target date.
+  The layout persists per browser and is saved inside saved views.
+- **Industry and Work experience fields** on job openings, end to end:
+  create modal, record page, list column, filter dropdown, CSV export,
+  CSV import mapping and global search.
+- **Assigned recruiters.** Multiple recruiters per job on top of the account
+  manager owner (Zoho Assigned Recruiters): chips on the record, add/remove,
+  membership-validated, with a recruiter filter in the API.
+- **Record lock.** Admin Lock/Unlock on a job (Zoho Lock_Status): a locked job
+  rejects edits, status changes, publish/unpublish, delete and bulk updates
+  for everyone until unlocked; red badge, banner and a Locked preset chip.
+- **Followers.** Follow any job; followers get an in-app notification when the
+  job is edited or its status changes. Follower count shows on the button.
+- **Note types.** Notes everywhere can be categorized Call / Meeting / Note /
+  Other (Zoho Note Type) with a picker in the composer and a chip on display.
+- **Activity kinds.** Tasks gain Event and Log-a-call kinds (Zoho To-Dos)
+  plus an All / Open / Closed filter on record task lists.
+- **Bulk create task and bulk remove tag** on every list's selection bar.
+- **Sourcing summary.** Applications-by-source bars on the job record
+  (Zoho Sourcing Summary).
+- **Find matches from the list.** A per-row shortcut jumps straight to the
+  job's matching-candidates section.
+- **Print view.** A Print button on the job record with a clean print
+  stylesheet (navigation and controls stripped).
+
 ## v0.23.0 - Milestone 20: GDPR, Blocklist and Data Tools (2026-08-19)
 
 UK/EU compliance for the agency, closing the Zoho Manage Compliance audit item.

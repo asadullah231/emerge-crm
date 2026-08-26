@@ -136,3 +136,21 @@ body {
     transform: none;
   }
 }
+
+/* Print view (JP-12): the record content prints clean, chrome stays behind. */
+@media print {
+  aside,
+  nav,
+  button,
+  select,
+  input[type="search"],
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

@@ -24,3 +24,6 @@ Thumbs.db
 
 # Zoho migration snapshots + reports (real PII - never commit)
 .migration/
+
+# Client documents for local agent work - never committed (real candidate/client data)
+.attachments/

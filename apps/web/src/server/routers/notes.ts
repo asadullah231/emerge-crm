@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import {
   memberships,
+  noteKind,
   noteMentions,
   noteTemplates,
   notes,
@@ -83,6 +84,7 @@ export const notesRouter = router({
       const rows = await ctx.tx
         .select({
           id: notes.id,
+          kind: notes.kind,
           body: notes.body,
           authorId: notes.authorId,
           authorName: users.name,
@@ -124,6 +126,7 @@ export const notesRouter = router({
         entityType,
         entityId: z.string().uuid(),
         body: noteBody,
+        kind: z.enum(noteKind.enumValues).optional(),
         mentionUserIds: mentionIds
       })
     )
@@ -135,6 +138,7 @@ export const notesRouter = router({
           entityType: input.entityType,
           entityId: input.entityId,
           authorId: ctx.session.user.id,
+          kind: input.kind ?? "note",
           body: input.body
         })
         .returning();
@@ -173,7 +177,14 @@ export const notesRouter = router({
     }),
 
   update: workspaceProcedure
-    .input(z.object({ id: z.string().uuid(), body: noteBody, mentionUserIds: mentionIds }))
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        body: noteBody,
+        kind: z.enum(noteKind.enumValues).optional(),
+        mentionUserIds: mentionIds
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const [note] = await ctx.tx
         .select()
@@ -185,7 +196,7 @@ export const notesRouter = router({
       }
       const [updated] = await ctx.tx
         .update(notes)
-        .set({ body: input.body })
+        .set({ body: input.body, ...(input.kind ? { kind: input.kind } : {}) })
         .where(eq(notes.id, input.id))
         .returning();
       // Re-sync mentions: notify only newly added ones.
