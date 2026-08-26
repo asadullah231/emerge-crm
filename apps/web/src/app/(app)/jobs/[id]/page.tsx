@@ -72,6 +72,14 @@ export default function JobRecordPage() {
     }
   });
   const setPublished = trpc.jobs.setPublished.useMutation({ onSuccess: refresh });
+  const setLocked = trpc.jobs.setLocked.useMutation({ onSuccess: refresh });
+  const setRecruiters = trpc.jobs.setRecruiters.useMutation({ onSuccess: refresh });
+
+  // Followers (JP-06): who gets a bell notification on job changes.
+  const followState = trpc.follows.state.useQuery({ entityType: "job", entityId: params.id });
+  const toggleFollow = trpc.follows.toggle.useMutation({
+    onSuccess: () => utils.follows.state.invalidate({ entityType: "job", entityId: params.id })
+  });
 
   // Contacts of the current client, for the hiring-contact picker.
   const client = trpc.companies.get.useQuery(
@@ -89,7 +97,9 @@ export default function JobRecordPage() {
   const record = job.data;
   const isDeleted = Boolean(record.deletedAt);
   const canWrite = me.data ? me.data.role !== "readonly" : false;
-  const canEdit = canWrite && !isDeleted;
+  const isAdmin = me.data?.role === "admin";
+  // A locked job is read-only for everyone until an admin unlocks it (JP-05).
+  const canEdit = canWrite && !isDeleted && !record.isLocked;
 
   const ownerOptions = [
     { value: "", label: "Unassigned" },
@@ -151,86 +161,134 @@ export default function JobRecordPage() {
               🔥 Hot
             </span>
           ) : null}
+          {record.isLocked ? (
+            <span
+              title="Locked by an admin"
+              className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600"
+            >
+              🔒 Locked
+            </span>
+          ) : null}
         </span>
       }
       actions={
-        canWrite ? (
-          isDeleted ? (
-            <Button
-              variant="outline"
-              disabled={restore.isPending}
-              onClick={() => restore.mutate({ id: record.id })}
-            >
-              Restore
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <select
-                value={record.status}
-                onChange={(e) =>
-                  changeStatus.mutate({
-                    id: record.id,
-                    status: e.target.value as JobPatch["status"] & string
-                  })
-                }
-                disabled={changeStatus.isPending}
-                aria-label="Change status"
-                className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm"
-              >
-                {JOB_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={toggleFollow.isPending || followState.isLoading}
+            title="Followers get a notification when this job changes"
+            onClick={() =>
+              toggleFollow.mutate({
+                entityType: "job",
+                entityId: record.id,
+                follow: !followState.data?.following
+              })
+            }
+          >
+            {followState.data?.following ? "Following" : "Follow"}
+            {followState.data && followState.data.count > 0 ? ` (${followState.data.count})` : ""}
+          </Button>
+          <Button variant="outline" onClick={() => window.print()} title="Print this job opening">
+            Print
+          </Button>
+          {canWrite ? (
+            isDeleted ? (
               <Button
                 variant="outline"
-                disabled={duplicate.isPending}
-                onClick={() => duplicate.mutate({ id: record.id })}
+                disabled={restore.isPending}
+                onClick={() => restore.mutate({ id: record.id })}
               >
-                {duplicate.isPending ? "Duplicating..." : "Duplicate"}
+                Restore
               </Button>
-              <Button
-                variant="outline"
-                disabled={setPublished.isPending}
-                title={
-                  record.isPublished
-                    ? "Remove this job from the public careers page"
-                    : "List this job on the public careers page"
-                }
-                onClick={() =>
-                  setPublished.mutate({ id: record.id, published: !record.isPublished })
-                }
-              >
-                {setPublished.isPending
-                  ? "Saving..."
-                  : record.isPublished
-                    ? "Unpublish"
-                    : "Publish"}
-              </Button>
-              <Button
-                variant="danger"
-                disabled={softDelete.isPending}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      `Move "${record.title}" to trash? It can be restored for 30 days.`
-                    )
-                  ) {
-                    softDelete.mutate({ id: record.id });
+            ) : (
+              <>
+                <select
+                  value={record.status}
+                  onChange={(e) =>
+                    changeStatus.mutate({
+                      id: record.id,
+                      status: e.target.value as JobPatch["status"] & string
+                    })
                   }
-                }}
-              >
-                Delete
-              </Button>
-            </div>
-          )
-        ) : null
+                  disabled={changeStatus.isPending || record.isLocked}
+                  aria-label="Change status"
+                  className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm"
+                >
+                  {JOB_STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="outline"
+                  disabled={duplicate.isPending}
+                  onClick={() => duplicate.mutate({ id: record.id })}
+                >
+                  {duplicate.isPending ? "Duplicating..." : "Duplicate"}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={setPublished.isPending || record.isLocked}
+                  title={
+                    record.isPublished
+                      ? "Remove this job from the public careers page"
+                      : "List this job on the public careers page"
+                  }
+                  onClick={() =>
+                    setPublished.mutate({ id: record.id, published: !record.isPublished })
+                  }
+                >
+                  {setPublished.isPending
+                    ? "Saving..."
+                    : record.isPublished
+                      ? "Unpublish"
+                      : "Publish"}
+                </Button>
+                {isAdmin ? (
+                  <Button
+                    variant="outline"
+                    disabled={setLocked.isPending}
+                    title={
+                      record.isLocked
+                        ? "Unlock so the team can edit this job again"
+                        : "Lock this job so nobody can change it"
+                    }
+                    onClick={() => setLocked.mutate({ id: record.id, locked: !record.isLocked })}
+                  >
+                    {setLocked.isPending ? "Saving..." : record.isLocked ? "Unlock" : "Lock"}
+                  </Button>
+                ) : null}
+                <Button
+                  variant="danger"
+                  disabled={softDelete.isPending || record.isLocked}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Move "${record.title}" to trash? It can be restored for 30 days.`
+                      )
+                    ) {
+                      softDelete.mutate({ id: record.id });
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </>
+            )
+          ) : null}
+        </div>
       }
     >
       {isDeleted ? (
         <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
           This job is in the trash. Restore it to make changes.
+        </div>
+      ) : null}
+      {record.isLocked && !isDeleted ? (
+        <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm">
+          🔒 This job opening is locked by an admin. Fields, status, publishing and delete are
+          disabled until it is unlocked.
         </div>
       ) : null}
       {record.isPublished && me.data?.workspace ? (
@@ -252,7 +310,9 @@ export default function JobRecordPage() {
           changeStatus.error?.message ??
           softDelete.error?.message ??
           restore.error?.message ??
-          setPublished.error?.message
+          setPublished.error?.message ??
+          setLocked.error?.message ??
+          setRecruiters.error?.message
         }
       />
 
@@ -350,6 +410,21 @@ export default function JobRecordPage() {
                 });
               }
             }}
+          />
+          <InlineField
+            label="Industry"
+            value={record.industry}
+            canEdit={canEdit}
+            saving={update.isPending}
+            onSave={save("industry")}
+          />
+          <InlineField
+            label="Work experience"
+            value={record.workExperience}
+            canEdit={canEdit}
+            saving={update.isPending}
+            placeholder="e.g. 5+ years"
+            onSave={save("workExperience")}
           />
           <InlineField
             label="Location"
@@ -489,6 +564,70 @@ export default function JobRecordPage() {
         </div>
       </RecordSection>
 
+      <RecordSection title="Assigned recruiters">
+        <div className="flex flex-wrap items-center gap-2">
+          {record.recruiters.length === 0 ? (
+            <span className="text-sm text-[var(--muted)]">
+              No recruiters assigned. The owner stays the account manager; recruiters work the
+              search.
+            </span>
+          ) : (
+            record.recruiters.map((r) => (
+              <span
+                key={r.userId}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--background)] px-2.5 py-1 text-sm"
+              >
+                {r.name ?? "Unknown"}
+                {canEdit ? (
+                  <button
+                    type="button"
+                    aria-label={`Remove ${r.name ?? "recruiter"}`}
+                    disabled={setRecruiters.isPending}
+                    onClick={() =>
+                      setRecruiters.mutate({
+                        id: record.id,
+                        recruiterIds: record.recruiters
+                          .filter((x) => x.userId !== r.userId)
+                          .map((x) => x.userId)
+                      })
+                    }
+                    className="text-[var(--muted)] hover:text-red-600"
+                  >
+                    &times;
+                  </button>
+                ) : null}
+              </span>
+            ))
+          )}
+          {canEdit ? (
+            <select
+              value=""
+              aria-label="Add recruiter"
+              disabled={setRecruiters.isPending}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                setRecruiters.mutate({
+                  id: record.id,
+                  recruiterIds: [...record.recruiters.map((r) => r.userId), e.target.value]
+                });
+              }}
+              className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm text-[var(--muted)]"
+            >
+              <option value="">Add recruiter...</option>
+              {(members.data ?? [])
+                .filter(
+                  (m) => !m.deactivatedAt && !record.recruiters.some((r) => r.userId === m.userId)
+                )
+                .map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.name}
+                  </option>
+                ))}
+            </select>
+          ) : null}
+        </div>
+      </RecordSection>
+
       <RecordSection title="Attachments">
         <JobDocuments
           jobId={record.id}
@@ -540,8 +679,36 @@ export default function JobRecordPage() {
         <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
       </RecordSection>
 
-      <RecordSection title="Matching candidates">
-        <JobMatchesPanel jobId={record.id} canWrite={canEdit} />
+      <div id="section-matching">
+        <RecordSection title="Matching candidates">
+          <JobMatchesPanel jobId={record.id} canWrite={canEdit} />
+        </RecordSection>
+      </div>
+
+      <RecordSection title="Sourcing summary">
+        {record.bySource.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">
+            No applications yet, so no source data to show.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {record.bySource.map((s) => {
+              const max = record.bySource[0]?.count ?? 1;
+              return (
+                <li key={s.source ?? "unknown"} className="flex items-center gap-3 text-sm">
+                  <span className="w-32 flex-none capitalize text-[var(--muted)]">
+                    {(s.source ?? "unknown").replace(/_/g, " ")}
+                  </span>
+                  <span
+                    className="h-2 rounded-full bg-[var(--brand-secondary)]/60"
+                    style={{ width: `${Math.max(6, (s.count / max) * 240)}px` }}
+                  />
+                  <span className="tabular-nums">{s.count}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </RecordSection>
 
       <RecordSection title="Interviews">

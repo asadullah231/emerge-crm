@@ -22,6 +22,7 @@ import {
   companies,
   contacts,
   jobEmploymentType,
+  jobRecruiters,
   jobStatus,
   jobWorkMode,
   jobs,
@@ -34,8 +35,9 @@ import { writeAudit } from "../audit";
 import { bumpCounter, humanId, nextCounter } from "../counters";
 import { enqueueEmail } from "../email";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
-import { router, workspaceProcedure } from "../trpc";
+import { adminProcedure, router, workspaceProcedure } from "../trpc";
 import { emitWebhook } from "../webhooks";
+import { notifyFollowers } from "./follows";
 import { entityTags, taggedEntityIds } from "./tags";
 import type { Transaction } from "@emerge/db";
 
@@ -54,6 +56,10 @@ export const jobInput = z.object({
   clientCallSummary: optionalText(20000),
   requiredSkills: optionalText(5000),
   isHot: z.boolean().optional(),
+  industry: optionalText(120),
+  workExperience: optionalText(120),
+  /** Recruiters working the job on top of the AM owner (JP-02); replaces the set. */
+  recruiterIds: z.array(z.string().uuid()).max(20).optional(),
   city: optionalText(120),
   state: optionalText(120),
   country: optionalText(120),
@@ -92,6 +98,11 @@ const jobListFilters = z.object({
   employmentType: z.enum(jobEmploymentType.enumValues).optional(),
   workMode: z.enum(jobWorkMode.enumValues).optional(),
   isHot: z.boolean().optional(),
+  /** Preset "Locked": only admin-locked jobs (JP-05). */
+  isLocked: z.boolean().optional(),
+  industry: z.string().trim().max(120).optional(),
+  /** Only jobs a given recruiter is assigned to (JP-02). */
+  recruiterId: z.string().uuid().optional(),
   /** Preset "Recent": only jobs opened in the last N days. */
   openedWithinDays: z.number().int().min(1).max(365).optional()
 });
@@ -108,6 +119,8 @@ function jobFilterClauses(f: JobListFilters): (SQL | undefined)[] {
     f.employmentType ? eq(jobs.employmentType, f.employmentType) : undefined,
     f.workMode ? eq(jobs.workMode, f.workMode) : undefined,
     f.isHot ? eq(jobs.isHot, true) : undefined,
+    f.isLocked ? eq(jobs.isLocked, true) : undefined,
+    f.industry ? ilike(jobs.industry, f.industry) : undefined,
     f.openedWithinDays
       ? gte(jobs.openedAt, new Date(Date.now() - f.openedWithinDays * 86_400_000))
       : undefined
@@ -135,6 +148,63 @@ function csvCell(v: string | number | boolean | Date | null | undefined): string
   if (v === null || v === undefined) return "";
   const s = v instanceof Date ? v.toISOString().slice(0, 10) : String(v);
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** Subquery: ids of jobs the given recruiter is assigned to (JP-02). */
+function recruiterJobIds(tx: Transaction, userId: string) {
+  return tx
+    .select({ id: jobRecruiters.jobId })
+    .from(jobRecruiters)
+    .where(eq(jobRecruiters.userId, userId));
+}
+
+/** Locked jobs reject every edit until an admin unlocks them (JP-05). */
+async function assertNotLocked(tx: Transaction, jobId: string): Promise<void> {
+  const [row] = await tx.select({ isLocked: jobs.isLocked }).from(jobs).where(eq(jobs.id, jobId));
+  if (row?.isLocked) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This job opening is locked. An admin must unlock it before it can be changed."
+    });
+  }
+}
+
+/** Keep only ids that are active members of this workspace. */
+async function activeMemberIds(
+  tx: Transaction,
+  workspaceId: string,
+  ids: string[]
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const rows = await tx
+    .select({ userId: memberships.userId })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.workspaceId, workspaceId),
+        inArray(memberships.userId, ids),
+        isNull(memberships.deactivatedAt)
+      )
+    );
+  return rows.map((r) => r.userId);
+}
+
+/** Replace the recruiter set on a job with the given (validated) user ids. */
+async function setJobRecruiters(
+  tx: Transaction,
+  workspaceId: string,
+  jobId: string,
+  userIds: string[]
+): Promise<number> {
+  const valid = await activeMemberIds(tx, workspaceId, userIds);
+  await tx.delete(jobRecruiters).where(eq(jobRecruiters.jobId, jobId));
+  if (valid.length > 0) {
+    await tx
+      .insert(jobRecruiters)
+      .values(valid.map((userId) => ({ workspaceId, jobId, userId })))
+      .onConflictDoNothing();
+  }
+  return valid.length;
 }
 
 /** Confirms the company exists in the workspace (and is not trashed). */
@@ -181,7 +251,16 @@ export const jobsRouter = router({
         input.tagIds && input.tagIds.length > 0
           ? inArray(jobs.id, taggedEntityIds(ctx.tx, "job", input.tagIds))
           : undefined;
-      const where = and(deletedWhere, searchWhere, tagWhere, ...jobFilterClauses(input));
+      const recruiterWhere = input.recruiterId
+        ? inArray(jobs.id, recruiterJobIds(ctx.tx, input.recruiterId))
+        : undefined;
+      const where = and(
+        deletedWhere,
+        searchWhere,
+        tagWhere,
+        recruiterWhere,
+        ...jobFilterClauses(input)
+      );
 
       const [rows, [totalRow]] = await Promise.all([
         ctx.tx
@@ -194,6 +273,8 @@ export const jobsRouter = router({
             workMode: jobs.workMode,
             location: jobs.location,
             isHot: jobs.isHot,
+            isLocked: jobs.isLocked,
+            industry: jobs.industry,
             positions: jobs.positions,
             companyId: jobs.companyId,
             companyName: companies.name,
@@ -238,6 +319,9 @@ export const jobsRouter = router({
           clientCallSummary: jobs.clientCallSummary,
           requiredSkills: jobs.requiredSkills,
           isHot: jobs.isHot,
+          isLocked: jobs.isLocked,
+          industry: jobs.industry,
+          workExperience: jobs.workExperience,
           city: jobs.city,
           state: jobs.state,
           country: jobs.country,
@@ -297,6 +381,22 @@ export const jobsRouter = router({
           .orderBy(desc(attachments.createdAt))
       ]);
 
+      // Assigned recruiters (JP-02) on top of the single AM owner.
+      const recruiters = await ctx.tx
+        .select({ userId: jobRecruiters.userId, name: users.name, email: users.email })
+        .from(jobRecruiters)
+        .leftJoin(users, eq(users.id, jobRecruiters.userId))
+        .where(eq(jobRecruiters.jobId, job.id))
+        .orderBy(asc(users.name));
+
+      // Sourcing summary (JP-10, Zoho Sourcing Summary): applications by source.
+      const sourceRows = await ctx.tx
+        .select({ source: applications.source, count: count() })
+        .from(applications)
+        .where(and(eq(applications.jobId, job.id), isNull(applications.deletedAt)))
+        .groupBy(applications.source)
+        .orderBy(desc(count()));
+
       // Real pipeline summary: live application counts by stage for this job.
       const stageRows = await ctx.tx
         .select({ stage: applications.stage, count: count() })
@@ -316,13 +416,23 @@ export const jobsRouter = router({
         .select({ id: publicJobPostings.id })
         .from(publicJobPostings)
         .where(eq(publicJobPostings.jobId, job.id));
-      return { ...job, hiringContact, tags, attachments: files, pipeline, isPublished: !!posting };
+      return {
+        ...job,
+        hiringContact,
+        tags,
+        attachments: files,
+        pipeline,
+        recruiters,
+        bySource: sourceRows,
+        isPublished: !!posting
+      };
     }),
 
   /** Publish/unpublish a job on the public careers page (M19). */
   setPublished: workspaceProcedure
     .input(z.object({ id: z.string().uuid(), published: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
+      await assertNotLocked(ctx.tx, input.id);
       const [job] = await ctx.tx
         .select({ id: jobs.id, humanId: jobs.humanId })
         .from(jobs)
@@ -372,6 +482,8 @@ export const jobsRouter = router({
         clientCallSummary: input.clientCallSummary ?? null,
         requiredSkills: input.requiredSkills ?? null,
         isHot: input.isHot ?? false,
+        industry: input.industry ?? null,
+        workExperience: input.workExperience ?? null,
         city: input.city ?? null,
         state: input.state ?? null,
         country: input.country ?? null,
@@ -387,6 +499,9 @@ export const jobsRouter = router({
       })
       .returning();
     if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    if (input.recruiterIds && input.recruiterIds.length > 0) {
+      await setJobRecruiters(ctx.tx, ctx.workspaceId, created.id, input.recruiterIds);
+    }
     await writeAudit({
       workspaceId: ctx.workspaceId,
       actorUserId: ctx.session.user.id,
@@ -448,38 +563,52 @@ export const jobsRouter = router({
   update: workspaceProcedure
     .input(z.object({ id: z.string().uuid(), patch: jobInput.partial() }))
     .mutation(async ({ ctx, input }) => {
+      await assertNotLocked(ctx.tx, input.id);
+      // Recruiter assignment writes to its own table, never the jobs row.
+      const { recruiterIds, ...patch } = input.patch;
       // Re-validate company/contact coherence when either side changes.
-      if ("companyId" in input.patch && input.patch.companyId) {
-        await assertCompany(ctx.tx, input.patch.companyId);
+      if ("companyId" in patch && patch.companyId) {
+        await assertCompany(ctx.tx, patch.companyId);
       }
-      if ("companyId" in input.patch || "hiringContactId" in input.patch) {
+      if ("companyId" in patch || "hiringContactId" in patch) {
         const [current] = await ctx.tx
           .select({ companyId: jobs.companyId })
           .from(jobs)
           .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)));
         if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
-        const companyId = input.patch.companyId ?? current.companyId;
-        const contactId =
-          "hiringContactId" in input.patch ? input.patch.hiringContactId : undefined;
+        const companyId = patch.companyId ?? current.companyId;
+        const contactId = "hiringContactId" in patch ? patch.hiringContactId : undefined;
         await assertHiringContact(ctx.tx, contactId, companyId);
       }
       // Entering a closed status stamps closedAt; leaving one clears it (M17a).
       let closedAtPatch: { closedAt: Date | null } | Record<string, never> = {};
-      if (input.patch.status) {
+      if (patch.status) {
         const [cur] = await ctx.tx
           .select({ closedAt: jobs.closedAt })
           .from(jobs)
           .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)));
         if (!cur) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
         closedAtPatch = {
-          closedAt: isClosedStatus(input.patch.status) ? (cur.closedAt ?? new Date()) : null
+          closedAt: isClosedStatus(patch.status) ? (cur.closedAt ?? new Date()) : null
         };
       }
-      const [updated] = await ctx.tx
-        .update(jobs)
-        .set({ ...input.patch, ...closedAtPatch })
-        .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)))
-        .returning();
+      if (recruiterIds) {
+        await setJobRecruiters(ctx.tx, ctx.workspaceId, input.id, recruiterIds);
+      }
+      const changedFields = [...Object.keys(patch), ...(recruiterIds ? ["recruiters"] : [])];
+      let updated: typeof jobs.$inferSelect | undefined;
+      if (Object.keys(patch).length > 0) {
+        [updated] = await ctx.tx
+          .update(jobs)
+          .set({ ...patch, ...closedAtPatch })
+          .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)))
+          .returning();
+      } else {
+        [updated] = await ctx.tx
+          .select()
+          .from(jobs)
+          .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)));
+      }
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
       await writeAudit({
         workspaceId: ctx.workspaceId,
@@ -487,14 +616,26 @@ export const jobsRouter = router({
         action: "job.updated",
         targetType: "job",
         targetId: updated.id,
-        meta: { fields: Object.keys(input.patch) }
+        meta: { fields: changedFields }
       });
+      // Followers hear about edits (JP-06); a notification failure never blocks the save.
+      try {
+        await notifyFollowers(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          entityType: "job",
+          entityId: updated.id,
+          actorId: ctx.session.user.id
+        });
+      } catch (err) {
+        console.error("[jobs.update] follower notify failed:", err);
+      }
       return updated;
     }),
 
   changeStatus: workspaceProcedure
     .input(z.object({ id: z.string().uuid(), status: z.enum(jobStatus.enumValues) }))
     .mutation(async ({ ctx, input }) => {
+      await assertNotLocked(ctx.tx, input.id);
       const [cur] = await ctx.tx
         .select({ closedAt: jobs.closedAt })
         .from(jobs)
@@ -518,12 +659,72 @@ export const jobsRouter = router({
         targetId: updated.id,
         meta: { humanId: updated.humanId, status: updated.status }
       });
+      // Followers hear about status changes (JP-06); never blocks the write.
+      try {
+        await notifyFollowers(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          entityType: "job",
+          entityId: updated.id,
+          actorId: ctx.session.user.id
+        });
+      } catch (err) {
+        console.error("[jobs.changeStatus] follower notify failed:", err);
+      }
       return updated;
+    }),
+
+  /** Admin lock/unlock (JP-05, Zoho Lock_Status). Locked jobs reject edits. */
+  setLocked: adminProcedure
+    .input(z.object({ id: z.string().uuid(), locked: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const [updated] = await ctx.tx
+        .update(jobs)
+        .set({ isLocked: input.locked })
+        .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)))
+        .returning({ id: jobs.id, humanId: jobs.humanId, isLocked: jobs.isLocked });
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: input.locked ? "job.locked" : "job.unlocked",
+        targetType: "job",
+        targetId: updated.id,
+        meta: { humanId: updated.humanId }
+      });
+      return updated;
+    }),
+
+  /** Replace the assigned recruiter set (JP-02, Zoho Assigned Recruiters). */
+  setRecruiters: workspaceProcedure
+    .input(z.object({ id: z.string().uuid(), recruiterIds: z.array(z.string().uuid()).max(20) }))
+    .mutation(async ({ ctx, input }) => {
+      await assertNotLocked(ctx.tx, input.id);
+      const [job] = await ctx.tx
+        .select({ id: jobs.id, humanId: jobs.humanId })
+        .from(jobs)
+        .where(and(eq(jobs.id, input.id), isNull(jobs.deletedAt)));
+      if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+      const assigned = await setJobRecruiters(
+        ctx.tx,
+        ctx.workspaceId,
+        input.id,
+        input.recruiterIds
+      );
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "job.recruiters_changed",
+        targetType: "job",
+        targetId: input.id,
+        meta: { humanId: job.humanId, count: assigned }
+      });
+      return { id: input.id, count: assigned };
     }),
 
   softDelete: workspaceProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
+      await assertNotLocked(ctx.tx, input.id);
       const [deleted] = await ctx.tx
         .update(jobs)
         .set({ deletedAt: new Date() })
@@ -635,6 +836,8 @@ export const jobsRouter = router({
           clientCallSummary: src.clientCallSummary,
           requiredSkills: src.requiredSkills,
           isHot: src.isHot,
+          industry: src.industry,
+          workExperience: src.workExperience,
           city: src.city,
           state: src.state,
           country: src.country,
@@ -662,12 +865,22 @@ export const jobsRouter = router({
 
   /** Distinct values that feed the list filter dropdowns (M17b). */
   filterOptions: workspaceProcedure.query(async ({ ctx }) => {
-    const rows = await ctx.tx
-      .selectDistinct({ country: jobs.country })
-      .from(jobs)
-      .where(and(isNull(jobs.deletedAt), isNotNull(jobs.country)))
-      .orderBy(asc(jobs.country));
-    return { countries: rows.map((r) => r.country).filter((c): c is string => Boolean(c)) };
+    const [rows, industryRows] = await Promise.all([
+      ctx.tx
+        .selectDistinct({ country: jobs.country })
+        .from(jobs)
+        .where(and(isNull(jobs.deletedAt), isNotNull(jobs.country)))
+        .orderBy(asc(jobs.country)),
+      ctx.tx
+        .selectDistinct({ industry: jobs.industry })
+        .from(jobs)
+        .where(and(isNull(jobs.deletedAt), isNotNull(jobs.industry)))
+        .orderBy(asc(jobs.industry))
+    ]);
+    return {
+      countries: rows.map((r) => r.country).filter((c): c is string => Boolean(c)),
+      industries: industryRows.map((r) => r.industry).filter((c): c is string => Boolean(c))
+    };
   }),
 
   /** Bulk status change with the same closedAt semantics as changeStatus (M17b). */
@@ -682,7 +895,8 @@ export const jobsRouter = router({
           // reopening clears it. COALESCE keeps this a single bulk statement.
           closedAt: isClosedStatus(input.status) ? sql`COALESCE(${jobs.closedAt}, NOW())` : null
         })
-        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt)))
+        // Locked jobs are skipped, mirroring the single-record guard (JP-05).
+        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt), eq(jobs.isLocked, false)))
         .returning({ id: jobs.id });
       if (updated.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "No matching jobs found" });
@@ -721,7 +935,7 @@ export const jobsRouter = router({
       const updated = await ctx.tx
         .update(jobs)
         .set({ ownerId: input.ownerId })
-        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt)))
+        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt), eq(jobs.isLocked, false)))
         .returning({ id: jobs.id });
       if (updated.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "No matching jobs found" });
@@ -758,7 +972,7 @@ export const jobsRouter = router({
       const updated = await ctx.tx
         .update(jobs)
         .set(input.patch)
-        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt)))
+        .where(and(inArray(jobs.id, input.ids), isNull(jobs.deletedAt), eq(jobs.isLocked, false)))
         .returning({ id: jobs.id });
       if (updated.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "No matching jobs found" });
@@ -793,7 +1007,16 @@ export const jobsRouter = router({
         input.tagIds && input.tagIds.length > 0
           ? inArray(jobs.id, taggedEntityIds(ctx.tx, "job", input.tagIds))
           : undefined;
-      const where = and(deletedWhere, searchWhere, tagWhere, ...jobFilterClauses(input));
+      const recruiterWhere = input.recruiterId
+        ? inArray(jobs.id, recruiterJobIds(ctx.tx, input.recruiterId))
+        : undefined;
+      const where = and(
+        deletedWhere,
+        searchWhere,
+        tagWhere,
+        recruiterWhere,
+        ...jobFilterClauses(input)
+      );
 
       const rows = await ctx.tx
         .select({
@@ -806,6 +1029,8 @@ export const jobsRouter = router({
           location: jobs.location,
           city: jobs.city,
           country: jobs.country,
+          industry: jobs.industry,
+          workExperience: jobs.workExperience,
           positions: jobs.positions,
           isHot: jobs.isHot,
           ownerName: users.name,
@@ -830,6 +1055,8 @@ export const jobsRouter = router({
         "Location",
         "City",
         "Country",
+        "Industry",
+        "Work experience",
         "Positions",
         "Hot",
         "Owner",
@@ -848,6 +1075,8 @@ export const jobsRouter = router({
           r.location,
           r.city,
           r.country,
+          r.industry,
+          r.workExperience,
           r.positions,
           r.isHot ? "yes" : "no",
           r.ownerName,
@@ -899,6 +1128,8 @@ export const jobsRouter = router({
           location: string | null;
           city: string | null;
           country: string | null;
+          industry: string | null;
+          workExperience: string | null;
           positions: number;
           salaryText: string | null;
           description: string | null;
@@ -971,6 +1202,8 @@ export const jobsRouter = router({
             location: pick("location"),
             city: pick("city"),
             country: pick("country"),
+            industry: pick("industry"),
+            workExperience: pick("workExperience"),
             positions,
             salaryText: pick("salaryText"),
             description: pick("description"),

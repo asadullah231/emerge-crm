@@ -491,6 +491,12 @@ export const jobs = pgTable(
     requiredSkills: text("required_skills"),
     /** Hot-job flag (M17a, Zoho Is_Hot_Job_Opening); badge on list + detail. */
     isHot: boolean("is_hot").notNull().default(false),
+    /** Industry of the role (JP-01, Zoho Industry on Job Openings). */
+    industry: text("industry"),
+    /** Required experience, free text e.g. "5+ years" (JP-01, Zoho Work_Experience). */
+    workExperience: text("work_experience"),
+    /** Admin lock (JP-05, Zoho Lock_Status): locked jobs reject edits until unlocked. */
+    isLocked: boolean("is_locked").notNull().default(false),
     /** Structured address (M17a, Zoho City/State/Country/Zip); `location` stays as display text. */
     city: text("city"),
     state: text("state"),
@@ -640,6 +646,10 @@ export const applicationStatusHistory = pgTable(
 // existing audit_log + application_status_history + notes (no M1-M5 changes).
 // ---------------------------------------------------------------------------
 
+/** Note category (JP-07, Zoho Note Type): what kind of touchpoint the note records. */
+export const noteKind = pgEnum("note_kind", ["note", "call", "meeting", "other"]);
+export type NoteKind = (typeof noteKind.enumValues)[number];
+
 /** Polymorphic notes attached to any record (candidate, job, company, ...). */
 export const notes = pgTable(
   "notes",
@@ -651,6 +661,7 @@ export const notes = pgTable(
     entityType: text("entity_type").notNull(),
     entityId: uuid("entity_id").notNull(),
     authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
+    kind: noteKind("kind").notNull().default("note"),
     body: text("body").notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: createdAt(),
@@ -687,7 +698,8 @@ export const noteMentions = pgTable(
 export const notificationKind = pgEnum("notification_kind", [
   "mention",
   "submission_verdict",
-  "email_reply"
+  "email_reply",
+  "followed_update"
 ]);
 export type NotificationKind = (typeof notificationKind.enumValues)[number];
 
@@ -1215,6 +1227,10 @@ export const reviews = pgTable(
 );
 export type Review = typeof reviews.$inferSelect;
 
+/** Activity kind (JP-08, Zoho To-Dos: Task / Event / Call). */
+export const taskKind = pgEnum("task_kind", ["task", "event", "call"]);
+export type TaskKind = (typeof taskKind.enumValues)[number];
+
 export const tasks = pgTable(
   "tasks",
   {
@@ -1222,6 +1238,7 @@ export const tasks = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    kind: taskKind("kind").notNull().default("task"),
     subject: text("subject").notNull(),
     description: text("description"),
     dueAt: timestamp("due_at", { withTimezone: true }),
@@ -1674,3 +1691,52 @@ export const retentionPolicies = pgTable(
   (t) => [uniqueIndex("retention_policies_workspace_unique").on(t.workspaceId)]
 );
 export type RetentionPolicy = typeof retentionPolicies.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// JP (v0.24.0): Job Openings Zoho parity - multi-recruiter + record follows.
+// ---------------------------------------------------------------------------
+
+/** Recruiters assigned to work a job, on top of the single AM owner (JP-02). */
+export const jobRecruiters = pgTable(
+  "job_recruiters",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt()
+  },
+  (t) => [
+    uniqueIndex("job_recruiters_unique").on(t.jobId, t.userId),
+    index("job_recruiters_workspace_idx").on(t.workspaceId, t.userId)
+  ]
+);
+export type JobRecruiter = typeof jobRecruiters.$inferSelect;
+
+/** A user following a record (JP-06, Zoho Followers); fan-out to notifications. */
+export const recordFollows = pgTable(
+  "record_follows",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    createdAt: createdAt()
+  },
+  (t) => [
+    uniqueIndex("record_follows_unique").on(t.userId, t.entityType, t.entityId),
+    index("record_follows_entity_idx").on(t.workspaceId, t.entityType, t.entityId)
+  ]
+);
+export type RecordFollow = typeof recordFollows.$inferSelect;

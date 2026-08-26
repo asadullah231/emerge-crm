@@ -28,6 +28,8 @@ export function NewJobModal({
   const [employmentType, setEmploymentType] = useState("permanent");
   const [workMode, setWorkMode] = useState("onsite");
   const [location, setLocation] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [workExperience, setWorkExperience] = useState("");
   const [positions, setPositions] = useState("1");
   const [targetDate, setTargetDate] = useState("");
   const [isHot, setIsHot] = useState(false);
@@ -57,6 +59,8 @@ export function NewJobModal({
     setEmploymentType("permanent");
     setWorkMode("onsite");
     setLocation("");
+    setIndustry("");
+    setWorkExperience("");
     setPositions("1");
     setTargetDate("");
     setIsHot(false);
@@ -83,6 +87,8 @@ export function NewJobModal({
           employmentType: employmentType as "permanent" | "contract" | "temporary",
           workMode: workMode as "onsite" | "hybrid" | "remote",
           location: location.trim() || null,
+          industry: industry.trim() || null,
+          workExperience: workExperience.trim() || null,
           clientCallSummary: clientCallSummary.trim() || null,
           targetCloseAt: targetDate ? new Date(targetDate) : null,
           isHot,
@@ -250,6 +256,25 @@ export function NewJobModal({
               min={1}
               value={positions}
               onChange={(e) => setPositions(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="job-industry">Industry</Label>
+            <Input
+              id="job-industry"
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="job-experience">Work experience</Label>
+            <Input
+              id="job-experience"
+              placeholder="e.g. 5+ years"
+              value={workExperience}
+              onChange={(e) => setWorkExperience(e.target.value)}
             />
           </div>
         </div>

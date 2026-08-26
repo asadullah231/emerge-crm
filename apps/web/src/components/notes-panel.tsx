@@ -7,6 +7,22 @@ import { mentionIdsInBody, type NotableEntityType } from "@/lib/notes";
 import { relativeTime } from "@/lib/time";
 import { trpc } from "@/lib/trpc/client";
 
+/** Note categories (JP-07, Zoho Note Type). "note" renders without a chip. */
+const NOTE_KINDS = ["note", "call", "meeting", "other"] as const;
+type NoteKindValue = (typeof NOTE_KINDS)[number];
+const NOTE_KIND_LABEL: Record<NoteKindValue, string> = {
+  note: "Note",
+  call: "Call",
+  meeting: "Meeting",
+  other: "Other"
+};
+const NOTE_KIND_STYLE: Record<NoteKindValue, string> = {
+  note: "",
+  call: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  meeting: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  other: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
+};
+
 /** Highlight "@Name" spans for known mentioned names inside a note body. */
 function renderBody(body: string, mentionNames: string[]) {
   if (mentionNames.length === 0) return body;
@@ -39,6 +55,7 @@ export function NotesPanel({
   const utils = trpc.useUtils();
   const me = trpc.auth.me.useQuery();
   const [order, setOrder] = useState<"recent" | "oldest">("recent");
+  const [kind, setKind] = useState<NoteKindValue>("note");
   const [body, setBody] = useState("");
   const [mentions, setMentions] = useState<MentionMember[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -64,6 +81,7 @@ export function NotesPanel({
   const create = trpc.notes.create.useMutation({
     onSuccess: async () => {
       setBody("");
+      setKind("note");
       setMentions([]);
       await refresh();
     }
@@ -85,6 +103,7 @@ export function NotesPanel({
       entityType,
       entityId,
       body: body.trim(),
+      kind,
       mentionUserIds: presentMentionIds(body, mentions)
     });
   };
@@ -100,6 +119,18 @@ export function NotesPanel({
             onMentionsChange={setMentions}
           />
           <div className="flex items-center justify-between gap-2">
+            <select
+              aria-label="Note type"
+              value={kind}
+              onChange={(e) => setKind(e.target.value as NoteKindValue)}
+              className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs text-[var(--muted)]"
+            >
+              {NOTE_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {NOTE_KIND_LABEL[k]}
+                </option>
+              ))}
+            </select>
             {templates.data && templates.data.length > 0 ? (
               <select
                 aria-label="Insert template"
@@ -157,7 +188,16 @@ export function NotesPanel({
                 className="rounded-md border border-[var(--border)] bg-[var(--card)] p-3"
               >
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium">{n.authorName ?? "Unknown"}</span>
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    {n.authorName ?? "Unknown"}
+                    {n.kind !== "note" ? (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${NOTE_KIND_STYLE[n.kind as NoteKindValue] ?? ""}`}
+                      >
+                        {NOTE_KIND_LABEL[n.kind as NoteKindValue] ?? n.kind}
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="text-xs text-[var(--muted)]">{relativeTime(n.createdAt)}</span>
                 </div>
                 {editingId === n.id ? (
