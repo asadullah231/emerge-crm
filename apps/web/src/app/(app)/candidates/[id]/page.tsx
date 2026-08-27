@@ -53,6 +53,22 @@ export default function CandidateRecordPage() {
     }
   });
   const restore = trpc.candidates.restore.useMutation({ onSuccess: refresh });
+  const duplicate = trpc.candidates.duplicate.useMutation({
+    onSuccess: async (created) => {
+      await utils.candidates.list.invalidate();
+      router.push(`/candidates/${created.id}`);
+    }
+  });
+
+  // Followers (CP-05): who gets a bell notification on candidate changes.
+  const followState = trpc.follows.state.useQuery({
+    entityType: "candidate",
+    entityId: params.id
+  });
+  const toggleFollow = trpc.follows.toggle.useMutation({
+    onSuccess: () =>
+      utils.follows.state.invalidate({ entityType: "candidate", entityId: params.id })
+  });
 
   if (candidate.isLoading) {
     return <p className="text-sm text-[var(--muted)]">Loading candidate...</p>;
@@ -115,31 +131,61 @@ export default function CandidateRecordPage() {
         </span>
       }
       actions={
-        canWrite ? (
-          isDeleted ? (
-            <Button
-              variant="outline"
-              disabled={restore.isPending}
-              onClick={() => restore.mutate({ id: record.id })}
-            >
-              Restore
-            </Button>
-          ) : (
-            <Button
-              variant="danger"
-              disabled={softDelete.isPending}
-              onClick={() => {
-                if (
-                  window.confirm(`Move "${fullName}" to trash? It can be restored for 30 days.`)
-                ) {
-                  softDelete.mutate({ id: record.id });
-                }
-              }}
-            >
-              Delete
-            </Button>
-          )
-        ) : null
+        <span className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={toggleFollow.isPending || followState.isLoading}
+            title="Followers get a notification when this candidate changes"
+            onClick={() =>
+              toggleFollow.mutate({
+                entityType: "candidate",
+                entityId: record.id,
+                follow: !followState.data?.following
+              })
+            }
+          >
+            {followState.data?.following ? "Following" : "Follow"}
+            {followState.data && followState.data.count > 0 ? ` (${followState.data.count})` : ""}
+          </Button>
+          <Button variant="outline" onClick={() => window.print()} title="Print this candidate">
+            Print
+          </Button>
+          {canWrite ? (
+            isDeleted ? (
+              <Button
+                variant="outline"
+                disabled={restore.isPending}
+                onClick={() => restore.mutate({ id: record.id })}
+              >
+                Restore
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={duplicate.isPending}
+                  title="Copy this candidate with education and experience"
+                  onClick={() => duplicate.mutate({ id: record.id })}
+                >
+                  {duplicate.isPending ? "Duplicating..." : "Duplicate"}
+                </Button>
+                <Button
+                  variant="danger"
+                  disabled={softDelete.isPending}
+                  onClick={() => {
+                    if (
+                      window.confirm(`Move "${fullName}" to trash? It can be restored for 30 days.`)
+                    ) {
+                      softDelete.mutate({ id: record.id });
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </>
+            )
+          ) : null}
+        </span>
       }
     >
       {isDeleted ? (
@@ -148,7 +194,12 @@ export default function CandidateRecordPage() {
         </div>
       ) : null}
       <FormError
-        message={update.error?.message ?? softDelete.error?.message ?? restore.error?.message}
+        message={
+          update.error?.message ??
+          softDelete.error?.message ??
+          restore.error?.message ??
+          duplicate.error?.message
+        }
       />
 
       <RecordSection title="Profile">
@@ -314,9 +365,11 @@ export default function CandidateRecordPage() {
         </div>
       </RecordSection>
 
-      <RecordSection title="Matching jobs">
-        <CandidateMatchesPanel candidateId={record.id} canWrite={canEdit} />
-      </RecordSection>
+      <div id="section-matching">
+        <RecordSection title="Matching jobs">
+          <CandidateMatchesPanel candidateId={record.id} canWrite={canEdit} />
+        </RecordSection>
+      </div>
 
       <RecordSection title="Compliance">
         <CompliancePanel

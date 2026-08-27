@@ -3,6 +3,36 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.25.0 - Candidates: Zoho Feature Parity, bucket 1 (2026-08-27)
+
+Ports the jobs-list polish to the Candidates module, the first slice of the
+client's Zoho Recruit Candidates feature inventory (150 features audited
+27 Aug). Existing candidate features untouched.
+
+### Added
+
+- **Quick view drawer.** An eye icon on every candidates-list row opens a
+  slide-in preview with Details, Skills and Notes tabs, plus an "Open record"
+  jump, without leaving the list (Zoho peek panel).
+- **Column chooser.** A Columns menu on the candidates list toggles ID, Title,
+  Employer, Location, Source, Owner and Added. The layout persists per browser
+  and is saved inside saved views.
+- **Preset chips.** All / Mine / Recent (30d) / Blocked quick filters above
+  the candidates grid, backed by new owner, blocked and created-within list
+  filters in the API.
+- **Followers.** Follow any candidate; followers get an in-app notification
+  when the record is edited. Follower count shows on the button.
+- **Duplicate candidate.** A record-page action that copies the profile plus
+  education and experience rows under a fresh CAND id (Zoho Clone).
+- **Bulk reassign owner and bulk update fields** (source, city, country,
+  notice period) on the candidates selection bar (Zoho Mass Transfer /
+  Mass Update).
+- **Find matches from the list.** A per-row shortcut jumps straight to the
+  candidate's matching-jobs section.
+- **Print view.** A Print button on the candidate record using the shared
+  print stylesheet.
+- **Blocked marker.** Blocked candidates show an inline marker on the list.
+
 ## v0.24.0 - Job Openings: Zoho Feature Parity (2026-08-21)
 
 Closes the remaining Job Openings gaps from the client's full Zoho Recruit
