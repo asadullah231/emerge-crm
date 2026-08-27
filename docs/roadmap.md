@@ -83,7 +83,8 @@ git tag + GitHub release. `v1.0.0` ships at Milestone 22.
 | M19 | Public API, Webhooks & Career Page                                | v0.22.0         | Done     | M9           | L          | **H5**, career site, job boards   |
 | M20 | Compliance: GDPR, Blocklist & Data Tools                          | v0.23.0         | Done     | M8           | M          | Compliance/GDPR                   |
 | JP  | Job Openings - Zoho Feature Parity (client audit 21 Aug)          | v0.24.0         | Done     | M17          | M          | Zoho JO inventory (118 features)  |
-| M21 | Security, Performance & Production Hardening                      | v0.25.0         | Planned  | all          | L          | platform                          |
+| CP  | Candidates - Zoho Feature Parity, bucket 1 (client audit 27 Aug)  | v0.25.0         | Done     | JP           | S          | Zoho Candidates inventory (150)   |
+| M21 | Security, Performance & Production Hardening                      | v0.26.0         | Planned  | all          | L          | platform                          |
 | M22 | v1.0 Production Release                                           | v1.0.0          | Planned  | M21          | M          | –                                 |
 
 Complexity scale: S (days), M (about a week), L (1–2 weeks), XL (2–3 weeks).

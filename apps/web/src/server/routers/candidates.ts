@@ -9,12 +9,14 @@ import {
   candidateSource,
   candidates,
   jobs,
+  memberships,
   users
 } from "@emerge/db";
 import { writeAudit } from "../audit";
 import { bumpCounter, humanId, nextCounter } from "../counters";
 import { buildListClauses, listInput, trashCutoff } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
+import { notifyFollowers } from "./follows";
 import { entityTags, taggedEntityIds } from "./tags";
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
@@ -52,6 +54,7 @@ const candidateInput = z.object({
 });
 
 const ownerCols = { ownerName: users.name, ownerEmail: users.email };
+const bulkIds = z.array(z.string().uuid()).min(1).max(500);
 
 function lower(value: string | null | undefined): string | null {
   return value ? value.toLowerCase() : null;
@@ -59,7 +62,15 @@ function lower(value: string | null | undefined): string | null {
 
 export const candidatesRouter = router({
   list: workspaceProcedure
-    .input(listInput.extend({ source: z.enum(candidateSource.enumValues).optional() }))
+    .input(
+      listInput.extend({
+        source: z.enum(candidateSource.enumValues).optional(),
+        ownerId: z.string().uuid().optional(),
+        isBlocked: z.boolean().optional(),
+        /** Only candidates created in the last N days (Recent preset, CP-03). */
+        createdWithinDays: z.number().int().min(1).max(365).optional()
+      })
+    )
     .query(async ({ ctx, input }) => {
       const { orderBy, searchWhere, limit, offset } = buildListClauses(input, {
         sortable: {
@@ -90,7 +101,23 @@ export const candidatesRouter = router({
           ? inArray(candidates.id, taggedEntityIds(ctx.tx, "candidate", input.tagIds))
           : undefined;
       const sourceWhere = input.source ? eq(candidates.source, input.source) : undefined;
-      const where = and(deletedWhere, searchWhere, tagWhere, sourceWhere);
+      const ownerWhere = input.ownerId ? eq(candidates.ownerId, input.ownerId) : undefined;
+      const blockedWhere = input.isBlocked ? eq(candidates.isBlocked, true) : undefined;
+      const recentWhere = input.createdWithinDays
+        ? gte(
+            candidates.createdAt,
+            new Date(Date.now() - input.createdWithinDays * 24 * 60 * 60 * 1000)
+          )
+        : undefined;
+      const where = and(
+        deletedWhere,
+        searchWhere,
+        tagWhere,
+        sourceWhere,
+        ownerWhere,
+        blockedWhere,
+        recentWhere
+      );
 
       const [rows, [totalRow]] = await Promise.all([
         ctx.tx
@@ -106,6 +133,7 @@ export const candidatesRouter = router({
             country: candidates.country,
             source: candidates.source,
             ownerId: candidates.ownerId,
+            isBlocked: candidates.isBlocked,
             deletedAt: candidates.deletedAt,
             createdAt: candidates.createdAt,
             updatedAt: candidates.updatedAt,
@@ -315,6 +343,17 @@ export const candidatesRouter = router({
         targetId: updated.id,
         meta: { fields: Object.keys(input.patch) }
       });
+      // Followers get a bell ping (CP-05); a notify failure never blocks the save.
+      try {
+        await notifyFollowers(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          entityType: "candidate",
+          entityId: updated.id,
+          actorId: ctx.session.user.id
+        });
+      } catch (err) {
+        console.error("[candidates.update] follower notify failed:", err);
+      }
       return updated;
     }),
 
@@ -364,6 +403,172 @@ export const candidatesRouter = router({
         meta: { humanId: restored.humanId }
       });
       return restored;
+    }),
+
+  /**
+   * Duplicate a candidate (CP-06, Zoho Clone parity). Copies the profile plus
+   * education and experience rows under a fresh human id; applications, notes,
+   * tags and attachments are NOT copied. The copy is marked in the last name so
+   * the two records are distinguishable in lists.
+   */
+  duplicate: workspaceProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [src] = await ctx.tx
+        .select()
+        .from(candidates)
+        .where(and(eq(candidates.id, input.id), isNull(candidates.deletedAt)));
+      if (!src) throw new TRPCError({ code: "NOT_FOUND", message: "Candidate not found" });
+      const next = await nextCounter(ctx.tx, ctx.workspaceId, "candidate");
+      const [created] = await ctx.tx
+        .insert(candidates)
+        .values({
+          workspaceId: ctx.workspaceId,
+          humanId: humanId("CAND", next),
+          firstName: src.firstName,
+          lastName: `${src.lastName} (Copy)`,
+          title: src.title,
+          currentEmployer: src.currentEmployer,
+          email: src.email,
+          secondaryEmail: src.secondaryEmail,
+          phone: src.phone,
+          mobile: src.mobile,
+          city: src.city,
+          country: src.country,
+          linkedinUrl: src.linkedinUrl,
+          websiteUrl: src.websiteUrl,
+          skills: src.skills,
+          experienceYears: src.experienceYears,
+          salaryText: src.salaryText,
+          salaryMin: src.salaryMin,
+          salaryMax: src.salaryMax,
+          salaryCurrency: src.salaryCurrency,
+          noticePeriod: src.noticePeriod,
+          source: src.source,
+          ownerId: ctx.session.user.id
+        })
+        .returning({ id: candidates.id, humanId: candidates.humanId });
+      if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [education, experience] = await Promise.all([
+        ctx.tx.select().from(candidateEducation).where(eq(candidateEducation.candidateId, src.id)),
+        ctx.tx.select().from(candidateExperience).where(eq(candidateExperience.candidateId, src.id))
+      ]);
+      if (education.length > 0) {
+        await ctx.tx.insert(candidateEducation).values(
+          education.map((e) => ({
+            workspaceId: ctx.workspaceId,
+            candidateId: created.id,
+            institution: e.institution,
+            degree: e.degree,
+            fieldOfStudy: e.fieldOfStudy,
+            startYear: e.startYear,
+            endYear: e.endYear,
+            sortOrder: e.sortOrder
+          }))
+        );
+      }
+      if (experience.length > 0) {
+        await ctx.tx.insert(candidateExperience).values(
+          experience.map((e) => ({
+            workspaceId: ctx.workspaceId,
+            candidateId: created.id,
+            company: e.company,
+            title: e.title,
+            startDate: e.startDate,
+            endDate: e.endDate,
+            isCurrent: e.isCurrent,
+            summary: e.summary,
+            sortOrder: e.sortOrder
+          }))
+        );
+      }
+
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "candidate.duplicated",
+        targetType: "candidate",
+        targetId: created.id,
+        meta: { from: src.humanId, humanId: created.humanId }
+      });
+      return created;
+    }),
+
+  /** Bulk owner reassignment for candidates (Zoho "Mass Transfer" parity, CP-08). */
+  bulkReassignOwner: workspaceProcedure
+    .input(z.object({ ids: bulkIds, ownerId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [member] = await ctx.tx
+        .select({ userId: memberships.userId })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.workspaceId, ctx.workspaceId),
+            eq(memberships.userId, input.ownerId),
+            isNull(memberships.deactivatedAt)
+          )
+        );
+      if (!member) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The new owner must be an active team member"
+        });
+      }
+      const updated = await ctx.tx
+        .update(candidates)
+        .set({ ownerId: input.ownerId })
+        .where(and(inArray(candidates.id, input.ids), isNull(candidates.deletedAt)))
+        .returning({ id: candidates.id });
+      if (updated.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No matching candidates found" });
+      }
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "candidate.bulk_owner_reassigned",
+        targetType: "candidate",
+        targetId: updated[0]!.id,
+        meta: { count: updated.length, ownerId: input.ownerId }
+      });
+      return { updated: updated.length };
+    }),
+
+  /** Bulk update of a safe field subset (Zoho "Mass Update" parity, CP-08). */
+  bulkUpdateFields: workspaceProcedure
+    .input(
+      z.object({
+        ids: bulkIds,
+        patch: z
+          .object({
+            source: z.enum(candidateSource.enumValues).optional(),
+            city: z.string().trim().max(120).nullable().optional(),
+            country: z.string().trim().max(120).nullable().optional(),
+            noticePeriod: z.string().trim().max(120).nullable().optional()
+          })
+          .refine((p) => Object.keys(p).length > 0, {
+            message: "Pick at least one field to update"
+          })
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updated = await ctx.tx
+        .update(candidates)
+        .set(input.patch)
+        .where(and(inArray(candidates.id, input.ids), isNull(candidates.deletedAt)))
+        .returning({ id: candidates.id });
+      if (updated.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No matching candidates found" });
+      }
+      await writeAudit({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.session.user.id,
+        action: "candidate.bulk_fields_updated",
+        targetType: "candidate",
+        targetId: updated[0]!.id,
+        meta: { count: updated.length, fields: Object.keys(input.patch) }
+      });
+      return { updated: updated.length };
     }),
 
   /**
