@@ -699,7 +699,8 @@ export const notificationKind = pgEnum("notification_kind", [
   "mention",
   "submission_verdict",
   "email_reply",
-  "followed_update"
+  "followed_update",
+  "record_assigned"
 ]);
 export type NotificationKind = (typeof notificationKind.enumValues)[number];
 
@@ -916,6 +917,10 @@ export const parseJobs = pgTable(
     parsed: jsonb("parsed").$type<Record<string, unknown>>(),
     /** The candidate created on confirm (null until confirmed). */
     candidateId: uuid("candidate_id").references(() => candidates.id, { onDelete: "set null" }),
+    /** Skip manual review: the worker creates the candidate right after parsing (UP-01). */
+    autoConfirm: boolean("auto_confirm").notNull().default(false),
+    /** When set, the auto-created candidate is also placed on this job's pipeline (UP-02). */
+    jobId: uuid("job_id").references(() => jobs.id, { onDelete: "set null" }),
     /** Populated when status=failed; drives the triage list. */
     error: text("error"),
     uploadedById: uuid("uploaded_by_id").references(() => users.id, { onDelete: "set null" }),

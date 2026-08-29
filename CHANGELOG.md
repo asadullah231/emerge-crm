@@ -3,6 +3,27 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.0 - UX Polish R1 (2026-08-28)
+
+Internal feedback round: fewer clicks from CV to candidate, and cleaner emails.
+
+### Added
+
+- **One-shot CV parsing.** Uploaded CVs now create the candidate automatically
+  the moment parsing finishes; only ambiguous results (missing last name or a
+  duplicate email) wait in Needs review. A checkbox on the parse page restores
+  the old review-first flow.
+- **Parse a CV from the job modal.** The "Add a candidate" modal on a job can
+  take a CV upload; the candidate is created and dropped straight onto that
+  job's pipeline, with live parsing status in the modal.
+- **Owner assignment notifications.** Assigning a candidate owner (on create,
+  edit, CV confirm or bulk reassign) pings the new owner in the bell.
+
+### Changed
+
+- **Email polish.** Bigger full-width CTA button, larger headings and a
+  centered fallback link in all transactional emails.
+
 ## v0.25.0 - Candidates: Zoho Feature Parity, bucket 1 (2026-08-27)
 
 Ports the jobs-list polish to the Candidates module, the first slice of the

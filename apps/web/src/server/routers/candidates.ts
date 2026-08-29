@@ -10,7 +10,9 @@ import {
   candidates,
   jobs,
   memberships,
-  users
+  notifications,
+  users,
+  type Transaction
 } from "@emerge/db";
 import { writeAudit } from "../audit";
 import { bumpCounter, humanId, nextCounter } from "../counters";
@@ -58,6 +60,31 @@ const bulkIds = z.array(z.string().uuid()).min(1).max(500);
 
 function lower(value: string | null | undefined): string | null {
   return value ? value.toLowerCase() : null;
+}
+
+/**
+ * Bell ping to the new owner when a candidate is assigned to them (UP-03).
+ * Skips self-assignment; a notify failure never breaks the write.
+ */
+export async function notifyOwnerAssigned(
+  tx: Transaction,
+  opts: { workspaceId: string; ownerId: string | null | undefined; actorId: string; ids: string[] }
+): Promise<void> {
+  if (!opts.ownerId || opts.ownerId === opts.actorId || opts.ids.length === 0) return;
+  try {
+    await tx.insert(notifications).values(
+      opts.ids.map((entityId) => ({
+        workspaceId: opts.workspaceId,
+        recipientId: opts.ownerId!,
+        kind: "record_assigned" as const,
+        actorId: opts.actorId,
+        entityType: "candidate",
+        entityId
+      }))
+    );
+  } catch (err) {
+    console.error("[candidates] owner-assignment notify failed:", err);
+  }
 }
 
 export const candidatesRouter = router({
@@ -320,6 +347,12 @@ export const candidatesRouter = router({
         name: [created.firstName, created.lastName].filter(Boolean).join(" ")
       }
     });
+    await notifyOwnerAssigned(ctx.tx, {
+      workspaceId: ctx.workspaceId,
+      ownerId: created.ownerId,
+      actorId: ctx.session.user.id,
+      ids: [created.id]
+    });
     return created;
   }),
 
@@ -353,6 +386,15 @@ export const candidatesRouter = router({
         });
       } catch (err) {
         console.error("[candidates.update] follower notify failed:", err);
+      }
+      // A newly assigned owner also gets a direct ping (UP-03).
+      if (input.patch.ownerId !== undefined) {
+        await notifyOwnerAssigned(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          ownerId: updated.ownerId,
+          actorId: ctx.session.user.id,
+          ids: [updated.id]
+        });
       }
       return updated;
     }),
@@ -530,6 +572,12 @@ export const candidatesRouter = router({
         targetType: "candidate",
         targetId: updated[0]!.id,
         meta: { count: updated.length, ownerId: input.ownerId }
+      });
+      await notifyOwnerAssigned(ctx.tx, {
+        workspaceId: ctx.workspaceId,
+        ownerId: input.ownerId,
+        actorId: ctx.session.user.id,
+        ids: updated.map((u) => u.id)
       });
       return { updated: updated.length };
     }),
