@@ -30,6 +30,8 @@ export default function ParseCandidatesPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
+  // One-shot by default (UP-01); tick the box to review every CV by hand.
+  const [reviewFirst, setReviewFirst] = useState(false);
 
   const counts = trpc.parsing.counts.useQuery(undefined, { refetchInterval: 4000 });
   // "In progress" groups queued + parsing.
@@ -54,6 +56,7 @@ export default function ParseCandidatesPage() {
     try {
       const body = new FormData();
       for (const f of Array.from(files)) body.append("file", f);
+      body.append("autoConfirm", reviewFirst ? "0" : "1");
       const res = await fetch("/api/candidates/import/parse", { method: "POST", body });
       const data = (await res.json().catch(() => ({}))) as {
         accepted?: unknown[];
@@ -96,7 +99,8 @@ export default function ParseCandidatesPage() {
           </Link>
         </div>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Drop CVs here. Each one is read automatically, then you review and confirm the candidate.
+          Drop CVs here. Each one is read and the candidate is created automatically; anything
+          ambiguous (missing last name or a duplicate email) waits in Needs review.
         </p>
       </div>
 
@@ -133,6 +137,14 @@ export default function ParseCandidatesPage() {
         >
           {uploading ? "Uploading..." : "Choose files"}
         </Button>
+        <label className="mt-3 flex items-center justify-center gap-2 text-xs text-[var(--muted)]">
+          <input
+            type="checkbox"
+            checked={reviewFirst}
+            onChange={(e) => setReviewFirst(e.target.checked)}
+          />
+          Review each CV before creating the candidate
+        </label>
       </section>
 
       {/* Tabs */}

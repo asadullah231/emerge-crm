@@ -9,6 +9,7 @@ import type IORedis from "ioredis";
 import { and, eq } from "drizzle-orm";
 import { createDb, parseJobs, withWorkspace, workspaceAiSettings } from "@emerge/db";
 import { decryptSecret, parseResume, type AiConfig } from "@emerge/ai";
+import { tryAutoConfirm } from "./auto-confirm.js";
 import { getObjectBytes } from "./s3.js";
 
 export type ParseJobData = { parseJobId: string; workspaceId: string };
@@ -49,6 +50,21 @@ export function startParseWorker(connection: IORedis): Worker<ParseJobData> {
             .where(eq(parseJobs.id, parseJobId))
         );
         console.log(`[worker] parsed CV ${row.filename} (job ${parseJobId})`);
+
+        // One-shot mode (UP-01): create the candidate immediately. Any failure
+        // here leaves the row in status=parsed, i.e. the normal review list.
+        if (row.autoConfirm) {
+          try {
+            const result = await tryAutoConfirm(db, workspaceId, parseJobId);
+            if (result.outcome === "confirmed") {
+              console.log(`[worker] auto-created candidate for ${row.filename}`);
+            } else {
+              console.log(`[worker] left ${row.filename} for review: ${result.reason}`);
+            }
+          } catch (err) {
+            console.error(`[worker] auto-confirm failed for ${parseJobId}:`, err);
+          }
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         await withWorkspace(db, workspaceId, (tx) =>

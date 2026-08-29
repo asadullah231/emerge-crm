@@ -20,6 +20,7 @@ import { humanId, nextCounter } from "../counters";
 import { enqueueParse } from "../parse-queue";
 import { router, workspaceProcedure } from "../trpc";
 import { ensureDefaultStatuses, entryStatusForStage } from "./applications";
+import { notifyOwnerAssigned } from "./candidates";
 import { fanOutMentions } from "./notes";
 
 const statusEnum = z.enum(parseJobStatus.enumValues);
@@ -197,6 +198,12 @@ export const parsingRouter = router({
           name: [cand.firstName, cand.lastName].filter(Boolean).join(" "),
           via: "parser"
         }
+      });
+      await notifyOwnerAssigned(ctx.tx, {
+        workspaceId: ctx.workspaceId,
+        ownerId: cand.ownerId,
+        actorId: ctx.session.user.id,
+        ids: [cand.id]
       });
 
       // Optionally put the new candidate straight on a job's pipeline (M15).
