@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { parseJobs, withWorkspace } from "@emerge/db";
+import { and, eq, isNull } from "drizzle-orm";
+import { jobs, parseJobs, withWorkspace } from "@emerge/db";
 import { getCurrentSession } from "@/server/auth/current";
 import { db } from "@/server/db";
 import { enqueueParse } from "@/server/parse-queue";
@@ -26,6 +27,26 @@ export async function POST(req: Request) {
   if (files.length === 0) return Response.json({ error: "No files provided" }, { status: 400 });
   if (files.length > 50) {
     return Response.json({ error: "Up to 50 files per upload" }, { status: 400 });
+  }
+
+  // One-shot mode (UP-01): the worker creates the candidate right after
+  // parsing; ambiguous results still fall back to the review list.
+  const autoConfirm = form.get("autoConfirm") !== "0";
+  // Optional job to pipeline the auto-created candidate onto (UP-02).
+  const rawJobId = form.get("jobId");
+  let jobId: string | null = null;
+  if (typeof rawJobId === "string" && rawJobId) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawJobId)) {
+      return Response.json({ error: "Invalid job id" }, { status: 400 });
+    }
+    const [job] = await withWorkspace(db, session.workspaceId, (tx) =>
+      tx
+        .select({ id: jobs.id })
+        .from(jobs)
+        .where(and(eq(jobs.id, rawJobId), isNull(jobs.deletedAt)))
+    );
+    if (!job) return Response.json({ error: "Job opening not found" }, { status: 400 });
+    jobId = job.id;
   }
 
   const accepted: Array<{ id: string; filename: string; status: string }> = [];
@@ -56,6 +77,8 @@ export async function POST(req: Request) {
             mime: file.type,
             size: file.size,
             sha256,
+            autoConfirm,
+            jobId,
             uploadedById: session.user.id
           })
           .returning({ id: parseJobs.id, filename: parseJobs.filename, status: parseJobs.status })

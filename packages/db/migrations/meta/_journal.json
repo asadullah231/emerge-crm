@@ -225,6 +225,13 @@
       "when": 1787716277375,
       "tag": "0031_robust_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1788008268147,
+      "tag": "0032_lively_doctor_strange",
+      "breakpoints": true
     }
   ]
 }

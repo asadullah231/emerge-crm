@@ -10,13 +10,6 @@ const ACCEPT = ".pdf,.doc,.docx,.rtf,.txt";
 
 type ParseRow = RouterOutputs["parsing"]["list"][number];
 
-const TABS = [
-  { key: "parsed", label: "Needs review" },
-  { key: "queued", label: "In progress" },
-  { key: "confirmed", label: "Confirmed" },
-  { key: "failed", label: "Failed" }
-] as const;
-
 function displayName(parsed: unknown): string {
   const r = parsed as Partial<ParsedResume> | null;
   const name = [r?.firstName, r?.lastName].filter(Boolean).join(" ");
@@ -26,26 +19,19 @@ function displayName(parsed: unknown): string {
 export default function ParseCandidatesPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("parsed");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
+  // One-shot by default (UP-01); tick the box to review every CV by hand.
+  const [reviewFirst, setReviewFirst] = useState(false);
 
-  const counts = trpc.parsing.counts.useQuery(undefined, { refetchInterval: 4000 });
-  // "In progress" groups queued + parsing.
-  const listStatus = tab === "queued" ? undefined : tab;
-  const list = trpc.parsing.list.useQuery(
-    { status: listStatus, limit: 200 },
-    { refetchInterval: 4000 }
-  );
-
-  const rows: ParseRow[] =
-    tab === "queued"
-      ? (list.data ?? []).filter((r) => r.status === "queued" || r.status === "parsing")
-      : (list.data ?? []).filter((r) => r.status === tab);
+  // One flat list, newest first (UP-05): parsed candidates with a View link;
+  // in-progress, needs-attention and failed rows appear inline only when present.
+  const list = trpc.parsing.list.useQuery({ limit: 200 }, { refetchInterval: 4000 });
+  const rows: ParseRow[] = (list.data ?? []).filter((r) => r.status !== "discarded");
 
   const refreshAll = async () => {
-    await Promise.all([utils.parsing.list.invalidate(), utils.parsing.counts.invalidate()]);
+    await utils.parsing.list.invalidate();
   };
 
   const upload = async (files: FileList) => {
@@ -54,6 +40,7 @@ export default function ParseCandidatesPage() {
     try {
       const body = new FormData();
       for (const f of Array.from(files)) body.append("file", f);
+      body.append("autoConfirm", reviewFirst ? "0" : "1");
       const res = await fetch("/api/candidates/import/parse", { method: "POST", body });
       const data = (await res.json().catch(() => ({}))) as {
         accepted?: unknown[];
@@ -67,7 +54,6 @@ export default function ParseCandidatesPage() {
             data.rejected.map((r) => `${r.filename} (${r.error})`).join(", ")
         );
       }
-      setTab("queued");
       await refreshAll();
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "Upload failed");
@@ -75,12 +61,6 @@ export default function ParseCandidatesPage() {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
     }
-  };
-
-  const countFor = (key: (typeof TABS)[number]["key"]) => {
-    const c = counts.data ?? {};
-    if (key === "queued") return (c.queued ?? 0) + (c.parsing ?? 0);
-    return c[key] ?? 0;
   };
 
   return (
@@ -96,7 +76,8 @@ export default function ParseCandidatesPage() {
           </Link>
         </div>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Drop CVs here. Each one is read automatically, then you review and confirm the candidate.
+          Drop CVs here. Each one is read and the candidate is created automatically; anything
+          ambiguous (missing last name or a duplicate email) waits in Needs review.
         </p>
       </div>
 
@@ -133,35 +114,20 @@ export default function ParseCandidatesPage() {
         >
           {uploading ? "Uploading..." : "Choose files"}
         </Button>
+        <label className="mt-3 flex items-center justify-center gap-2 text-xs text-[var(--muted)]">
+          <input
+            type="checkbox"
+            checked={reviewFirst}
+            onChange={(e) => setReviewFirst(e.target.checked)}
+          />
+          Review each CV before creating the candidate
+        </label>
       </section>
-
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-1 border-b border-[var(--border)]">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={
-              "border-b-2 px-3 py-2 text-sm transition-colors " +
-              (tab === t.key
-                ? "border-[var(--brand-primary)] font-medium text-[var(--brand-primary)]"
-                : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]")
-            }
-          >
-            {t.label}
-            <span className="ml-1.5 rounded-full bg-[var(--background)] px-1.5 py-0.5 text-xs">
-              {countFor(t.key)}
-            </span>
-          </button>
-        ))}
-      </div>
 
       {/* List */}
       {rows.length === 0 ? (
         <p className="py-8 text-center text-sm text-[var(--muted)]">
-          {tab === "parsed"
-            ? "Nothing to review yet. Uploaded CVs appear here once parsed."
-            : "Nothing here."}
+          No CVs parsed yet. Upload some above.
         </p>
       ) : (
         <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--card)]">

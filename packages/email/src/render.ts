@@ -52,7 +52,7 @@ export function eyebrow(text: string): string {
 
 /** Page-level heading (H1). */
 export function heading(text: string): string {
-  return `<h1 style="margin:0 0 16px 0;font-family:${fontStack};font-size:24px;line-height:32px;font-weight:700;letter-spacing:-0.4px;color:${brand.text};">${escapeHtml(
+  return `<h1 class="h1" style="margin:0 0 16px 0;font-family:${fontStack};font-size:26px;line-height:34px;font-weight:700;letter-spacing:-0.4px;color:${brand.text};">${escapeHtml(
     text
   )}</h1>`;
 }
@@ -99,19 +99,23 @@ export function button(opts: { href: string; label: string }): string {
   const href = escapeHtml(opts.href);
   const label = escapeHtml(opts.label);
   return `
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 12px auto;">
-    <tr><td align="center" bgcolor="${brand.navy}" style="border-radius:10px;">
-      <!--[if mso]>
-      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"
-        href="${href}" style="height:52px;v-text-anchor:middle;width:260px;" arcsize="19%" strokecolor="${brand.navy}" fillcolor="${brand.navy}">
-        <w:anchorlock/>
-        <center style="color:#ffffff;font-family:${fontStack};font-size:16px;font-weight:600;">${label}</center>
-      </v:roundrect>
-      <![endif]-->
-      <!--[if !mso]><!-- -->
-      <a href="${href}" target="_blank"
-        style="display:inline-block;padding:15px 34px;font-family:${fontStack};font-size:16px;font-weight:600;line-height:20px;color:#ffffff;text-decoration:none;border-radius:10px;background-color:${brand.navy};mso-padding-alt:0;"><span style="color:#ffffff;text-decoration:none;">${label}</span></a>
-      <!--<![endif]-->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="btn" style="margin:6px 0 20px 0;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+        <tr><td align="center" bgcolor="${brand.navy}" style="border-radius:12px;">
+          <!--[if mso]>
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"
+            href="${href}" style="height:58px;v-text-anchor:middle;width:320px;" arcsize="21%" strokecolor="${brand.navy}" fillcolor="${brand.navy}">
+            <w:anchorlock/>
+            <center style="color:#ffffff;font-family:${fontStack};font-size:17px;font-weight:600;">${label}</center>
+          </v:roundrect>
+          <![endif]-->
+          <!--[if !mso]><!-- -->
+          <a href="${href}" target="_blank"
+            style="display:inline-block;padding:17px 56px;font-family:${fontStack};font-size:17px;font-weight:600;line-height:22px;color:#ffffff;text-decoration:none;border-radius:12px;background-color:${brand.navy};mso-padding-alt:0;"><span style="color:#ffffff;text-decoration:none;">${label}</span></a>
+          <!--<![endif]-->
+        </td></tr>
+      </table>
     </td></tr>
   </table>`;
 }
@@ -130,10 +134,10 @@ export function divider(): string {
 export function fallbackLink(url: string): string {
   const safe = escapeHtml(url);
   return `
-  <p style="margin:0 0 6px 0;font-family:${fontStack};font-size:13px;line-height:20px;color:${brand.textSubtle};">
+  <p style="margin:0 0 4px 0;font-family:${fontStack};font-size:12px;line-height:18px;color:${brand.textSubtle};text-align:center;">
     Button not working? Copy and paste this link into your browser:
   </p>
-  <p style="margin:0;font-family:${fontStack};font-size:13px;line-height:20px;word-break:break-all;">
+  <p style="margin:0;font-family:${fontStack};font-size:12px;line-height:18px;word-break:break-all;text-align:center;">
     <a href="${safe}" target="_blank" style="color:${brand.teal};text-decoration:underline;">${safe}</a>
   </p>`;
 }
