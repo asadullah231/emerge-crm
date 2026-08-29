@@ -24,7 +24,6 @@ import {
 import { parsedResumeSchema } from "@emerge/core";
 
 type Db = Parameters<typeof withWorkspace>[0];
-type ParseRow = typeof parseJobs.$inferSelect;
 
 function lower(v: string | null | undefined): string | null {
   return v ? v.toLowerCase() : null;
