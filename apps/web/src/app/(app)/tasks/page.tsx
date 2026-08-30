@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@emerge/ui";
 import { ActivityFeed } from "@/components/activity-feed";
 import { InterviewsView } from "@/components/interviews-view";
@@ -12,14 +13,25 @@ type Tab = (typeof TABS)[number];
 
 /**
  * Tasks, Interviews, Reports and Activity share one page (client request
- * 29 Aug); /interviews, /reports and /activity redirect here with ?tab=.
+ * 29 Aug); /interviews, /reports and /activity redirect here with ?tab=,
+ * and the sidebar's Interviews item links straight to its tab.
  */
 export default function TasksPage() {
-  const [tab, setTab] = useState<Tab>(() => {
-    if (typeof window === "undefined") return "tasks";
-    const t = new URLSearchParams(window.location.search).get("tab");
-    return TABS.includes(t as Tab) ? (t as Tab) : "tasks";
-  });
+  return (
+    <Suspense fallback={null}>
+      <TasksHub />
+    </Suspense>
+  );
+}
+
+function TasksHub() {
+  const urlTab = useSearchParams().get("tab");
+  const [tab, setTab] = useState<Tab>(TABS.includes(urlTab as Tab) ? (urlTab as Tab) : "tasks");
+
+  // Follow the URL when it changes while already on this page (nav clicks).
+  useEffect(() => {
+    setTab(TABS.includes(urlTab as Tab) ? (urlTab as Tab) : "tasks");
+  }, [urlTab]);
 
   return (
     <div className="space-y-4">
