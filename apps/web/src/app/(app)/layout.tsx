@@ -10,17 +10,17 @@ import { ApiStatus } from "@/components/api-status";
 import { UserMenu } from "@/components/user-menu";
 import { getCurrentSession } from "@/server/auth/current";
 
+// Contacts live inside Clients; Interviews, Reports and Activity live inside
+// Tasks (29 Aug merges; the old URLs redirect). Revenue is hidden for now:
+// restore by re-adding { href: "/revenue", label: "Revenue" } and reverting
+// revenue/page.tsx.
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/candidates", label: "Candidates" },
-  // Contacts merged into Clients (29 Aug); /contacts redirects there.
-  { href: "/companies", label: "Clients" },
   { href: "/jobs", label: "Job Openings" },
+  { href: "/candidates", label: "Candidates" },
+  { href: "/companies", label: "Clients" },
   { href: "/pipeline", label: "Pipeline" },
-  { href: "/interviews", label: "Interviews" },
-  // Revenue page hidden for now (client request 29 Aug); restore by re-adding
-  // { href: "/revenue", label: "Revenue" } and reverting revenue/page.tsx.
-  // Reports and Activity merged into Tasks (29 Aug); their URLs redirect there.
+  { href: "/tasks?tab=interviews", label: "Interviews" },
   { href: "/tasks", label: "Tasks" },
   { href: "/settings", label: "Settings" }
 ];
