@@ -20,8 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/interviews", label: "Interviews" },
   // Revenue page hidden for now (client request 29 Aug); restore by re-adding
   // { href: "/revenue", label: "Revenue" } and reverting revenue/page.tsx.
-  // Activity merged into Reports (29 Aug); /activity redirects there.
-  { href: "/reports", label: "Reports" },
+  // Reports and Activity merged into Tasks (29 Aug); their URLs redirect there.
   { href: "/tasks", label: "Tasks" },
   { href: "/settings", label: "Settings" }
 ];
