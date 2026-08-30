@@ -3,6 +3,12 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.1 - Hide the Revenue page (2026-08-29)
+
+- The Revenue page and its nav item are hidden for now (client request);
+  /revenue redirects to the dashboard. Revenue data, the API and the per-job
+  revenue panel are untouched, so it can come back with a one-line revert.
+
 ## v0.26.0 - UX Polish R1 (2026-08-28)
 
 Internal feedback round: fewer clicks from CV to candidate, and cleaner emails.

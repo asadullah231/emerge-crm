@@ -221,7 +221,7 @@ export default function DashboardPage() {
         <BigNumber
           label="Hires"
           value={data?.kpis.hires}
-          href="/revenue"
+          href="/reports"
           tone="positive"
           loading={overview.isLoading}
         />
