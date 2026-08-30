@@ -3,21 +3,22 @@
 import { useState } from "react";
 import { cn } from "@emerge/ui";
 import { ActivityFeed } from "@/components/activity-feed";
+import { InterviewsView } from "@/components/interviews-view";
 import { ReportsView } from "@/components/reports-view";
 import { TasksView } from "@/components/tasks-view";
 
-const TABS = ["tasks", "reports", "activity"] as const;
+const TABS = ["tasks", "interviews", "reports", "activity"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
- * Tasks, Reports and Activity share one page (client request 29 Aug);
- * /reports and /activity redirect here with ?tab=.
+ * Tasks, Interviews, Reports and Activity share one page (client request
+ * 29 Aug); /interviews, /reports and /activity redirect here with ?tab=.
  */
 export default function TasksPage() {
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window === "undefined") return "tasks";
     const t = new URLSearchParams(window.location.search).get("tab");
-    return t === "reports" || t === "activity" ? t : "tasks";
+    return TABS.includes(t as Tab) ? (t as Tab) : "tasks";
   });
 
   return (
@@ -41,6 +42,8 @@ export default function TasksPage() {
       </div>
       {tab === "tasks" ? (
         <TasksView />
+      ) : tab === "interviews" ? (
+        <InterviewsView />
       ) : tab === "reports" ? (
         <ReportsView />
       ) : (

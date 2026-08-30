@@ -209,7 +209,7 @@ export default function DashboardPage() {
         <BigNumber
           label="Interviews"
           value={data?.kpis.interviews}
-          href="/interviews"
+          href="/tasks?tab=interviews"
           loading={overview.isLoading}
         />
         <BigNumber
@@ -301,7 +301,7 @@ export default function DashboardPage() {
         <Panel
           title="Upcoming Interviews"
           subtitle="Next 14 days"
-          action={<PanelLink href="/interviews">View all</PanelLink>}
+          action={<PanelLink href="/tasks?tab=interviews">View all</PanelLink>}
         >
           <UpcomingInterviews rows={data?.upcomingInterviews} loading={overview.isLoading} />
         </Panel>

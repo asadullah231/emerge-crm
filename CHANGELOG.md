@@ -3,6 +3,12 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.5 - Interviews joins the Tasks hub (2026-08-29)
+
+- The Interviews agenda is now the second tab on the Tasks page (My tasks,
+  Interviews, Reports, Activity); /interviews redirects to
+  /tasks?tab=interviews and its nav item is gone. Dashboard links follow.
+
 ## v0.26.4 - Tasks, Reports and Activity merged (2026-08-29)
 
 - The Tasks page is now the work hub with three tabs: My tasks, Reports and
