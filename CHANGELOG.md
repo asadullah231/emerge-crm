@@ -3,6 +3,12 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.2 - Reports and Activity merged (2026-08-29)
+
+- The Activity feed now lives on the Reports page as a second tab, keeping one
+  minimal reporting surface; /activity redirects to /reports?tab=activity and
+  the nav item is gone. The dashboard's "View all" link follows.
+
 ## v0.26.1 - Hide the Revenue page (2026-08-29)
 
 - The Revenue page and its nav item are hidden for now (client request);

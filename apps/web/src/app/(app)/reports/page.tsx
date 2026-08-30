@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { cn } from "@emerge/ui";
+import { ActivityFeed } from "@/components/activity-feed";
 import { Button } from "@/components/form";
 import { ReportScheduleModal } from "@/components/report-schedule-modal";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
@@ -134,6 +136,14 @@ function ExistingSchedules() {
 }
 
 export default function ReportsPage() {
+  // Reports + Activity share one page (client request 29 Aug); /activity
+  // redirects here with ?tab=activity.
+  const [tab, setTab] = useState<"reports" | "activity">(() => {
+    if (typeof window === "undefined") return "reports";
+    return new URLSearchParams(window.location.search).get("tab") === "activity"
+      ? "activity"
+      : "reports";
+  });
   const [reportKey, setReportKey] = useState("funnel");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -178,111 +188,142 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-lg font-semibold">Reports</h1>
           <p className="text-sm text-[var(--muted)]">
-            Agency KPIs over your live pipeline. Filter, export, or schedule an emailed CSV.
+            {tab === "reports"
+              ? "Agency KPIs over your live pipeline. Filter, export, or schedule an emailed CSV."
+              : "Recent activity across your workspace."}
           </p>
+        </div>
+        <div className="flex gap-1.5">
+          {(["reports", "activity"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors",
+                tab === t
+                  ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-[var(--brand-on)]"
+                  : "border-[var(--border)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]"
+              )}
+            >
+              {t}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3">
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-          Report
-          <select
-            value={reportKey}
-            onChange={(e) => setReportKey(e.target.value)}
-            className={inputClass}
-          >
-            {(catalog.data ?? []).map((r) => (
-              <option key={r.key} value={r.key}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-          From
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className={inputClass}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-          To
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className={inputClass}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-          Owner
-          <select value={userId} onChange={(e) => setUserId(e.target.value)} className={inputClass}>
-            <option value="">Everyone</option>
-            {(members.data ?? []).map((m) => (
-              <option key={m.userId} value={m.userId}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-          Client
-          <select
-            value={companyId}
-            onChange={(e) => setCompanyId(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">All clients</option>
-            {(companies.data?.rows ?? []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="ml-auto flex gap-2">
-          <Button
-            variant="outline"
-            className="px-3 py-1.5"
-            disabled={!report.data}
-            onClick={exportCsv}
-          >
-            Export CSV
-          </Button>
-          <Button className="px-3 py-1.5" onClick={() => setScheduling(true)}>
-            Schedule
-          </Button>
+      {tab === "activity" ? (
+        <div className="mx-auto max-w-3xl">
+          <ActivityFeed />
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-end gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Report
+              <select
+                value={reportKey}
+                onChange={(e) => setReportKey(e.target.value)}
+                className={inputClass}
+              >
+                {(catalog.data ?? []).map((r) => (
+                  <option key={r.key} value={r.key}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              From
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              To
+              <input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Owner
+              <select
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Everyone</option>
+                {(members.data ?? []).map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Client
+              <select
+                value={companyId}
+                onChange={(e) => setCompanyId(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">All clients</option>
+                {(companies.data?.rows ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="ml-auto flex gap-2">
+              <Button
+                variant="outline"
+                className="px-3 py-1.5"
+                disabled={!report.data}
+                onClick={exportCsv}
+              >
+                Export CSV
+              </Button>
+              <Button className="px-3 py-1.5" onClick={() => setScheduling(true)}>
+                Schedule
+              </Button>
+            </div>
+          </div>
 
-      <section className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-        <h2 className="text-sm font-semibold">{label}</h2>
-        {report.isPending ? (
-          <p className="text-sm text-[var(--muted)]">Loading…</p>
-        ) : report.data ? (
-          <>
-            {report.data.key === "funnel" ? <FunnelBars table={report.data} /> : null}
-            <ReportTableView table={report.data} />
-          </>
-        ) : (
-          <p className="text-sm text-red-600">
-            {report.error?.message ?? "Failed to load report."}
-          </p>
-        )}
-      </section>
+          <section className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+            <h2 className="text-sm font-semibold">{label}</h2>
+            {report.isPending ? (
+              <p className="text-sm text-[var(--muted)]">Loading…</p>
+            ) : report.data ? (
+              <>
+                {report.data.key === "funnel" ? <FunnelBars table={report.data} /> : null}
+                <ReportTableView table={report.data} />
+              </>
+            ) : (
+              <p className="text-sm text-red-600">
+                {report.error?.message ?? "Failed to load report."}
+              </p>
+            )}
+          </section>
 
-      <ExistingSchedules />
+          <ExistingSchedules />
 
-      <ReportScheduleModal
-        open={scheduling}
-        onClose={() => setScheduling(false)}
-        reportKey={reportKey}
-        reportLabel={label}
-        filters={filters}
-        onSaved={() => setScheduling(false)}
-      />
+          <ReportScheduleModal
+            open={scheduling}
+            onClose={() => setScheduling(false)}
+            reportKey={reportKey}
+            reportLabel={label}
+            filters={filters}
+            onSaved={() => setScheduling(false)}
+          />
+        </>
+      )}
     </div>
   );
 }
