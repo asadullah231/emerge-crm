@@ -18,7 +18,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/jobs", label: "Job Openings" },
   { href: "/pipeline", label: "Pipeline" },
   { href: "/interviews", label: "Interviews" },
-  { href: "/revenue", label: "Revenue" },
+  // Revenue page hidden for now (client request 29 Aug); restore by re-adding
+  // { href: "/revenue", label: "Revenue" } and reverting revenue/page.tsx.
   { href: "/reports", label: "Reports" },
   { href: "/activity", label: "Activity" },
   { href: "/tasks", label: "Tasks" },
