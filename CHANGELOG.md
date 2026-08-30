@@ -3,6 +3,13 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.3 - Clients and Contacts merged (2026-08-29)
+
+- The Contacts list now lives on the Clients page as a second tab, each tab
+  keeping its own filters, saved views and bulk actions; /contacts redirects
+  to /companies?tab=contacts and the nav item is gone. Contact records are
+  untouched.
+
 ## v0.26.2 - Reports and Activity merged (2026-08-29)
 
 - The Activity feed now lives on the Reports page as a second tab, keeping one
