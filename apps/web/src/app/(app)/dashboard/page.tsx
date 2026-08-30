@@ -325,7 +325,10 @@ export default function DashboardPage() {
         <Panel title="Tasks & Follow-ups" action={<PanelLink href="/tasks">View all</PanelLink>}>
           <OpenTasks rows={data?.openTasks} loading={overview.isLoading} />
         </Panel>
-        <Panel title="Recent Activity" action={<PanelLink href="/activity">View all</PanelLink>}>
+        <Panel
+          title="Recent Activity"
+          action={<PanelLink href="/reports?tab=activity">View all</PanelLink>}
+        >
           <Activity events={activity.data} loading={activity.isLoading} />
         </Panel>
       </div>
