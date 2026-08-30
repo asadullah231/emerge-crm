@@ -13,8 +13,8 @@ import { getCurrentSession } from "@/server/auth/current";
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/candidates", label: "Candidates" },
+  // Contacts merged into Clients (29 Aug); /contacts redirects there.
   { href: "/companies", label: "Clients" },
-  { href: "/contacts", label: "Contacts" },
   { href: "/jobs", label: "Job Openings" },
   { href: "/pipeline", label: "Pipeline" },
   { href: "/interviews", label: "Interviews" },
