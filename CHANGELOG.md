@@ -3,6 +3,12 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.4 - Tasks, Reports and Activity merged (2026-08-29)
+
+- The Tasks page is now the work hub with three tabs: My tasks, Reports and
+  Activity. /reports and /activity redirect to /tasks?tab=... and their nav
+  items are gone; dashboard links follow.
+
 ## v0.26.3 - Clients and Contacts merged (2026-08-29)
 
 - The Contacts list now lives on the Clients page as a second tab, each tab

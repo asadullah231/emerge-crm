@@ -221,7 +221,7 @@ export default function DashboardPage() {
         <BigNumber
           label="Hires"
           value={data?.kpis.hires}
-          href="/reports"
+          href="/tasks?tab=reports"
           tone="positive"
           loading={overview.isLoading}
         />
@@ -327,7 +327,7 @@ export default function DashboardPage() {
         </Panel>
         <Panel
           title="Recent Activity"
-          action={<PanelLink href="/reports?tab=activity">View all</PanelLink>}
+          action={<PanelLink href="/tasks?tab=activity">View all</PanelLink>}
         >
           <Activity events={activity.data} loading={activity.isLoading} />
         </Panel>
