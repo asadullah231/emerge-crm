@@ -104,15 +104,17 @@ export function NotificationBell() {
                               <span className="font-medium">{n.actorName ?? "Someone"}</span>{" "}
                               {n.kind === "task_assigned"
                                 ? "assigned a task to you"
-                                : n.kind === "record_assigned"
-                                  ? `assigned a ${label ?? "record"} to you`
-                                  : n.kind === "followed_update"
-                                    ? `updated a ${label ?? "record"} you follow`
-                                    : n.kind === "submission_verdict"
-                                      ? `left a client verdict${label ? ` on a ${label}` : ""}`
-                                      : n.kind === "email_reply"
-                                        ? `replied${label ? ` on a ${label}` : ""}`
-                                        : `mentioned you ${label ? `on a ${label}` : ""}`}
+                                : n.kind === "task_completed"
+                                  ? "completed a task you assigned"
+                                  : n.kind === "record_assigned"
+                                    ? `assigned a ${label ?? "record"} to you`
+                                    : n.kind === "followed_update"
+                                      ? `updated a ${label ?? "record"} you follow`
+                                      : n.kind === "submission_verdict"
+                                        ? `left a client verdict${label ? ` on a ${label}` : ""}`
+                                        : n.kind === "email_reply"
+                                          ? `replied${label ? ` on a ${label}` : ""}`
+                                          : `mentioned you ${label ? `on a ${label}` : ""}`}
                             </span>
                             {snippet ? (
                               <span className="block truncate text-xs text-[var(--muted)]">

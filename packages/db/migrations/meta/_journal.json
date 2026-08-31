@@ -239,6 +239,13 @@
       "when": 1788184674506,
       "tag": "0033_rare_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788186573503,
+      "tag": "0034_bright_medusa",
+      "breakpoints": true
     }
   ]
 }
