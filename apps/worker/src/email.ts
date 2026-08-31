@@ -8,7 +8,8 @@ import {
   renderJobPostedEmail,
   renderMentionEmail,
   renderPasswordResetEmail,
-  renderTaskAssignedEmail
+  renderTaskAssignedEmail,
+  renderTaskCompletedEmail
 } from "@emerge/email";
 
 export type EmailJob =
@@ -52,6 +53,15 @@ export type EmailJob =
       assignerName: string;
       taskSubject: string;
       dueLabel: string | null;
+      entityLabel: string | null;
+      taskUrl: string;
+    }
+  | {
+      /** Heads-up to the task creator when the assignee completes it (UP-07). */
+      type: "task-completed";
+      to: string;
+      completerName: string;
+      taskSubject: string;
       entityLabel: string | null;
       taskUrl: string;
     }
@@ -155,6 +165,13 @@ function renderEmail(job: Exclude<EmailJob, { type: "record" }>): {
         assignerName: job.assignerName,
         taskSubject: job.taskSubject,
         dueLabel: job.dueLabel,
+        entityLabel: job.entityLabel,
+        taskUrl: job.taskUrl
+      });
+    case "task-completed":
+      return renderTaskCompletedEmail({
+        completerName: job.completerName,
+        taskSubject: job.taskSubject,
         entityLabel: job.entityLabel,
         taskUrl: job.taskUrl
       });

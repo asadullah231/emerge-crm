@@ -63,6 +63,53 @@ async function notifyTaskAssigned(
   }
 }
 
+/**
+ * Bell ping + email back to the task's creator when the assignee marks it
+ * done (UP-07). Skips self-completion; a notify failure never breaks the write.
+ */
+async function notifyTaskCompleted(
+  tx: Transaction,
+  opts: {
+    workspaceId: string;
+    actorId: string;
+    actorName: string;
+    task: typeof tasks.$inferSelect;
+  }
+): Promise<void> {
+  const { task } = opts;
+  if (!task.createdById || task.createdById === opts.actorId) return;
+  try {
+    await tx.insert(notifications).values({
+      workspaceId: opts.workspaceId,
+      recipientId: task.createdById,
+      kind: "task_completed",
+      actorId: opts.actorId,
+      entityType: "task",
+      entityId: task.id
+    });
+    const [creator] = await tx
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, task.createdById));
+    if (!creator?.email) return;
+    const entityLabel =
+      task.entityType && task.entityId
+        ? await resolveEntityLabel(tx, task.entityType as NotableEntityType, task.entityId)
+        : null;
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    await enqueueEmail({
+      type: "task-completed",
+      to: creator.email,
+      completerName: opts.actorName,
+      taskSubject: task.subject,
+      entityLabel,
+      taskUrl: `${base}/tasks`
+    });
+  } catch (err) {
+    console.error("[tasks] completion notify failed:", err);
+  }
+}
+
 const entityLink = z
   .object({
     entityType: z.enum(NOTABLE_ENTITY_TYPES),
@@ -179,9 +226,10 @@ export const tasksRouter = router({
       if (input.patch.status !== undefined) {
         set.completedAt = input.patch.status === "done" ? new Date() : null;
       }
-      // Remember the previous assignee so a reassignment can ping the new one.
+      // Remember the previous assignee/status so a reassignment can ping the
+      // new assignee and a done-transition can ping the creator.
       const [before] = await ctx.tx
-        .select({ assigneeId: tasks.assigneeId })
+        .select({ assigneeId: tasks.assigneeId, status: tasks.status })
         .from(tasks)
         .where(eq(tasks.id, input.id));
       const [updated] = await ctx.tx
@@ -201,6 +249,14 @@ export const tasksRouter = router({
           task: updated
         });
       }
+      if (updated.status === "done" && before?.status !== "done") {
+        await notifyTaskCompleted(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          actorId: ctx.session.user.id,
+          actorName: ctx.session.user.name,
+          task: updated
+        });
+      }
       return updated;
     }),
 
@@ -208,6 +264,10 @@ export const tasksRouter = router({
   setDone: workspaceProcedure
     .input(z.object({ id: z.string().uuid(), done: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
+      const [before] = await ctx.tx
+        .select({ status: tasks.status })
+        .from(tasks)
+        .where(eq(tasks.id, input.id));
       const [updated] = await ctx.tx
         .update(tasks)
         .set({
@@ -217,6 +277,14 @@ export const tasksRouter = router({
         .where(eq(tasks.id, input.id))
         .returning();
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      if (input.done && before?.status !== "done") {
+        await notifyTaskCompleted(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          actorId: ctx.session.user.id,
+          actorName: ctx.session.user.name,
+          task: updated
+        });
+      }
       return updated;
     }),
 

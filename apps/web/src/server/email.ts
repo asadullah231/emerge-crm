@@ -45,6 +45,15 @@ export type EmailJob =
       taskUrl: string;
     }
   | {
+      /** Heads-up to the task creator when the assignee completes it (UP-07). */
+      type: "task-completed";
+      to: string;
+      completerName: string;
+      taskSubject: string;
+      entityLabel: string | null;
+      taskUrl: string;
+    }
+  | {
       /** A pre-rendered email sent from a record (M13). The worker delivers it
        * and updates the `emails` row (status/messageId) by id. */
       type: "record";

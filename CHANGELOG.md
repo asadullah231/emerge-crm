@@ -3,6 +3,13 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.8 - Task completion notifications (2026-08-31)
+
+- Marking a task done (checkbox or status change) now notifies the person
+  who created it: a bell notification plus a branded email with the task
+  subject and linked record. Migration 0034 adds the task_completed kind.
+  Completing your own task stays quiet.
+
 ## v0.26.7 - Candidate owners and newest-first list (2026-08-31)
 
 - The candidates list now opens newest first, sorted by CAND number (ID
