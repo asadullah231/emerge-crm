@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   try {
     const result = await withWorkspace(db, body.workspaceId, async (tx) => {
       const [job] = await tx
-        .select({ id: jobs.id, title: jobs.title })
+        .select({ id: jobs.id, title: jobs.title, ownerId: jobs.ownerId })
         .from(jobs)
         .where(and(eq(jobs.id, body.jobId), isNull(jobs.deletedAt)));
       if (!job) return { error: "This job is not accepting applications" as const };
@@ -92,7 +92,9 @@ export async function POST(req: Request) {
             lastName: body.lastName,
             email,
             phone: body.phone ?? null,
-            source: "careersite"
+            source: "careersite",
+            // A career-site applicant lands with the job's owner (31 Aug).
+            ownerId: job.ownerId
           })
           .returning({
             id: candidates.id,
