@@ -45,7 +45,7 @@ function fullName(first: string | null | undefined, last: string | null | undefi
  * Jane Doe (CAND-0123)"). Returns null if the record was deleted between the
  * note write and this lookup.
  */
-async function resolveEntityLabel(
+export async function resolveEntityLabel(
   tx: Transaction,
   entityType: NotableEntityType,
   entityId: string

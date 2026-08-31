@@ -1,6 +1,6 @@
 import { and, count, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { notes, notifications, users } from "@emerge/db";
+import { notes, notifications, tasks, users } from "@emerge/db";
 import { router, workspaceProcedure } from "../trpc";
 
 export const notificationsRouter = router({
@@ -27,11 +27,14 @@ export const notificationsRouter = router({
           readAt: notifications.readAt,
           createdAt: notifications.createdAt,
           actorName: users.name,
-          noteBody: notes.body
+          noteBody: notes.body,
+          // Subject shown as the snippet on task_assigned rows (UP-06).
+          taskSubject: tasks.subject
         })
         .from(notifications)
         .leftJoin(users, eq(users.id, notifications.actorId))
         .leftJoin(notes, eq(notes.id, notifications.noteId))
+        .leftJoin(tasks, eq(tasks.id, notifications.entityId))
         .where(where)
         .orderBy(desc(notifications.createdAt))
         .limit(input.limit);

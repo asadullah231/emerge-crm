@@ -7,7 +7,8 @@ import {
   renderInvitationEmail,
   renderJobPostedEmail,
   renderMentionEmail,
-  renderPasswordResetEmail
+  renderPasswordResetEmail,
+  renderTaskAssignedEmail
 } from "@emerge/email";
 
 export type EmailJob =
@@ -43,6 +44,16 @@ export type EmailJob =
       postedByName: string;
       clientCallSummary: string | null;
       jobUrl: string;
+    }
+  | {
+      /** Heads-up when a task is assigned to a member (UP-06). */
+      type: "task-assigned";
+      to: string;
+      assignerName: string;
+      taskSubject: string;
+      dueLabel: string | null;
+      entityLabel: string | null;
+      taskUrl: string;
     }
   | {
       /** A pre-rendered email sent from a record (M13); update the row on send. */
@@ -138,6 +149,14 @@ function renderEmail(job: Exclude<EmailJob, { type: "record" }>): {
         entityKind: job.entityKind,
         entityUrl: job.entityUrl,
         noteBodyPreview: job.noteBodyPreview
+      });
+    case "task-assigned":
+      return renderTaskAssignedEmail({
+        assignerName: job.assignerName,
+        taskSubject: job.taskSubject,
+        dueLabel: job.dueLabel,
+        entityLabel: job.entityLabel,
+        taskUrl: job.taskUrl
       });
     case "job-posted":
       return renderJobPostedEmail({
