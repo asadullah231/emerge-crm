@@ -60,7 +60,8 @@ export default function CandidatesPage() {
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<SortState>({ by: "lastName", dir: "asc" });
+  // Newest first by CAND number (client request 31 Aug); humanId is zero-padded.
+  const [sort, setSort] = useState<SortState>({ by: "humanId", dir: "desc" });
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [merging, setMerging] = useState(false);
@@ -164,7 +165,7 @@ export default function CandidatesPage() {
   const applyView = (f: ViewFilters) => {
     setSearch(f.search ?? "");
     setTagIds(f.tagIds ?? []);
-    setSort({ by: f.sortBy ?? "lastName", dir: f.sortDir ?? "asc" });
+    setSort({ by: f.sortBy ?? "humanId", dir: f.sortDir ?? "desc" });
     setFilters({
       source: f.fields?.source ?? "",
       ownerId: f.fields?.ownerId ?? "",
