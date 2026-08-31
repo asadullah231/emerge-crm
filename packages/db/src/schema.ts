@@ -700,7 +700,8 @@ export const notificationKind = pgEnum("notification_kind", [
   "submission_verdict",
   "email_reply",
   "followed_update",
-  "record_assigned"
+  "record_assigned",
+  "task_assigned"
 ]);
 export type NotificationKind = (typeof notificationKind.enumValues)[number];
 

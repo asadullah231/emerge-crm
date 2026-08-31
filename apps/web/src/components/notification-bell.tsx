@@ -37,8 +37,12 @@ export function NotificationBell() {
     readAt: string | Date | null;
   }) => {
     if (!n.readAt) markRead.mutate({ id: n.id });
-    const meta = ENTITY_META[n.entityType as NotableEntityType];
     setOpen(false);
+    if (n.entityType === "task") {
+      router.push("/tasks");
+      return;
+    }
+    const meta = ENTITY_META[n.entityType as NotableEntityType];
     if (meta) router.push(`${meta.path}/${n.entityId}`);
   };
 
@@ -80,7 +84,9 @@ export function NotificationBell() {
                   {list.data.map((n) => {
                     const label =
                       ENTITY_META[n.entityType as NotableEntityType]?.label.toLowerCase();
-                    const snippet = (n.noteBody ?? "").split("\n")[0]!.slice(0, 80);
+                    const snippet = (n.taskSubject ?? n.noteBody ?? "")
+                      .split("\n")[0]!
+                      .slice(0, 80);
                     return (
                       <li key={n.id}>
                         <button
@@ -96,15 +102,17 @@ export function NotificationBell() {
                           <span className="min-w-0 flex-1">
                             <span className="text-sm">
                               <span className="font-medium">{n.actorName ?? "Someone"}</span>{" "}
-                              {n.kind === "record_assigned"
-                                ? `assigned a ${label ?? "record"} to you`
-                                : n.kind === "followed_update"
-                                  ? `updated a ${label ?? "record"} you follow`
-                                  : n.kind === "submission_verdict"
-                                    ? `left a client verdict${label ? ` on a ${label}` : ""}`
-                                    : n.kind === "email_reply"
-                                      ? `replied${label ? ` on a ${label}` : ""}`
-                                      : `mentioned you ${label ? `on a ${label}` : ""}`}
+                              {n.kind === "task_assigned"
+                                ? "assigned a task to you"
+                                : n.kind === "record_assigned"
+                                  ? `assigned a ${label ?? "record"} to you`
+                                  : n.kind === "followed_update"
+                                    ? `updated a ${label ?? "record"} you follow`
+                                    : n.kind === "submission_verdict"
+                                      ? `left a client verdict${label ? ` on a ${label}` : ""}`
+                                      : n.kind === "email_reply"
+                                        ? `replied${label ? ` on a ${label}` : ""}`
+                                        : `mentioned you ${label ? `on a ${label}` : ""}`}
                             </span>
                             {snippet ? (
                               <span className="block truncate text-xs text-[var(--muted)]">

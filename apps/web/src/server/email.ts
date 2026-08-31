@@ -35,6 +35,16 @@ export type EmailJob =
       jobUrl: string;
     }
   | {
+      /** Heads-up when a task is assigned to a member (UP-06). */
+      type: "task-assigned";
+      to: string;
+      assignerName: string;
+      taskSubject: string;
+      dueLabel: string | null;
+      entityLabel: string | null;
+      taskUrl: string;
+    }
+  | {
       /** A pre-rendered email sent from a record (M13). The worker delivers it
        * and updates the `emails` row (status/messageId) by id. */
       type: "record";

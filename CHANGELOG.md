@@ -3,6 +3,13 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.6 - Task assignment notifications (2026-08-30)
+
+- Assigning a task to a teammate (on create or reassign) now pings them: a
+  bell notification showing the task subject that opens the Tasks page, plus
+  a branded email with the subject, due date and linked record. Migration
+  0033 adds the task_assigned notification kind. Self-assignment stays quiet.
+
 ## v0.26.5 - Interviews joins the Tasks hub (2026-08-29)
 
 - The Interviews agenda is now the second tab on the Tasks page (My tasks,

@@ -1,10 +1,67 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
-import { taskKind, taskStatus, tasks, users } from "@emerge/db";
-import { NOTABLE_ENTITY_TYPES } from "@/lib/notes";
+import { notifications, taskKind, taskStatus, tasks, users, type Transaction } from "@emerge/db";
+import { NOTABLE_ENTITY_TYPES, type NotableEntityType } from "@/lib/notes";
 import { writeAudit } from "../audit";
+import { enqueueEmail } from "../email";
+import { resolveEntityLabel } from "../mention-emails";
 import { router, workspaceProcedure } from "../trpc";
+
+const dueFormat = new Intl.DateTimeFormat("en-GB", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric"
+});
+
+/**
+ * Bell ping + email to the assignee when a task lands on them (UP-06).
+ * Skips self-assignment; a notify failure never breaks the write.
+ */
+async function notifyTaskAssigned(
+  tx: Transaction,
+  opts: {
+    workspaceId: string;
+    actorId: string;
+    actorName: string;
+    task: typeof tasks.$inferSelect;
+  }
+): Promise<void> {
+  const { task } = opts;
+  if (!task.assigneeId || task.assigneeId === opts.actorId) return;
+  try {
+    await tx.insert(notifications).values({
+      workspaceId: opts.workspaceId,
+      recipientId: task.assigneeId,
+      kind: "task_assigned",
+      actorId: opts.actorId,
+      entityType: "task",
+      entityId: task.id
+    });
+    const [assignee] = await tx
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, task.assigneeId));
+    if (!assignee?.email) return;
+    const entityLabel =
+      task.entityType && task.entityId
+        ? await resolveEntityLabel(tx, task.entityType as NotableEntityType, task.entityId)
+        : null;
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    await enqueueEmail({
+      type: "task-assigned",
+      to: assignee.email,
+      assignerName: opts.actorName,
+      taskSubject: task.subject,
+      dueLabel: task.dueAt ? dueFormat.format(task.dueAt) : null,
+      entityLabel,
+      taskUrl: `${base}/tasks`
+    });
+  } catch (err) {
+    console.error("[tasks] assignment notify failed:", err);
+  }
+}
 
 const entityLink = z
   .object({
@@ -95,6 +152,12 @@ export const tasksRouter = router({
         targetId: input.entityId ?? created.id,
         meta: { taskId: created.id, subject: created.subject }
       });
+      await notifyTaskAssigned(ctx.tx, {
+        workspaceId: ctx.workspaceId,
+        actorId: ctx.session.user.id,
+        actorName: ctx.session.user.name,
+        task: created
+      });
       return created;
     }),
 
@@ -116,12 +179,28 @@ export const tasksRouter = router({
       if (input.patch.status !== undefined) {
         set.completedAt = input.patch.status === "done" ? new Date() : null;
       }
+      // Remember the previous assignee so a reassignment can ping the new one.
+      const [before] = await ctx.tx
+        .select({ assigneeId: tasks.assigneeId })
+        .from(tasks)
+        .where(eq(tasks.id, input.id));
       const [updated] = await ctx.tx
         .update(tasks)
         .set(set)
         .where(eq(tasks.id, input.id))
         .returning();
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      if (
+        input.patch.assigneeId !== undefined &&
+        updated.assigneeId !== (before?.assigneeId ?? null)
+      ) {
+        await notifyTaskAssigned(ctx.tx, {
+          workspaceId: ctx.workspaceId,
+          actorId: ctx.session.user.id,
+          actorName: ctx.session.user.name,
+          task: updated
+        });
+      }
       return updated;
     }),
 
