@@ -3,6 +3,14 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.7 - Candidate owners and newest-first list (2026-08-31)
+
+- The candidates list now opens newest first, sorted by CAND number (ID
+  column stays visible), matching the job openings behavior.
+- A career-site applicant is now owned by the job's owner automatically;
+  every in-app creation path already assigns the creator as owner. Existing
+  ownerless candidates were backfilled to the workspace admin.
+
 ## v0.26.6 - Task assignment notifications (2026-08-30)
 
 - Assigning a task to a teammate (on create or reassign) now pings them: a
