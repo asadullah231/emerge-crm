@@ -3,6 +3,13 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.13 - Job search covers client names (2026-09-08)
+
+- The Job Openings search now also matches the client (company) name, so
+  typing a client like "Prose" finds their jobs. Previously it only
+  searched title, JOB id and location even though the Client column is
+  right there in the table. Placeholder text updated to say so.
+
 ## v0.26.12 - Per-user compact layout (2026-09-08)
 
 - The trimmed candidate and job record pages from v0.26.9 to v0.26.11 are
