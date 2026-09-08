@@ -49,7 +49,8 @@ describe.skipIf(!process.env.DATABASE_URL)("permission matrix (3 roles x operati
         email: `${role}@test.local`,
         name: role,
         avatarUrl: null,
-        timezone: "UTC", compactLayout: false
+        timezone: "UTC",
+        compactLayout: false
       },
       expiresAt: new Date(Date.now() + 60_000)
     };
