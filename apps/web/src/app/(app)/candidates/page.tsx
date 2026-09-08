@@ -280,17 +280,6 @@ export default function CandidatesPage() {
                 >
                   👁
                 </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/candidates/${row.id}#section-matching`);
-                  }}
-                  title="Find matching jobs"
-                  aria-label="Find matching jobs"
-                  className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-                >
-                  ✨
-                </button>
               </span>
             )
           }
