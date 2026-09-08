@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.10 - Simpler job page (2026-09-08)
+
+- Removed the Assigned recruiters, Matching candidates, Sourcing summary,
+  Communication, Revenue and Tags sections from the job record (and the
+  find-matches shortcut on the jobs list) to keep the page focused on
+  Overview, Attachments, Pipeline, Interviews, Client submissions, Tasks,
+  Notes and Timeline.
+- The client call summary field now renders with the same readable
+  formatting as notes (lists, bold, label prefixes).
+
 ## v0.26.9 - Simpler candidate page (2026-09-08)
 
 - The candidate record now leads with what recruiters use most: Applications
