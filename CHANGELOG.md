@@ -3,6 +3,11 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.11 - Candidate section order tweak (2026-09-08)
+
+- On the candidate record, Applications now sits below Profile (order:
+  Profile, Applications, Notes, then the rest).
+
 ## v0.26.10 - Simpler job page (2026-09-08)
 
 - Removed the Assigned recruiters, Matching candidates, Sourcing summary,

@@ -198,45 +198,6 @@ export default function CandidateRecordPage() {
         }
       />
 
-      <RecordSection
-        title={`Applications (${record.applications.length})`}
-        actions={
-          canEdit ? (
-            <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
-              Add to job
-            </Button>
-          ) : null
-        }
-      >
-        {record.applications.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">Not on any job pipeline yet.</p>
-        ) : (
-          <ul className="divide-y divide-[var(--border)]">
-            {record.applications.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <Link
-                  href={`/jobs/${a.jobId}`}
-                  className="font-medium hover:text-[var(--accent)] hover:underline"
-                >
-                  {a.jobTitle}
-                </Link>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-[var(--muted)]">
-                    {STAGE_LABELS[a.stage as ApplicationStageKey] ?? a.stage}
-                  </span>
-                  <Link
-                    href={`/applications/${a.id}`}
-                    className="text-xs text-[var(--accent)] hover:underline"
-                  >
-                    Open
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </RecordSection>
-
       <RecordSection title="Profile">
         <FieldGrid>
           <InlineField
@@ -398,6 +359,45 @@ export default function CandidateRecordPage() {
             onSave={save("skills")}
           />
         </div>
+      </RecordSection>
+
+      <RecordSection
+        title={`Applications (${record.applications.length})`}
+        actions={
+          canEdit ? (
+            <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
+              Add to job
+            </Button>
+          ) : null
+        }
+      >
+        {record.applications.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">Not on any job pipeline yet.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--border)]">
+            {record.applications.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <Link
+                  href={`/jobs/${a.jobId}`}
+                  className="font-medium hover:text-[var(--accent)] hover:underline"
+                >
+                  {a.jobTitle}
+                </Link>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-[var(--muted)]">
+                    {STAGE_LABELS[a.stage as ApplicationStageKey] ?? a.stage}
+                  </span>
+                  <Link
+                    href={`/applications/${a.id}`}
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    Open
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </RecordSection>
 
       <RecordSection title="Notes">
