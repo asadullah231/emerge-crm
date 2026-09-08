@@ -3,6 +3,19 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.9 - Simpler candidate page (2026-09-08)
+
+- The candidate record now leads with what recruiters use most: Applications
+  first, then Profile, then Notes, followed by Documents, Experience,
+  Education, Tasks and Timeline.
+- Removed the Matching jobs, Compliance, Tags and Communication sections
+  from the candidate page (and the find-matches shortcut on the list) to
+  keep the record focused. Job matching stays available on the job side.
+- Notes everywhere now render readable formatting: bullet and numbered
+  lists, **bold** text, and bold "Label:" line prefixes, in the notes
+  panel and in both list peek drawers. A hint under the editor shows the
+  supported formatting.
+
 ## v0.26.8 - Task completion notifications (2026-08-31)
 
 - Marking a task done (checkbox or status change) now notifies the person

@@ -10,6 +10,7 @@ import { CandidatesBulkActions } from "@/components/candidates-bulk-actions";
 import { MailMergeModal } from "@/components/mail-merge-modal";
 import { Button, FormError, Input } from "@/components/form";
 import { NewCandidateModal, candidateName } from "@/components/new-candidate-modal";
+import { NoteBody } from "@/components/note-body";
 import { CANDIDATE_SOURCE_OPTIONS, SourceBadge } from "@/components/record";
 import { SkillChips } from "@/components/skill-chips";
 import { TagFilter } from "@/components/tag-editor";
@@ -279,17 +280,6 @@ export default function CandidatesPage() {
                   className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
                 >
                   👁
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/candidates/${row.id}#section-matching`);
-                  }}
-                  title="Find matching jobs"
-                  aria-label="Find matching jobs"
-                  className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-                >
-                  ✨
                 </button>
               </span>
             )
@@ -693,7 +683,7 @@ function PeekNotes({ entityId }: { entityId: string }) {
             <span>{n.authorName ?? "Unknown"}</span>
             <span>{new Date(n.createdAt).toLocaleDateString()}</span>
           </div>
-          <p className="whitespace-pre-wrap text-sm">{n.body}</p>
+          <NoteBody body={n.body} />
         </li>
       ))}
     </ul>

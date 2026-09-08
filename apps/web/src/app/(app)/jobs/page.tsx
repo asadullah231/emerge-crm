@@ -9,6 +9,7 @@ import { BulkBar } from "@/components/bulk-bar";
 import { Button, FormError, Input } from "@/components/form";
 import { JobsBulkActions } from "@/components/jobs-bulk-actions";
 import { NewJobModal } from "@/components/new-job-modal";
+import { NoteBody } from "@/components/note-body";
 import {
   JOB_EMPLOYMENT_OPTIONS,
   JOB_STATUS_OPTIONS,
@@ -752,7 +753,7 @@ function PeekNotes({ entityId }: { entityId: string }) {
             <span>{n.authorName ?? "Unknown"}</span>
             <span>{new Date(n.createdAt).toLocaleDateString()}</span>
           </div>
-          <p className="whitespace-pre-wrap text-sm">{n.body}</p>
+          <NoteBody body={n.body} />
         </li>
       ))}
     </ul>

@@ -211,6 +211,37 @@ export class ZohoClient {
     const bytes = Buffer.from(await res.arrayBuffer());
     return { bytes, contentType: res.headers.get("Content-Type") };
   }
+
+  /**
+   * One page of a module's records (raw Zoho JSON, same shape the original
+   * MCP snapshot captured). 204 = past the last page. Used by fetch-snapshot.
+   */
+  async listRecords(
+    module: string,
+    page: number,
+    perPage = 200
+  ): Promise<{ records: Record<string, unknown>[]; more: boolean }> {
+    const res = await this.authedFetch(
+      `/recruit/v2/${module}?page=${page}&per_page=${perPage}`,
+      "json"
+    );
+    if (res.status === 204) return { records: [], more: false };
+    if (!res.ok) throw new Error(`list ${module} page ${page}: HTTP ${res.status}`);
+    const body = (await res.json()) as {
+      data?: Record<string, unknown>[];
+      info?: { more_records?: boolean };
+    };
+    return { records: body.data ?? [], more: body.info?.more_records === true };
+  }
+
+  /** All org users (raw Zoho JSON), for the user-map snapshot file. */
+  async listUsers(): Promise<Record<string, unknown>[]> {
+    const res = await this.authedFetch(`/recruit/v2/users?type=AllUsers`, "json");
+    if (res.status === 204) return [];
+    if (!res.ok) throw new Error(`list users: HTTP ${res.status}`);
+    const body = (await res.json()) as { users?: Record<string, unknown>[] };
+    return body.users ?? [];
+  }
 }
 
 /** Zoho returns Size as a string sometimes; `$type` is the attachment kind. */
