@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/form";
 import { MentionTextarea, type MentionMember } from "@/components/mention-textarea";
+import { NoteBody } from "@/components/note-body";
 import { mentionIdsInBody, type NotableEntityType } from "@/lib/notes";
 import { relativeTime } from "@/lib/time";
 import { trpc } from "@/lib/trpc/client";
@@ -22,25 +23,6 @@ const NOTE_KIND_STYLE: Record<NoteKindValue, string> = {
   meeting: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   other: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
 };
-
-/** Highlight "@Name" spans for known mentioned names inside a note body. */
-function renderBody(body: string, mentionNames: string[]) {
-  if (mentionNames.length === 0) return body;
-  const escaped = mentionNames
-    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .sort((a, b) => b.length - a.length);
-  const re = new RegExp(`@(${escaped.join("|")})`, "g");
-  const parts = body.split(re);
-  return parts.map((part, i) =>
-    mentionNames.includes(part) ? (
-      <span key={i} className="font-medium text-[var(--brand-secondary)]">
-        @{part}
-      </span>
-    ) : (
-      <Fragment key={i}>{part}</Fragment>
-    )
-  );
-}
 
 /** Reusable Notes tab for any record (candidate, job, company, contact, application). */
 export function NotesPanel({
@@ -159,6 +141,10 @@ export function NotesPanel({
               {create.isPending ? "Adding..." : "Add note"}
             </Button>
           </div>
+          <p className="text-[11px] text-[var(--muted)]">
+            Formatting: start lines with &quot;- &quot; or &quot;1. &quot; for lists, wrap words in
+            **double asterisks** for bold. &quot;Label:&quot; line starts turn bold automatically.
+          </p>
         </div>
       ) : null}
 
@@ -233,9 +219,7 @@ export function NotesPanel({
                   </div>
                 ) : (
                   <>
-                    <p className="whitespace-pre-wrap text-sm">
-                      {renderBody(n.body, mentionNames)}
-                    </p>
+                    <NoteBody body={n.body} mentionNames={mentionNames} />
                     {canEdit ? (
                       <div className="mt-1.5 flex gap-3">
                         <button
