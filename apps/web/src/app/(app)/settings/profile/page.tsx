@@ -10,6 +10,7 @@ export default function ProfileSettingsPage() {
   const [name, setName] = useState("");
   const [timezone, setTimezone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [compactLayout, setCompactLayout] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export default function ProfileSettingsPage() {
       setName(me.data.user.name);
       setTimezone(me.data.user.timezone);
       setAvatarUrl(me.data.user.avatarUrl ?? "");
+      setCompactLayout(me.data.user.compactLayout);
     }
   }, [me.data]);
 
@@ -43,7 +45,8 @@ export default function ProfileSettingsPage() {
         update.mutate({
           name,
           timezone,
-          avatarUrl: avatarUrl.trim() === "" ? null : avatarUrl
+          avatarUrl: avatarUrl.trim() === "" ? null : avatarUrl,
+          compactLayout
         });
       }}
     >
@@ -80,6 +83,24 @@ export default function ProfileSettingsPage() {
         <p className="mt-1 text-xs text-[var(--muted)]">
           Optional. Image upload arrives with document storage in Milestone 7.
         </p>
+      </div>
+      <div>
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={compactLayout}
+            onChange={(e) => setCompactLayout(e.target.checked)}
+          />
+          <span>
+            Compact record pages
+            <span className="block text-xs text-[var(--muted)]">
+              Trims candidate and job pages to the essentials: hides matching, compliance, tags,
+              communication, recruiters, sourcing and revenue sections, and moves Applications and
+              Notes up on the candidate page. Only affects your account.
+            </span>
+          </span>
+        </label>
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={update.isPending}>

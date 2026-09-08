@@ -53,6 +53,8 @@ export const users = pgTable(
     name: text("name").notNull(),
     avatarUrl: text("avatar_url"),
     timezone: text("timezone").notNull().default("UTC"),
+    // Per-user UI preference: trimmed candidate/job record pages (off = full layout).
+    compactLayout: boolean("compact_layout").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt()
   },

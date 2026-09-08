@@ -204,7 +204,8 @@ export const authRouter = router({
       z.object({
         name: z.string().trim().min(1).max(200).optional(),
         timezone: z.string().trim().min(1).max(100).optional(),
-        avatarUrl: z.string().trim().url().nullable().optional()
+        avatarUrl: z.string().trim().url().nullable().optional(),
+        compactLayout: z.boolean().optional()
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -217,7 +218,8 @@ export const authRouter = router({
           email: users.email,
           name: users.name,
           avatarUrl: users.avatarUrl,
-          timezone: users.timezone
+          timezone: users.timezone,
+          compactLayout: users.compactLayout
         });
       await writeAudit({
         workspaceId: ctx.session.workspaceId,
