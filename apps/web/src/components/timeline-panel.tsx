@@ -59,7 +59,7 @@ export function TimelinePanel({
       {timeline.data.map((e) => {
         let text: React.ReactNode;
         if (e.kind === "note") {
-          const snippet = (e.body ?? "").split("\n")[0]!.slice(0, 120);
+          const snippet = (e.body ?? "").replace(/\*\*/g, "").split("\n")[0]!.slice(0, 120);
           text = (
             <>
               added a note: <span className="text-[var(--muted)]">{snippet}</span>
@@ -68,7 +68,7 @@ export function TimelinePanel({
         } else if (e.kind === "status") {
           const stage = STAGE_LABELS[(e.toStage ?? "") as ApplicationStageKey] ?? e.toStage;
           const noteSnippet = e.note
-            ? e.note.split("\n").slice(0, 3).join(" — ").slice(0, 240)
+            ? e.note.replace(/\*\*/g, "").split("\n").slice(0, 3).join(" · ").slice(0, 240)
             : null;
           text = (
             <>

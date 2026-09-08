@@ -68,7 +68,10 @@ async function main() {
         where x.workspace_id = ${ws} and x.source = 'zoho' and x.entity_type = ${entityType}
           and x.external_id = ${String((r as { id?: unknown }).id)} and rec.id = x.internal_id
           and rec.workspace_id = ${ws} and rec.owner_id is null`;
-      if (res.count > 0) isFallback ? fell++ : set++;
+      if (res.count > 0) {
+        if (isFallback) fell++;
+        else set++;
+      }
     }
     console.log(`${t.table}: set=${set} fallback=${fell} unmapped-no-fallback=${unmapped}`);
   }

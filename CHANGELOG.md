@@ -11,6 +11,10 @@ versions follow semantic versioning (one minor version per completed milestone).
 - Removed the Matching jobs, Compliance, Tags and Communication sections
   from the candidate page (and the find-matches shortcut on the list) to
   keep the record focused. Job matching stays available on the job side.
+- Notes everywhere now render readable formatting: bullet and numbered
+  lists, **bold** text, and bold "Label:" line prefixes, in the notes
+  panel and in both list peek drawers. A hint under the editor shows the
+  supported formatting.
 
 ## v0.26.8 - Task completion notifications (2026-08-31)
 
