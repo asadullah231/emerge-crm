@@ -12,6 +12,7 @@ export type SessionUser = {
   name: string;
   avatarUrl: string | null;
   timezone: string;
+  compactLayout: boolean;
 };
 
 export type SessionInfo = {
@@ -49,7 +50,8 @@ export async function validateSessionToken(token: string): Promise<SessionInfo |
         email: users.email,
         name: users.name,
         avatarUrl: users.avatarUrl,
-        timezone: users.timezone
+        timezone: users.timezone,
+        compactLayout: users.compactLayout
       }
     })
     .from(sessions)

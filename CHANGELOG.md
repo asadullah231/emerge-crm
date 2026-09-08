@@ -3,6 +3,19 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.12 - Per-user compact layout (2026-09-08)
+
+- The trimmed candidate and job record pages from v0.26.9 to v0.26.11 are
+  now a per-user preference instead of the default. Everyone gets the full
+  original layout back (matching, compliance, tags, communication,
+  recruiters, sourcing summary and revenue sections restored, and the
+  find-matches list shortcuts).
+- New "Compact record pages" checkbox in Settings, Profile: turning it on
+  hides those sections for that user only and moves Applications and Notes
+  up under Profile on the candidate page. Migration 0035 adds the
+  compact_layout user column.
+- Readable note formatting from v0.26.9 stays on for everyone.
+
 ## v0.26.11 - Candidate section order tweak (2026-09-08)
 
 - On the candidate record, Applications now sits below Profile (order:

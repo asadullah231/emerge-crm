@@ -18,15 +18,19 @@ import {
   RecordSection,
   RecordShell
 } from "@/components/record";
+import { CommunicationPanel } from "@/components/communication-panel";
 import { JobDescriptionView } from "@/components/job-description-view";
 import { JobDocuments } from "@/components/job-documents";
 import { JobInterviewsPanel } from "@/components/job-interviews-panel";
+import { JobMatchesPanel } from "@/components/matching-panel";
 import { NoteBody } from "@/components/note-body";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
+import { JobRevenuePanel } from "@/components/revenue-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { TasksPanel } from "@/components/tasks-panel";
 import { SubmitToClientModal } from "@/components/submit-to-client-modal";
+import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
 
@@ -70,6 +74,7 @@ export default function JobRecordPage() {
   });
   const setPublished = trpc.jobs.setPublished.useMutation({ onSuccess: refresh });
   const setLocked = trpc.jobs.setLocked.useMutation({ onSuccess: refresh });
+  const setRecruiters = trpc.jobs.setRecruiters.useMutation({ onSuccess: refresh });
 
   // Followers (JP-06): who gets a bell notification on job changes.
   const followState = trpc.follows.state.useQuery({ entityType: "job", entityId: params.id });
@@ -96,6 +101,8 @@ export default function JobRecordPage() {
   const isAdmin = me.data?.role === "admin";
   // A locked job is read-only for everyone until an admin unlocks it (JP-05).
   const canEdit = canWrite && !isDeleted && !record.isLocked;
+  // Per-user preference (Settings > Profile): hide the rarely used sections.
+  const compact = me.data?.user.compactLayout ?? false;
 
   const ownerOptions = [
     { value: "", label: "Unassigned" },
@@ -307,7 +314,8 @@ export default function JobRecordPage() {
           softDelete.error?.message ??
           restore.error?.message ??
           setPublished.error?.message ??
-          setLocked.error?.message
+          setLocked.error?.message ??
+          setRecruiters.error?.message
         }
       />
 
@@ -559,6 +567,72 @@ export default function JobRecordPage() {
         </div>
       </RecordSection>
 
+      {compact ? null : (
+        <RecordSection title="Assigned recruiters">
+          <div className="flex flex-wrap items-center gap-2">
+            {record.recruiters.length === 0 ? (
+              <span className="text-sm text-[var(--muted)]">
+                No recruiters assigned. The owner stays the account manager; recruiters work the
+                search.
+              </span>
+            ) : (
+              record.recruiters.map((r) => (
+                <span
+                  key={r.userId}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--background)] px-2.5 py-1 text-sm"
+                >
+                  {r.name ?? "Unknown"}
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      aria-label={`Remove ${r.name ?? "recruiter"}`}
+                      disabled={setRecruiters.isPending}
+                      onClick={() =>
+                        setRecruiters.mutate({
+                          id: record.id,
+                          recruiterIds: record.recruiters
+                            .filter((x) => x.userId !== r.userId)
+                            .map((x) => x.userId)
+                        })
+                      }
+                      className="text-[var(--muted)] hover:text-red-600"
+                    >
+                      &times;
+                    </button>
+                  ) : null}
+                </span>
+              ))
+            )}
+            {canEdit ? (
+              <select
+                value=""
+                aria-label="Add recruiter"
+                disabled={setRecruiters.isPending}
+                onChange={(e) => {
+                  if (!e.target.value) return;
+                  setRecruiters.mutate({
+                    id: record.id,
+                    recruiterIds: [...record.recruiters.map((r) => r.userId), e.target.value]
+                  });
+                }}
+                className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm text-[var(--muted)]"
+              >
+                <option value="">Add recruiter...</option>
+                {(members.data ?? [])
+                  .filter(
+                    (m) => !m.deactivatedAt && !record.recruiters.some((r) => r.userId === m.userId)
+                  )
+                  .map((m) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.name}
+                    </option>
+                  ))}
+              </select>
+            ) : null}
+          </div>
+        </RecordSection>
+      )}
+
       <RecordSection title="Attachments">
         <JobDocuments
           jobId={record.id}
@@ -610,13 +684,73 @@ export default function JobRecordPage() {
         <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
       </RecordSection>
 
+      {compact ? null : (
+        <>
+          <div id="section-matching">
+            <RecordSection title="Matching candidates">
+              <JobMatchesPanel jobId={record.id} canWrite={canEdit} />
+            </RecordSection>
+          </div>
+
+          <RecordSection title="Sourcing summary">
+            {record.bySource.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">
+                No applications yet, so no source data to show.
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {record.bySource.map((s) => {
+                  const max = record.bySource[0]?.count ?? 1;
+                  return (
+                    <li key={s.source ?? "unknown"} className="flex items-center gap-3 text-sm">
+                      <span className="w-32 flex-none capitalize text-[var(--muted)]">
+                        {(s.source ?? "unknown").replace(/_/g, " ")}
+                      </span>
+                      <span
+                        className="h-2 rounded-full bg-[var(--brand-secondary)]/60"
+                        style={{ width: `${Math.max(6, (s.count / max) * 240)}px` }}
+                      />
+                      <span className="tabular-nums">{s.count}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </RecordSection>
+        </>
+      )}
+
       <RecordSection title="Interviews">
         <JobInterviewsPanel jobId={record.id} canWrite={canEdit} />
       </RecordSection>
 
+      {compact ? null : (
+        <RecordSection title="Communication">
+          <CommunicationPanel entityType="job" entityId={record.id} canWrite={canEdit} />
+        </RecordSection>
+      )}
+
       <RecordSection title="Client submissions">
         <SubmissionsLog mode="job" id={record.id} canWrite={canEdit} />
       </RecordSection>
+
+      {compact ? null : (
+        <>
+          <RecordSection title="Revenue">
+            <JobRevenuePanel jobId={record.id} canWrite={canEdit} />
+          </RecordSection>
+
+          <RecordSection title="Tags">
+            <TagEditor
+              entityType="job"
+              entityId={record.id}
+              tags={record.tags}
+              canWrite={canEdit}
+              onChanged={() => utils.jobs.get.invalidate({ id: record.id })}
+            />
+          </RecordSection>
+        </>
+      )}
 
       <p className="text-xs text-[var(--muted)]">
         Opened {new Date(record.openedAt).toLocaleDateString()}

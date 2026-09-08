@@ -60,7 +60,7 @@ describe.skipIf(!process.env.DATABASE_URL)("offers + placements + revenue (M12, 
       sessionId: "00000000-0000-0000-0000-000000000000",
       workspaceId: ws,
       role: "admin",
-      user: { id: userId, email: "m12@test.local", name: "M12", avatarUrl: null, timezone: "UTC" },
+      user: { id: userId, email: "m12@test.local", name: "M12", avatarUrl: null, timezone: "UTC", compactLayout: false },
       expiresAt: new Date(Date.now() + 60_000)
     };
     return createCaller({ db, session } satisfies TRPCContext);
