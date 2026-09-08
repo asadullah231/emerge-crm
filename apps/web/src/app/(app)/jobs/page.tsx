@@ -479,7 +479,7 @@ export default function JobsPage() {
 
       <Input
         type="search"
-        placeholder="Search by title, location or ID..."
+        placeholder="Search by title, client, location or ID..."
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);

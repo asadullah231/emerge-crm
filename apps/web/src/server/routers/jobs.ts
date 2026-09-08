@@ -138,7 +138,9 @@ const JOB_LIST_OPTS = {
     createdAt: jobs.createdAt,
     updatedAt: jobs.updatedAt
   },
-  searchable: [jobs.title, jobs.humanId, jobs.location],
+  // companies.name works because both list and exportCsv join companies (and
+  // the list's count query joins it too, below).
+  searchable: [jobs.title, jobs.humanId, jobs.location, companies.name],
   defaultSort: "openedAt"
 };
 
@@ -294,7 +296,11 @@ export const jobsRouter = router({
           .orderBy(orderBy, asc(jobs.id))
           .limit(limit)
           .offset(offset),
-        ctx.tx.select({ total: count() }).from(jobs).where(where)
+        ctx.tx
+          .select({ total: count() })
+          .from(jobs)
+          .leftJoin(companies, eq(companies.id, jobs.companyId))
+          .where(where)
       ]);
       return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
     }),
