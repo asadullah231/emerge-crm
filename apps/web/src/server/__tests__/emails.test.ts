@@ -56,7 +56,14 @@ describe.skipIf(!process.env.DATABASE_URL)("emails (M13, DB)", () => {
       sessionId: "00000000-0000-0000-0000-000000000000",
       workspaceId: ws,
       role: "admin",
-      user: { id: userId, email: "m13@test.local", name: "M13", avatarUrl: null, timezone: "UTC" },
+      user: {
+        id: userId,
+        email: "m13@test.local",
+        name: "M13",
+        avatarUrl: null,
+        timezone: "UTC",
+        compactLayout: false
+      },
       expiresAt: new Date(Date.now() + 60_000)
     };
     return createCaller({ db, session } satisfies TRPCContext);

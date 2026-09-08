@@ -35,7 +35,8 @@ describe.skipIf(!process.env.DATABASE_URL)("reports (M14, DB)", () => {
         email: "m14@test.local",
         name: "M14 AM",
         avatarUrl: null,
-        timezone: "UTC"
+        timezone: "UTC",
+        compactLayout: false
       },
       expiresAt: new Date(Date.now() + 60_000)
     };

@@ -8,8 +8,12 @@ import { Button, FormError } from "@/components/form";
 import { CandidateDocuments } from "@/components/candidate-documents";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
+import { CommunicationPanel } from "@/components/communication-panel";
+import { CompliancePanel } from "@/components/compliance-panel";
+import { CandidateMatchesPanel } from "@/components/matching-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
+import { TagEditor } from "@/components/tag-editor";
 import { TasksPanel } from "@/components/tasks-panel";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { candidateName } from "@/components/new-candidate-modal";
@@ -78,6 +82,9 @@ export default function CandidateRecordPage() {
   const canWrite = me.data ? me.data.role !== "readonly" : false;
   const canEdit = canWrite && !isDeleted;
   const fullName = candidateName(record);
+  // Per-user preference (Settings > Profile): trimmed page with Applications
+  // and Notes right under Profile. Off = the full default layout.
+  const compact = me.data?.user.compactLayout ?? false;
 
   const ownerOptions = [
     { value: "", label: "Unassigned" },
@@ -96,6 +103,54 @@ export default function CandidateRecordPage() {
       patch: { [field]: Number.isFinite(n) ? n : null } as CandidatePatch
     });
   };
+
+  // Rendered in different spots depending on the layout preference.
+  const applicationsSection = (
+    <RecordSection
+      title={`Applications (${record.applications.length})`}
+      actions={
+        canEdit ? (
+          <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
+            Add to job
+          </Button>
+        ) : null
+      }
+    >
+      {record.applications.length === 0 ? (
+        <p className="text-sm text-[var(--muted)]">Not on any job pipeline yet.</p>
+      ) : (
+        <ul className="divide-y divide-[var(--border)]">
+          {record.applications.map((a) => (
+            <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+              <Link
+                href={`/jobs/${a.jobId}`}
+                className="font-medium hover:text-[var(--accent)] hover:underline"
+              >
+                {a.jobTitle}
+              </Link>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-[var(--muted)]">
+                  {STAGE_LABELS[a.stage as ApplicationStageKey] ?? a.stage}
+                </span>
+                <Link
+                  href={`/applications/${a.id}`}
+                  className="text-xs text-[var(--accent)] hover:underline"
+                >
+                  Open
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </RecordSection>
+  );
+
+  const notesSection = (
+    <RecordSection title="Notes">
+      <NotesPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
+    </RecordSection>
+  );
 
   return (
     <RecordShell
@@ -361,48 +416,30 @@ export default function CandidateRecordPage() {
         </div>
       </RecordSection>
 
-      <RecordSection
-        title={`Applications (${record.applications.length})`}
-        actions={
-          canEdit ? (
-            <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
-              Add to job
-            </Button>
-          ) : null
-        }
-      >
-        {record.applications.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">Not on any job pipeline yet.</p>
-        ) : (
-          <ul className="divide-y divide-[var(--border)]">
-            {record.applications.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <Link
-                  href={`/jobs/${a.jobId}`}
-                  className="font-medium hover:text-[var(--accent)] hover:underline"
-                >
-                  {a.jobTitle}
-                </Link>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-[var(--muted)]">
-                    {STAGE_LABELS[a.stage as ApplicationStageKey] ?? a.stage}
-                  </span>
-                  <Link
-                    href={`/applications/${a.id}`}
-                    className="text-xs text-[var(--accent)] hover:underline"
-                  >
-                    Open
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </RecordSection>
-
-      <RecordSection title="Notes">
-        <NotesPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
-      </RecordSection>
+      {compact ? (
+        <>
+          {applicationsSection}
+          {notesSection}
+        </>
+      ) : (
+        <>
+          <div id="section-matching">
+            <RecordSection title="Matching jobs">
+              <CandidateMatchesPanel candidateId={record.id} canWrite={canEdit} />
+            </RecordSection>
+          </div>
+          <RecordSection title="Compliance">
+            <CompliancePanel
+              candidateId={record.id}
+              candidateName={fullName}
+              emailOptOut={record.emailOptOut}
+              isBlocked={record.isBlocked}
+              canWrite={canEdit}
+              isAdmin={me.data?.role === "admin"}
+            />
+          </RecordSection>
+        </>
+      )}
 
       <RecordSection title="Documents">
         <CandidateDocuments
@@ -431,9 +468,33 @@ export default function CandidateRecordPage() {
         />
       </RecordSection>
 
+      {compact ? null : (
+        <>
+          {applicationsSection}
+          <RecordSection title="Tags">
+            <TagEditor
+              entityType="candidate"
+              entityId={record.id}
+              tags={record.tags}
+              canWrite={canEdit}
+              onChanged={() => utils.candidates.get.invalidate({ id: record.id })}
+            />
+          </RecordSection>
+        </>
+      )}
+
       <RecordSection title="Tasks">
         <TasksPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
+
+      {compact ? null : (
+        <>
+          <RecordSection title="Communication">
+            <CommunicationPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
+          </RecordSection>
+          {notesSection}
+        </>
+      )}
 
       <RecordSection title="Timeline">
         <TimelinePanel entityType="candidate" entityId={record.id} />
