@@ -158,7 +158,7 @@ export function ClientsView() {
 
       <Input
         type="search"
-        placeholder="Search by name, domain, industry or location..."
+        placeholder="Search by name, domain, industry, location or phone..."
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);

@@ -1,4 +1,4 @@
-import { asc, desc, ilike, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, ilike, or, type SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
@@ -25,6 +25,19 @@ function escapeLike(value: string): string {
 }
 
 /**
+ * Word-wise search clause shared by the list endpoints and the global
+ * command palette: every whitespace-separated word (capped at 8) must match
+ * at least one of the given fields, case-insensitively. This makes
+ * multi-word searches like a full name ("Jane Smith") or "engineer berlin"
+ * work even when the words live in different columns.
+ */
+export function wordSearch(search: string | undefined, fields: AnyPgColumn[]): SQL | undefined {
+  const words = (search ?? "").split(/\s+/).filter(Boolean).slice(0, 8);
+  if (words.length === 0) return undefined;
+  return and(...words.map((w) => or(...fields.map((c) => ilike(c, `%${escapeLike(w)}%`)))));
+}
+
+/**
  * Turns a ListInput into drizzle clauses. Unknown sort keys fall back to the
  * default so client input can never reference an unindexed column.
  */
@@ -40,10 +53,7 @@ export function buildListClauses(
     opts.sortable[input.sortBy ?? opts.defaultSort] ?? opts.sortable[opts.defaultSort];
   if (!sortCol) throw new Error(`Unknown default sort column: ${opts.defaultSort}`);
   const orderBy = input.sortDir === "desc" ? desc(sortCol) : asc(sortCol);
-  const searchWhere =
-    input.search && input.search.length > 0
-      ? or(...opts.searchable.map((c) => ilike(c, `%${escapeLike(input.search!)}%`)))
-      : undefined;
+  const searchWhere = wordSearch(input.search, opts.searchable);
   return {
     orderBy,
     searchWhere,

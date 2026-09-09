@@ -47,7 +47,13 @@ export const companiesRouter = router({
           createdAt: companies.createdAt,
           updatedAt: companies.updatedAt
         },
-        searchable: [companies.name, companies.domain, companies.industry, companies.location],
+        searchable: [
+          companies.name,
+          companies.domain,
+          companies.industry,
+          companies.location,
+          companies.phone
+        ],
         defaultSort: "name"
       });
       const deletedWhere = input.deleted
