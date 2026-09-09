@@ -3,6 +3,11 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.17 - Pipeline view first on the dashboard (2026-09-09)
+
+- The dashboard's pipeline view (jobs by stage) now sits right under the
+  KPI cards; the Recruitment Funnel and Trends charts moved below it.
+
 ## v0.26.16 - Applications up top, three sections retired (2026-09-09)
 
 - The Matching, Tags and Communication sections are gone from the
