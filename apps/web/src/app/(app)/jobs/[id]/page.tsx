@@ -18,11 +18,9 @@ import {
   RecordSection,
   RecordShell
 } from "@/components/record";
-import { CommunicationPanel } from "@/components/communication-panel";
 import { JobDescriptionView } from "@/components/job-description-view";
 import { JobDocuments } from "@/components/job-documents";
 import { JobInterviewsPanel } from "@/components/job-interviews-panel";
-import { JobMatchesPanel } from "@/components/matching-panel";
 import { NoteBody } from "@/components/note-body";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
@@ -30,7 +28,6 @@ import { JobRevenuePanel } from "@/components/revenue-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { TasksPanel } from "@/components/tasks-panel";
 import { SubmitToClientModal } from "@/components/submit-to-client-modal";
-import { TagEditor } from "@/components/tag-editor";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { trpc, type RouterInputs } from "@/lib/trpc/client";
 
@@ -568,6 +565,48 @@ export default function JobRecordPage() {
         </div>
       </RecordSection>
 
+      <RecordSection
+        title={`Pipeline (${record.pipeline.total})`}
+        actions={
+          canEdit ? (
+            <div className="flex gap-2">
+              {record.pipeline.total > 0 ? (
+                <Button
+                  variant="outline"
+                  className="px-3 py-1.5"
+                  onClick={() => setSubmitting(true)}
+                >
+                  Submit to client
+                </Button>
+              ) : null}
+              <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
+                Add candidate
+              </Button>
+            </div>
+          ) : null
+        }
+      >
+        {record.pipeline.total === 0 ? (
+          <p className="text-sm text-[var(--muted)]">
+            No candidates yet. Add one to start this job&apos;s pipeline.
+          </p>
+        ) : (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {record.pipeline.byStage
+              .filter((s) => s.count > 0)
+              .map((s) => (
+                <span
+                  key={s.stage}
+                  className="rounded-full bg-[var(--background)] px-2.5 py-0.5 text-xs text-[var(--muted)]"
+                >
+                  {STAGE_LABELS[s.stage as ApplicationStageKey]}: {s.count}
+                </span>
+              ))}
+          </div>
+        )}
+        <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
+      </RecordSection>
+
       {compact ? null : (
         <RecordSection title="Assigned recruiters">
           <div className="flex flex-wrap items-center gap-2">
@@ -643,56 +682,8 @@ export default function JobRecordPage() {
         />
       </RecordSection>
 
-      <RecordSection
-        title={`Pipeline (${record.pipeline.total})`}
-        actions={
-          canEdit ? (
-            <div className="flex gap-2">
-              {record.pipeline.total > 0 ? (
-                <Button
-                  variant="outline"
-                  className="px-3 py-1.5"
-                  onClick={() => setSubmitting(true)}
-                >
-                  Submit to client
-                </Button>
-              ) : null}
-              <Button className="px-3 py-1.5" onClick={() => setAssociating(true)}>
-                Add candidate
-              </Button>
-            </div>
-          ) : null
-        }
-      >
-        {record.pipeline.total === 0 ? (
-          <p className="text-sm text-[var(--muted)]">
-            No candidates yet. Add one to start this job&apos;s pipeline.
-          </p>
-        ) : (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {record.pipeline.byStage
-              .filter((s) => s.count > 0)
-              .map((s) => (
-                <span
-                  key={s.stage}
-                  className="rounded-full bg-[var(--background)] px-2.5 py-0.5 text-xs text-[var(--muted)]"
-                >
-                  {STAGE_LABELS[s.stage as ApplicationStageKey]}: {s.count}
-                </span>
-              ))}
-          </div>
-        )}
-        <ApplicationKanban jobId={record.id} canWrite={canEdit} showJob={false} />
-      </RecordSection>
-
       {compact ? null : (
         <>
-          <div id="section-matching">
-            <RecordSection title="Matching candidates">
-              <JobMatchesPanel jobId={record.id} canWrite={canEdit} />
-            </RecordSection>
-          </div>
-
           <RecordSection title="Sourcing summary">
             {record.bySource.length === 0 ? (
               <p className="text-sm text-[var(--muted)]">
@@ -725,32 +716,14 @@ export default function JobRecordPage() {
         <JobInterviewsPanel jobId={record.id} canWrite={canEdit} />
       </RecordSection>
 
-      {compact ? null : (
-        <RecordSection title="Communication">
-          <CommunicationPanel entityType="job" entityId={record.id} canWrite={canEdit} />
-        </RecordSection>
-      )}
-
       <RecordSection title="Client submissions">
         <SubmissionsLog mode="job" id={record.id} canWrite={canEdit} />
       </RecordSection>
 
       {compact ? null : (
-        <>
-          <RecordSection title="Revenue">
-            <JobRevenuePanel jobId={record.id} canWrite={canEdit} />
-          </RecordSection>
-
-          <RecordSection title="Tags">
-            <TagEditor
-              entityType="job"
-              entityId={record.id}
-              tags={record.tags}
-              canWrite={canEdit}
-              onChanged={() => utils.jobs.get.invalidate({ id: record.id })}
-            />
-          </RecordSection>
-        </>
+        <RecordSection title="Revenue">
+          <JobRevenuePanel jobId={record.id} canWrite={canEdit} />
+        </RecordSection>
       )}
 
       <p className="text-xs text-[var(--muted)]">
