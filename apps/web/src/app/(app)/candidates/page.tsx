@@ -388,7 +388,7 @@ export default function CandidatesPage() {
       <div className="flex flex-wrap items-center gap-2">
         <Input
           type="search"
-          placeholder="Search by name, email, title, employer or ID..."
+          placeholder="Search by name, email, phone, skills, employer, city or ID..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);

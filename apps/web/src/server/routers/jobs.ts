@@ -140,7 +140,15 @@ const JOB_LIST_OPTS = {
   },
   // companies.name works because both list and exportCsv join companies (and
   // the list's count query joins it too, below).
-  searchable: [jobs.title, jobs.humanId, jobs.location, companies.name],
+  searchable: [
+    jobs.title,
+    jobs.humanId,
+    jobs.location,
+    jobs.city,
+    jobs.country,
+    jobs.industry,
+    companies.name
+  ],
   defaultSort: "openedAt"
 };
 

@@ -165,7 +165,7 @@ export function ContactsView() {
 
       <Input
         type="search"
-        placeholder="Search by name, email or title..."
+        placeholder="Search by name, email, phone, title or client..."
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);

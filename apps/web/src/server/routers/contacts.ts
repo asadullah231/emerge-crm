@@ -83,7 +83,15 @@ export const contactsRouter = router({
           createdAt: contacts.createdAt,
           updatedAt: contacts.updatedAt
         },
-        searchable: [contacts.firstName, contacts.lastName, contacts.email, contacts.title],
+        searchable: [
+          contacts.firstName,
+          contacts.lastName,
+          contacts.email,
+          contacts.title,
+          contacts.workPhone,
+          contacts.mobile,
+          companies.name
+        ],
         defaultSort: "lastName"
       });
       const deletedWhere = input.deleted
@@ -107,7 +115,11 @@ export const contactsRouter = router({
           .orderBy(orderBy, asc(contacts.id))
           .limit(limit)
           .offset(offset),
-        ctx.tx.select({ total: count() }).from(contacts).where(where)
+        ctx.tx
+          .select({ total: count() })
+          .from(contacts)
+          .leftJoin(companies, eq(companies.id, contacts.companyId))
+          .where(where)
       ]);
       return { rows, total: totalRow?.total ?? 0, page: input.page, pageSize: input.pageSize };
     }),
