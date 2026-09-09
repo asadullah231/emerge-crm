@@ -3,6 +3,18 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.16 - Applications up top, three sections retired (2026-09-09)
+
+- The Matching, Tags and Communication sections are gone from the
+  candidate and job record pages for everyone (the find-matches list
+  shortcuts too). Tag filters and bulk tagging on the lists still work.
+- Applications now always sits right after the profile: the candidate
+  page goes Profile then Applications, and the job page goes Overview
+  then Pipeline, in both the full and compact layouts.
+- Compact mode now covers the remaining extras: compliance, assigned
+  recruiters, sourcing summary and revenue, plus Notes moved up on the
+  candidate page.
+
 ## v0.26.15 - Workspace-level compact layout (2026-09-09)
 
 - Compact record pages is now a workspace setting: an admin turns it on
