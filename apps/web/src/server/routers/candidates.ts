@@ -116,7 +116,11 @@ export const candidatesRouter = router({
           candidates.title,
           candidates.currentEmployer,
           candidates.humanId,
-          candidates.skills
+          candidates.skills,
+          candidates.phone,
+          candidates.mobile,
+          candidates.city,
+          candidates.country
         ],
         defaultSort: "lastName"
       });

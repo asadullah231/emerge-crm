@@ -1,6 +1,7 @@
-import { and, eq, ilike, isNull, or } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { candidates, companies, contacts, jobs, users } from "@emerge/db";
+import { wordSearch } from "../list-query";
 import { router, workspaceProcedure } from "../trpc";
 
 export type SearchHit = {
@@ -12,9 +13,6 @@ export type SearchHit = {
   href: string;
 };
 
-function like(value: string): string {
-  return `%${value.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
-}
 function fullName(first: string | null, last: string | null): string {
   return [first, last].filter(Boolean).join(" ").trim();
 }
@@ -22,7 +20,8 @@ function fullName(first: string | null, last: string | null): string {
 /**
  * Global command-palette search across the core objects. Each object type is
  * queried in parallel with a small cap; results are normalized to a flat list
- * the client renders grouped. Workspace-scoped via the RLS tx.
+ * the client renders grouped. Workspace-scoped via the RLS tx. Matching is
+ * word-wise (shared wordSearch), so full names and multi-word queries work.
  */
 export const searchRouter = router({
   global: workspaceProcedure
@@ -33,7 +32,6 @@ export const searchRouter = router({
       })
     )
     .query(async ({ ctx, input }): Promise<SearchHit[]> => {
-      const term = like(input.q);
       const [cands, comps, conts, jobRows] = await Promise.all([
         ctx.tx
           .select({
@@ -48,15 +46,19 @@ export const searchRouter = router({
           .where(
             and(
               isNull(candidates.deletedAt),
-              or(
-                ilike(candidates.firstName, term),
-                ilike(candidates.lastName, term),
-                ilike(candidates.email, term),
-                ilike(candidates.title, term),
-                ilike(candidates.currentEmployer, term),
-                ilike(candidates.humanId, term),
-                ilike(candidates.skills, term)
-              )
+              wordSearch(input.q, [
+                candidates.firstName,
+                candidates.lastName,
+                candidates.email,
+                candidates.title,
+                candidates.currentEmployer,
+                candidates.humanId,
+                candidates.skills,
+                candidates.phone,
+                candidates.mobile,
+                candidates.city,
+                candidates.country
+              ])
             )
           )
           .limit(input.perType),
@@ -71,12 +73,13 @@ export const searchRouter = router({
           .where(
             and(
               isNull(companies.deletedAt),
-              or(
-                ilike(companies.name, term),
-                ilike(companies.domain, term),
-                ilike(companies.industry, term),
-                ilike(companies.location, term)
-              )
+              wordSearch(input.q, [
+                companies.name,
+                companies.domain,
+                companies.industry,
+                companies.location,
+                companies.phone
+              ])
             )
           )
           .limit(input.perType),
@@ -89,15 +92,19 @@ export const searchRouter = router({
             email: contacts.email
           })
           .from(contacts)
+          .leftJoin(companies, eq(companies.id, contacts.companyId))
           .where(
             and(
               isNull(contacts.deletedAt),
-              or(
-                ilike(contacts.firstName, term),
-                ilike(contacts.lastName, term),
-                ilike(contacts.email, term),
-                ilike(contacts.title, term)
-              )
+              wordSearch(input.q, [
+                contacts.firstName,
+                contacts.lastName,
+                contacts.email,
+                contacts.title,
+                contacts.workPhone,
+                contacts.mobile,
+                companies.name
+              ])
             )
           )
           .limit(input.perType),
@@ -115,19 +122,19 @@ export const searchRouter = router({
           .where(
             and(
               isNull(jobs.deletedAt),
-              or(
-                ilike(jobs.title, term),
-                ilike(jobs.humanId, term),
-                ilike(jobs.location, term),
-                ilike(jobs.city, term),
-                ilike(jobs.country, term),
-                ilike(jobs.description, term),
-                ilike(jobs.clientCallSummary, term),
-                ilike(jobs.requiredSkills, term),
-                ilike(jobs.industry, term),
-                ilike(companies.name, term),
-                ilike(users.name, term)
-              )
+              wordSearch(input.q, [
+                jobs.title,
+                jobs.humanId,
+                jobs.location,
+                jobs.city,
+                jobs.country,
+                jobs.description,
+                jobs.clientCallSummary,
+                jobs.requiredSkills,
+                jobs.industry,
+                companies.name,
+                users.name
+              ])
             )
           )
           .limit(input.perType)

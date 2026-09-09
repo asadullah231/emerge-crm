@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.14 - Stronger search everywhere (2026-09-09)
+
+- Search across the whole app is now word-wise: every word you type must
+  match somewhere, so full names ("Jane Smith") and combos like
+  "engineer berlin" finally work. Applies to the candidates, job
+  openings, clients and contacts lists and the Ctrl+K palette.
+- More fields are searchable: candidates add phone, mobile, city and
+  country; jobs add city, country and industry; contacts add phones and
+  the client name; clients add phone. Search box hints updated to match.
+
 ## v0.26.13 - Job search covers client names (2026-09-08)
 
 - The Job Openings search now also matches the client (company) name, so

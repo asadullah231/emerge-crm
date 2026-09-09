@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { companies } from "@emerge/db";
+import { companies, contacts } from "@emerge/db";
 import {
   TRASH_RETENTION_DAYS,
   buildListClauses,
   listInput,
   normalizeDomain,
-  trashCutoff
+  trashCutoff,
+  wordSearch
 } from "../list-query";
 
 const opts = {
@@ -56,6 +57,34 @@ describe("buildListClauses", () => {
   it("builds a search clause when search is set", () => {
     const { searchWhere } = buildListClauses(listInput.parse({ search: "porsche" }), opts);
     expect(searchWhere).toBeDefined();
+  });
+});
+
+describe("wordSearch", () => {
+  const fields = [contacts.firstName, contacts.lastName];
+
+  it("returns undefined for empty or whitespace input", () => {
+    expect(wordSearch(undefined, fields)).toBeUndefined();
+    expect(wordSearch("", fields)).toBeUndefined();
+    expect(wordSearch("   ", fields)).toBeUndefined();
+  });
+
+  const chunkCount = (clause: unknown): number =>
+    (clause as { queryChunks: unknown[] }).queryChunks.length;
+
+  it("builds one clause per word so full names match across columns", () => {
+    const single = wordSearch("jane", fields);
+    const double = wordSearch("jane smith", fields);
+    expect(single).toBeDefined();
+    expect(double).toBeDefined();
+    // The two-word clause is strictly larger: AND of two OR groups.
+    expect(chunkCount(double)).toBeGreaterThan(chunkCount(single));
+  });
+
+  it("caps the number of words at 8", () => {
+    const eight = wordSearch("a b c d e f g h", fields);
+    const nine = wordSearch("a b c d e f g h i", fields);
+    expect(chunkCount(nine)).toBe(chunkCount(eight));
   });
 });
 
