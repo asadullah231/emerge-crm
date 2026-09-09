@@ -127,11 +127,21 @@ export const authRouter = router({
 
   me: protectedProcedure.query(async ({ ctx }) => {
     const [workspace] = await ctx.db
-      .select({ id: workspaces.id, name: workspaces.name, logoUrl: workspaces.logoUrl })
+      .select({
+        id: workspaces.id,
+        name: workspaces.name,
+        logoUrl: workspaces.logoUrl,
+        compactLayout: workspaces.compactLayout
+      })
       .from(workspaces)
       .where(eq(workspaces.id, ctx.session.workspaceId))
       .limit(1);
-    return { user: ctx.session.user, role: ctx.session.role, workspace };
+    // The workspace-level setting is the owner's customization for the whole
+    // team; admins keep the full layout. A user's own flag is a personal opt-in.
+    const compactLayout =
+      ctx.session.user.compactLayout ||
+      Boolean(workspace?.compactLayout && ctx.session.role !== "admin");
+    return { user: ctx.session.user, role: ctx.session.role, workspace, compactLayout };
   }),
 
   requestPasswordReset: publicProcedure

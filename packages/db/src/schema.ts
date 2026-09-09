@@ -65,6 +65,9 @@ export const workspaces = pgTable("workspaces", {
   id: id(),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
+  // Owner-level customization: trimmed record pages for the whole team
+  // (admins keep the full layout; users.compactLayout is a personal opt-in).
+  compactLayout: boolean("compact_layout").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt()
 });
