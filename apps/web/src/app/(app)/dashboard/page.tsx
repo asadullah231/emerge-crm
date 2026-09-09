@@ -248,6 +248,9 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Zoho-style pipeline matrix (job x stage) */}
+      <PipelineView />
+
       {/* Funnel + trends */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel
@@ -284,9 +287,6 @@ export default function DashboardPage() {
           <MultiTrendChart data={data?.trends} series={TREND_SERIES} loading={overview.isLoading} />
         </Panel>
       </div>
-
-      {/* Zoho-style pipeline matrix (job x stage) */}
-      <PipelineView />
 
       {/* Recruiter performance + upcoming interviews */}
       <div className="grid gap-4 lg:grid-cols-2">
