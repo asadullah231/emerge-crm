@@ -179,6 +179,9 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
+      {/* Zoho-style pipeline matrix (job x stage) */}
+      <PipelineView />
+
       {/* KPI grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <BigNumber
@@ -247,9 +250,6 @@ export default function DashboardPage() {
           loading={overview.isLoading}
         />
       </div>
-
-      {/* Zoho-style pipeline matrix (job x stage) */}
-      <PipelineView />
 
       {/* Funnel + trends */}
       <div className="grid gap-4 lg:grid-cols-2">
