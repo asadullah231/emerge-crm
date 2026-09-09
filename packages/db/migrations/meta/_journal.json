@@ -253,6 +253,13 @@
       "when": 1788871676534,
       "tag": "0035_lying_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1788917920148,
+      "tag": "0036_fearless_vermin",
+      "breakpoints": true
     }
   ]
 }

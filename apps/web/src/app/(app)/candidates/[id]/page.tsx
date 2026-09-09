@@ -82,9 +82,10 @@ export default function CandidateRecordPage() {
   const canWrite = me.data ? me.data.role !== "readonly" : false;
   const canEdit = canWrite && !isDeleted;
   const fullName = candidateName(record);
-  // Per-user preference (Settings > Profile): trimmed page with Applications
-  // and Notes right under Profile. Off = the full default layout.
-  const compact = me.data?.user.compactLayout ?? false;
+  // Workspace-level customization (Settings > Workspace) or personal opt-in
+  // (Settings > Profile): trimmed page with Applications and Notes right
+  // under Profile. Off = the full default layout.
+  const compact = me.data?.compactLayout ?? false;
 
   const ownerOptions = [
     { value: "", label: "Unassigned" },

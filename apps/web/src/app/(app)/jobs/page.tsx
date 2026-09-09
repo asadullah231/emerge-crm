@@ -370,7 +370,7 @@ export default function JobsPage() {
                 >
                   👁
                 </button>
-                {me.data?.user.compactLayout ? null : (
+                {me.data?.compactLayout ? null : (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

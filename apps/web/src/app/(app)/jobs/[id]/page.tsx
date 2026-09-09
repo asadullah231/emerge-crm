@@ -101,8 +101,9 @@ export default function JobRecordPage() {
   const isAdmin = me.data?.role === "admin";
   // A locked job is read-only for everyone until an admin unlocks it (JP-05).
   const canEdit = canWrite && !isDeleted && !record.isLocked;
-  // Per-user preference (Settings > Profile): hide the rarely used sections.
-  const compact = me.data?.user.compactLayout ?? false;
+  // Workspace-level customization (Settings > Workspace) or personal opt-in
+  // (Settings > Profile): hide the rarely used sections.
+  const compact = me.data?.compactLayout ?? false;
 
   const ownerOptions = [
     { value: "", label: "Unassigned" },

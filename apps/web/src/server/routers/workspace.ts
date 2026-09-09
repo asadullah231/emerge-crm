@@ -30,15 +30,25 @@ export const workspaceRouter = router({
     .input(
       z.object({
         name: z.string().trim().min(1, "Workspace name is required").max(200),
-        logoUrl: z.string().trim().url().nullable().optional()
+        logoUrl: z.string().trim().url().nullable().optional(),
+        compactLayout: z.boolean().optional()
       })
     )
     .mutation(async ({ ctx, input }) => {
       const [updated] = await ctx.tx
         .update(workspaces)
-        .set({ name: input.name, logoUrl: input.logoUrl ?? null })
+        .set({
+          name: input.name,
+          logoUrl: input.logoUrl ?? null,
+          ...(input.compactLayout === undefined ? {} : { compactLayout: input.compactLayout })
+        })
         .where(eq(workspaces.id, ctx.workspaceId))
-        .returning({ id: workspaces.id, name: workspaces.name, logoUrl: workspaces.logoUrl });
+        .returning({
+          id: workspaces.id,
+          name: workspaces.name,
+          logoUrl: workspaces.logoUrl,
+          compactLayout: workspaces.compactLayout
+        });
       await writeAudit({
         workspaceId: ctx.workspaceId,
         actorUserId: ctx.session.user.id,
