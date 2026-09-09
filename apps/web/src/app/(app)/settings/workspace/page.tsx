@@ -11,12 +11,14 @@ export default function WorkspaceSettingsPage() {
 
   const [name, setName] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [compactLayout, setCompactLayout] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (me.data?.workspace) {
       setName(me.data.workspace.name);
       setLogoUrl(me.data.workspace.logoUrl ?? "");
+      setCompactLayout(me.data.workspace.compactLayout);
     }
   }, [me.data]);
 
@@ -40,7 +42,7 @@ export default function WorkspaceSettingsPage() {
       className="max-w-md space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        update.mutate({ name, logoUrl: logoUrl.trim() === "" ? null : logoUrl });
+        update.mutate({ name, logoUrl: logoUrl.trim() === "" ? null : logoUrl, compactLayout });
       }}
     >
       <h2 className="text-lg font-semibold">Workspace</h2>
@@ -71,6 +73,25 @@ export default function WorkspaceSettingsPage() {
         <p className="mt-1 text-xs text-[var(--muted)]">
           Optional. Logo upload arrives with document storage in Milestone 7.
         </p>
+      </div>
+      <div>
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            disabled={!isAdmin}
+            checked={compactLayout}
+            onChange={(e) => setCompactLayout(e.target.checked)}
+          />
+          <span>
+            Compact record pages for the team
+            <span className="block text-xs text-[var(--muted)]">
+              Trims candidate and job pages to the essentials for every team member: hides matching,
+              compliance, tags, communication, recruiters, sourcing and revenue sections, and moves
+              Applications and Notes up on the candidate page. Admins keep the full layout.
+            </span>
+          </span>
+        </label>
       </div>
       {isAdmin ? (
         <div className="flex items-center gap-3">

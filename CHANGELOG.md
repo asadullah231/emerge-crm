@@ -3,6 +3,15 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.15 - Workspace-level compact layout (2026-09-09)
+
+- Compact record pages is now a workspace setting: an admin turns it on
+  in Settings, Workspace and the whole team gets the trimmed candidate
+  and job pages, while admins keep the full layout. Migration 0036 adds
+  the workspace compact_layout column.
+- The personal checkbox in Settings, Profile stays as an individual
+  opt-in for anyone the workspace setting does not cover.
+
 ## v0.26.14 - Stronger search everywhere (2026-09-09)
 
 - Search across the whole app is now word-wise: every word you type must
