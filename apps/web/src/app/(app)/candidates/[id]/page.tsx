@@ -8,12 +8,9 @@ import { Button, FormError } from "@/components/form";
 import { CandidateDocuments } from "@/components/candidate-documents";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { EducationSection, ExperienceSection } from "@/components/candidate-subrecords";
-import { CommunicationPanel } from "@/components/communication-panel";
 import { CompliancePanel } from "@/components/compliance-panel";
-import { CandidateMatchesPanel } from "@/components/matching-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { SkillChips } from "@/components/skill-chips";
-import { TagEditor } from "@/components/tag-editor";
 import { TasksPanel } from "@/components/tasks-panel";
 import { TimelinePanel } from "@/components/timeline-panel";
 import { candidateName } from "@/components/new-candidate-modal";
@@ -417,29 +414,21 @@ export default function CandidateRecordPage() {
         </div>
       </RecordSection>
 
+      {applicationsSection}
+
       {compact ? (
-        <>
-          {applicationsSection}
-          {notesSection}
-        </>
+        notesSection
       ) : (
-        <>
-          <div id="section-matching">
-            <RecordSection title="Matching jobs">
-              <CandidateMatchesPanel candidateId={record.id} canWrite={canEdit} />
-            </RecordSection>
-          </div>
-          <RecordSection title="Compliance">
-            <CompliancePanel
-              candidateId={record.id}
-              candidateName={fullName}
-              emailOptOut={record.emailOptOut}
-              isBlocked={record.isBlocked}
-              canWrite={canEdit}
-              isAdmin={me.data?.role === "admin"}
-            />
-          </RecordSection>
-        </>
+        <RecordSection title="Compliance">
+          <CompliancePanel
+            candidateId={record.id}
+            candidateName={fullName}
+            emailOptOut={record.emailOptOut}
+            isBlocked={record.isBlocked}
+            canWrite={canEdit}
+            isAdmin={me.data?.role === "admin"}
+          />
+        </RecordSection>
       )}
 
       <RecordSection title="Documents">
@@ -469,33 +458,11 @@ export default function CandidateRecordPage() {
         />
       </RecordSection>
 
-      {compact ? null : (
-        <>
-          {applicationsSection}
-          <RecordSection title="Tags">
-            <TagEditor
-              entityType="candidate"
-              entityId={record.id}
-              tags={record.tags}
-              canWrite={canEdit}
-              onChanged={() => utils.candidates.get.invalidate({ id: record.id })}
-            />
-          </RecordSection>
-        </>
-      )}
-
       <RecordSection title="Tasks">
         <TasksPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
       </RecordSection>
 
-      {compact ? null : (
-        <>
-          <RecordSection title="Communication">
-            <CommunicationPanel entityType="candidate" entityId={record.id} canWrite={canEdit} />
-          </RecordSection>
-          {notesSection}
-        </>
-      )}
+      {compact ? null : notesSection}
 
       <RecordSection title="Timeline">
         <TimelinePanel entityType="candidate" entityId={record.id} />

@@ -95,9 +95,9 @@ export default function ProfileSettingsPage() {
           <span>
             Compact record pages
             <span className="block text-xs text-[var(--muted)]">
-              Trims candidate and job pages to the essentials: hides matching, compliance, tags,
-              communication, recruiters, sourcing and revenue sections, and moves Applications and
-              Notes up on the candidate page. Only affects your account.
+              Trims candidate and job pages further: hides the compliance, assigned recruiters,
+              sourcing summary and revenue sections, and moves Notes up on the candidate page. Only
+              affects your account.
             </span>
           </span>
         </label>
