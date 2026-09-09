@@ -3,6 +3,11 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.18 - Pipeline view tops the dashboard (2026-09-09)
+
+- The pipeline view now opens the dashboard; the KPI cards moved below
+  it, ahead of the funnel and trends charts.
+
 ## v0.26.17 - Pipeline view first on the dashboard (2026-09-09)
 
 - The dashboard's pipeline view (jobs by stage) now sits right under the
