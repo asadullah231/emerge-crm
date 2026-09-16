@@ -23,6 +23,7 @@ import { JobDocuments } from "@/components/job-documents";
 import { JobInterviewsPanel } from "@/components/job-interviews-panel";
 import { NoteBody } from "@/components/note-body";
 import { NotesPanel } from "@/components/notes-panel";
+import { SearchPackModal } from "@/components/search-pack-modal";
 import { SkillChips } from "@/components/skill-chips";
 import { JobRevenuePanel } from "@/components/revenue-panel";
 import { SubmissionsLog } from "@/components/submissions-log";
@@ -39,6 +40,7 @@ export default function JobRecordPage() {
   const utils = trpc.useUtils();
   const [associating, setAssociating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [searchPackOpen, setSearchPackOpen] = useState(false);
 
   const me = trpc.auth.me.useQuery();
   const job = trpc.jobs.get.useQuery({ id: params.id });
@@ -188,6 +190,13 @@ export default function JobRecordPage() {
           >
             {followState.data?.following ? "Following" : "Follow"}
             {followState.data && followState.data.count > 0 ? ` (${followState.data.count})` : ""}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setSearchPackOpen(true)}
+            title="Generate the pre-search report and LinkedIn boolean pack for this job"
+          >
+            Pre-Search Report
           </Button>
           <Button variant="outline" onClick={() => window.print()} title="Print this job opening">
             Print
@@ -761,6 +770,13 @@ export default function JobRecordPage() {
       <RecordSection title="Timeline">
         <TimelinePanel entityType="job" entityId={record.id} />
       </RecordSection>
+
+      <SearchPackModal
+        open={searchPackOpen}
+        onClose={() => setSearchPackOpen(false)}
+        jobId={record.id}
+        canWrite={canWrite}
+      />
     </RecordShell>
   );
 }
