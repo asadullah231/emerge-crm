@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.19 - One-click pre-search report (2026-09-16)
+
+- New Pre-Search Report button on the job page: one click generates the
+  full LinkedIn Recruiter boolean pack from the job description and
+  client call summary via the workspace AI provider. Summary block,
+  keyword strings (full, tight, broad, NOT), title strings, company
+  groups with rationale, and practical search tips, rendered with the
+  readable note formatting. Copy it or save it as a job note for the
+  team.
+
 ## v0.26.18 - Pipeline view tops the dashboard (2026-09-09)
 
 - The pipeline view now opens the dashboard; the KPI cards moved below
