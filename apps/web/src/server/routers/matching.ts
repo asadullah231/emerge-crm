@@ -4,11 +4,19 @@ import { z } from "zod";
 import {
   decryptSecret,
   expandSearchTerms,
+  generateSearchPack,
   rankCandidates,
   type AiConfig,
   type MatchCandidateInput
 } from "@emerge/ai";
-import { applications, candidates, jobs, workspaceAiSettings, type Transaction } from "@emerge/db";
+import {
+  applications,
+  candidates,
+  companies,
+  jobs,
+  workspaceAiSettings,
+  type Transaction
+} from "@emerge/db";
 import { scoreCandidateForJob } from "../matching";
 import { router, workspaceProcedure } from "../trpc";
 
@@ -195,6 +203,43 @@ export const matchingRouter = router({
       return result.rankings
         .filter((r) => known.has(r.candidateId))
         .sort((a, b) => b.score - a.score);
+    }),
+
+  /**
+   * Pre-search report + LinkedIn Recruiter boolean pack for a job. One click
+   * on the job page; needs the workspace AI settings. Returns the report text
+   * (note-formatted) for the modal; the client can then save it as a job note.
+   */
+  searchPack: workspaceProcedure
+    .input(z.object({ jobId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const cfg = requireAi(await loadAiConfig(ctx.tx, ctx.workspaceId));
+      const [job] = await ctx.tx
+        .select({
+          id: jobs.id,
+          title: jobs.title,
+          description: jobs.description,
+          clientCallSummary: jobs.clientCallSummary,
+          requiredSkills: jobs.requiredSkills,
+          location: jobs.location,
+          city: jobs.city,
+          country: jobs.country,
+          industry: jobs.industry,
+          workExperience: jobs.workExperience,
+          employmentType: jobs.employmentType,
+          workMode: jobs.workMode,
+          salaryText: jobs.salaryText,
+          clientName: companies.name
+        })
+        .from(jobs)
+        .leftJoin(companies, eq(companies.id, jobs.companyId))
+        .where(and(eq(jobs.id, input.jobId), isNull(jobs.deletedAt)));
+      if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+      const preparedDate = new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(
+        new Date()
+      );
+      const report = await generateSearchPack(cfg, job, preparedDate);
+      return { report };
     }),
 
   /** Query expansion + OR keyword search = semantic-ish candidate search. */
