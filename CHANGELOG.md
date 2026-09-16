@@ -3,6 +3,14 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.20 - Pre-search report reads everything on the job (2026-09-16)
+
+- The Pre-Search Report now analyses every document attached to the job
+  (PDF, Word and text files, up to 8 newest) plus the last 10 job notes,
+  alongside the description and client call summary. Client call
+  write-ups and spec sheets feed straight into the must-haves, strings
+  and tips, and the report shows which sources were analysed.
+
 ## v0.26.19 - One-click pre-search report (2026-09-16)
 
 - New Pre-Search Report button on the job page: one click generates the

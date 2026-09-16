@@ -46,3 +46,21 @@ export async function prepareInput(
   if (!text) throw new Error("Empty file");
   return { mode: "text", text };
 }
+
+/**
+ * Best-effort plain-text extraction for job documents (search pack, M18+):
+ * always text (never pdf-native), null instead of throwing so one unreadable
+ * attachment cannot sink a multi-document analysis.
+ */
+export async function extractDocText(
+  buffer: Buffer,
+  mime: string,
+  filename: string
+): Promise<string | null> {
+  try {
+    const prepared = await prepareInput(buffer, mime, filename, "openai");
+    return prepared.mode === "text" ? prepared.text : null;
+  } catch {
+    return null;
+  }
+}

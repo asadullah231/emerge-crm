@@ -24,7 +24,16 @@ export interface SearchPackJobInput {
   employmentType: string | null;
   workMode: string | null;
   salaryText: string | null;
+  /** Extracted text of the job's attached documents (spec sheets, call notes). */
+  documents?: Array<{ name: string; text: string }>;
+  /** Recent job note bodies (client calls and recruiter intel live here). */
+  notes?: string[];
 }
+
+/** Per-document and total caps so a stack of PDFs cannot blow the context. */
+const DOC_CHAR_CAP = 9000;
+const DOCS_TOTAL_CAP = 28000;
+const NOTES_TOTAL_CAP = 6000;
 
 function packPrompt(job: SearchPackJobInput, preparedDate: string): string {
   const jd = [
@@ -46,10 +55,28 @@ function packPrompt(job: SearchPackJobInput, preparedDate: string): string {
     .filter(Boolean)
     .join("\n");
 
+  const docParts: string[] = [];
+  let docBudget = DOCS_TOTAL_CAP;
+  for (const d of job.documents ?? []) {
+    if (docBudget <= 0) break;
+    const text = d.text.slice(0, Math.min(DOC_CHAR_CAP, docBudget)).trim();
+    if (!text) continue;
+    docBudget -= text.length;
+    docParts.push(`--- ATTACHED DOCUMENT: ${d.name} ---\n${text}`);
+  }
+
+  const noteText = (job.notes ?? []).join("\n---\n").slice(0, NOTES_TOTAL_CAP).trim();
+
   return [
     "You are a senior recruitment sourcer. Produce a complete LinkedIn Recruiter",
     "Boolean Search Pack (pre-search report) for the job below, ready for a",
     "recruiter to run today. Write in English.",
+    "",
+    "Analyse EVERYTHING provided: the job fields, every attached document and",
+    "every note. Documents and notes often carry the real must-haves, exclusions,",
+    "target companies and comp details from client calls - treat them as primary",
+    "sources and fold their specifics into the summary, strings and tips. Where",
+    "sources conflict, prefer the most recent client call information.",
     "",
     "FORMAT RULES (the app renders these):",
     '- Use "**bold**" for section headings and emphasis.',
@@ -84,7 +111,9 @@ function packPrompt(job: SearchPackJobInput, preparedDate: string): string {
     "Group lists shorter rather than inventing companies.",
     "",
     "--- JOB ---",
-    jd
+    jd,
+    ...(docParts.length > 0 ? ["", ...docParts] : []),
+    ...(noteText ? ["", "--- JOB NOTES (client calls, recruiter intel) ---", noteText] : [])
   ].join("\n");
 }
 

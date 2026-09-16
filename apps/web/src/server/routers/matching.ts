@@ -1,9 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, ilike, isNull, or, inArray } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
   decryptSecret,
   expandSearchTerms,
+  extractDocText,
   generateSearchPack,
   rankCandidates,
   type AiConfig,
@@ -11,12 +12,15 @@ import {
 } from "@emerge/ai";
 import {
   applications,
+  attachments,
   candidates,
   companies,
   jobs,
+  notes,
   workspaceAiSettings,
   type Transaction
 } from "@emerge/db";
+import { getObject } from "../storage";
 import { scoreCandidateForJob } from "../matching";
 import { router, workspaceProcedure } from "../trpc";
 
@@ -235,11 +239,57 @@ export const matchingRouter = router({
         .leftJoin(companies, eq(companies.id, jobs.companyId))
         .where(and(eq(jobs.id, input.jobId), isNull(jobs.deletedAt)));
       if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+
+      // Everything attached to the job goes into the analysis: documents
+      // (spec sheets, JDs, call write-ups) and notes (client calls, intel).
+      const files = await ctx.tx
+        .select({
+          objectKey: attachments.objectKey,
+          filename: attachments.filename,
+          mime: attachments.mime,
+          size: attachments.size
+        })
+        .from(attachments)
+        .where(
+          and(
+            eq(attachments.entityType, "job"),
+            eq(attachments.entityId, job.id),
+            isNull(attachments.deletedAt)
+          )
+        )
+        .orderBy(desc(attachments.createdAt))
+        .limit(8);
+      const documents: Array<{ name: string; text: string }> = [];
+      for (const f of files) {
+        if (f.size > 15 * 1024 * 1024) continue;
+        try {
+          const obj = await getObject(f.objectKey);
+          const buffer = Buffer.from(await new Response(obj.stream).arrayBuffer());
+          const text = await extractDocText(buffer, f.mime, f.filename);
+          if (text) documents.push({ name: f.filename, text });
+        } catch (err) {
+          console.error(`[searchPack] could not read attachment ${f.filename}:`, err);
+        }
+      }
+
+      const noteRows = await ctx.tx
+        .select({ body: notes.body })
+        .from(notes)
+        .where(
+          and(eq(notes.entityType, "job"), eq(notes.entityId, job.id), isNull(notes.deletedAt))
+        )
+        .orderBy(desc(notes.createdAt))
+        .limit(10);
+
       const preparedDate = new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(
         new Date()
       );
-      const report = await generateSearchPack(cfg, job, preparedDate);
-      return { report };
+      const report = await generateSearchPack(
+        cfg,
+        { ...job, documents, notes: noteRows.map((n) => n.body) },
+        preparedDate
+      );
+      return { report, documentsUsed: documents.length, notesUsed: noteRows.length };
     }),
 
   /** Query expansion + OR keyword search = semantic-ish candidate search. */

@@ -23,11 +23,15 @@ export function SearchPackModal({
 }) {
   const utils = trpc.useUtils();
   const [report, setReport] = useState<string | null>(null);
+  const [sources, setSources] = useState<{ documents: number; notes: number } | null>(null);
   const [copied, setCopied] = useState(false);
   const [savedNote, setSavedNote] = useState(false);
 
   const generate = trpc.matching.searchPack.useMutation({
-    onSuccess: (res) => setReport(res.report)
+    onSuccess: (res) => {
+      setReport(res.report);
+      setSources({ documents: res.documentsUsed, notes: res.notesUsed });
+    }
   });
   const saveNote = trpc.notes.create.useMutation({
     onSuccess: async () => {
@@ -94,13 +98,29 @@ export function SearchPackModal({
         <div className="max-h-[70vh] overflow-y-auto p-4">
           {generate.isPending ? (
             <p className="py-8 text-center text-sm text-[var(--muted)]">
-              Generating the report from the job description and client call summary. This usually
-              takes 30-60 seconds...
+              Analysing the job description, client call summary, attached documents and notes, then
+              writing the report. This usually takes 30-60 seconds...
             </p>
           ) : generate.error ? (
             <FormError message={generate.error.message} />
           ) : report ? (
-            <NoteBody body={report} />
+            <>
+              {sources ? (
+                <p className="mb-3 text-xs text-[var(--muted)]">
+                  Sources analysed: job details
+                  {sources.documents > 0
+                    ? ` + ${sources.documents} attached ${sources.documents === 1 ? "document" : "documents"}`
+                    : ""}
+                  {sources.notes > 0
+                    ? ` + ${sources.notes} ${sources.notes === 1 ? "note" : "notes"}`
+                    : ""}
+                  {sources.documents === 0 && sources.notes === 0
+                    ? " only (no readable attachments or notes on this job)"
+                    : ""}
+                </p>
+              ) : null}
+              <NoteBody body={report} />
+            </>
           ) : null}
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] px-4 py-3">
