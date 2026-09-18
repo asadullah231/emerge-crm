@@ -87,8 +87,8 @@ export default function WorkspaceSettingsPage() {
             Compact record pages for the team
             <span className="block text-xs text-[var(--muted)]">
               Trims candidate and job pages further for every team member: hides the compliance,
-              assigned recruiters, sourcing summary and revenue sections, and moves Notes up on the
-              candidate page. Admins keep the full layout.
+              assigned recruiters and sourcing summary sections, and moves Notes up on the candidate
+              page. Admins keep the full layout.
             </span>
           </span>
         </label>
