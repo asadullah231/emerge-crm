@@ -3,6 +3,13 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.26.21 - Revenue removed from the app (2026-09-18)
+
+- The Revenue sections on the job and client pages are gone for every
+  layout, finishing what v0.26.1 started when the Revenue page left the
+  nav. The revenue API and data stay intact underneath, so it can come
+  back if it is ever needed.
+
 ## v0.26.20 - Pre-search report reads everything on the job (2026-09-16)
 
 - The Pre-Search Report now analyses every document attached to the job
