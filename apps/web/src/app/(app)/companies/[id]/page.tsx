@@ -182,6 +182,22 @@ export default function CompanyRecordPage() {
             onSave={save("source")}
           />
           <InlineField
+            label="Terms signed"
+            value={
+              record.termsSignedAt
+                ? new Date(record.termsSignedAt).toISOString().slice(0, 10)
+                : null
+            }
+            canEdit={canEdit}
+            saving={update.isPending}
+            type="date"
+            placeholder="Not signed yet"
+            onSave={(v) =>
+              update.mutate({ id: record.id, patch: { termsSignedAt: v ? new Date(v) : null } })
+            }
+            render={(v) => <>{new Date(v).toLocaleDateString()}</>}
+          />
+          <InlineField
             label="Company size"
             value={record.size}
             canEdit={canEdit}

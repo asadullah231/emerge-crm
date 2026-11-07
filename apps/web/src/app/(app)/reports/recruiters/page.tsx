@@ -3,39 +3,24 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { FormError } from "@/components/form";
+import {
+  DAY_MS,
+  ReportCard as Card,
+  ReportWindowPicker,
+  ReportsTabs,
+  TD,
+  TH,
+  fmtDate,
+  pct,
+  useReportWindow,
+  weekStart
+} from "@/components/reports-shared";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { trpc } from "@/lib/trpc/client";
 
 // Weekly KPI targets (Mo's spec): 3 shortlisted + 2 submitted per recruiter.
 const TARGET_SHORTLISTED = 3;
 const TARGET_SUBMITTED = 2;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-type Preset = "this_week" | "last_week" | "this_month" | "custom";
-
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-function endOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-
-/** Local Monday 00:00 of the week containing `d`. */
-function weekStart(d: Date): Date {
-  const x = startOfDay(d);
-  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
-  return x;
-}
-
-function fmtDate(d: Date | string): string {
-  return new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short" });
-}
 
 function candidateName(first: string | null, last: string): string {
   return [first, last].filter(Boolean).join(" ");
@@ -53,59 +38,14 @@ const RAG_DOT: Record<string, string> = {
   red: "bg-red-500"
 };
 
-function pct(part: number, whole: number): string {
-  if (!whole) return "-";
-  return `${Math.round((part / whole) * 100)}%`;
-}
-
-function Card({
-  title,
-  children,
-  right
-}: {
-  title: string;
-  children: React.ReactNode;
-  right?: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {right}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-const TH = "px-2 py-1.5 text-left text-xs font-medium text-[var(--muted)]";
-const TD = "px-2 py-1.5 text-sm";
-
 export default function RecruiterReportPage() {
-  const [preset, setPreset] = useState<Preset>("this_week");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const reportWindow = useReportWindow();
+  const { from, to } = reportWindow;
   const [selected, setSelected] = useState<{
     userId: string | null;
     userName: string;
     toStage: ApplicationStageKey;
   } | null>(null);
-
-  const { from, to } = useMemo(() => {
-    const now = new Date();
-    if (preset === "last_week") {
-      const start = new Date(weekStart(now).getTime() - 7 * DAY_MS);
-      return { from: start, to: endOfDay(new Date(start.getTime() + 6 * DAY_MS)) };
-    }
-    if (preset === "this_month") {
-      return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: endOfDay(now) };
-    }
-    if (preset === "custom" && customFrom && customTo) {
-      return { from: startOfDay(new Date(customFrom)), to: endOfDay(new Date(customTo)) };
-    }
-    const start = weekStart(now);
-    return { from: start, to: endOfDay(new Date(start.getTime() + 6 * DAY_MS)) };
-  }, [preset, customFrom, customTo]);
 
   const overview = trpc.recruiterReports.overview.useQuery({ from, to });
   const daily = trpc.recruiterReports.dailyActivity.useQuery({ from, to });
@@ -166,6 +106,7 @@ export default function RecruiterReportPage() {
 
   return (
     <div className="space-y-4">
+      <ReportsTabs />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">Recruiter report</h1>
@@ -173,46 +114,7 @@ export default function RecruiterReportPage() {
             {fmtDate(from)} - {fmtDate(to)} - counts follow the date each status change happened
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {(
-            [
-              ["this_week", "This week"],
-              ["last_week", "Last week"],
-              ["this_month", "This month"],
-              ["custom", "Custom"]
-            ] as [Preset, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setPreset(key)}
-              className={`rounded-md border px-3 py-1.5 text-sm ${
-                preset === key
-                  ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
-                  : "border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-          {preset === "custom" ? (
-            <span className="flex items-center gap-1 text-sm">
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1"
-              />
-              <span className="text-[var(--muted)]">to</span>
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1"
-              />
-            </span>
-          ) : null}
-        </div>
+        <ReportWindowPicker window={reportWindow} />
       </div>
 
       <FormError message={overview.error?.message ?? daily.error?.message ?? list.error?.message} />

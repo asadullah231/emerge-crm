@@ -188,6 +188,8 @@ export const companies = pgTable(
     phone: text("phone"),
     description: text("description"),
     status: companyStatus("status").notNull().default("prospect"),
+    /** When the client signed terms of business (RD-2; feeds the AM report). */
+    termsSignedAt: timestamp("terms_signed_at", { withTimezone: true }),
     /** The account manager for this client. */
     ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
     customFields: jsonb("custom_fields").$type<Record<string, unknown>>(),

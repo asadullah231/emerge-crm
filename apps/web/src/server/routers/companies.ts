@@ -29,6 +29,7 @@ const companyInput = z.object({
   location: z.string().trim().max(255).nullable().optional(),
   phone: z.string().trim().max(50).nullable().optional(),
   description: z.string().trim().max(5000).nullable().optional(),
+  termsSignedAt: z.date().nullable().optional(),
   status: z.enum(companyStatus.enumValues).optional(),
   ownerId: z.string().uuid().nullable().optional()
 });
@@ -114,6 +115,7 @@ export const companiesRouter = router({
           phone: companies.phone,
           description: companies.description,
           status: companies.status,
+          termsSignedAt: companies.termsSignedAt,
           ownerId: companies.ownerId,
           deletedAt: companies.deletedAt,
           createdAt: companies.createdAt,
@@ -185,6 +187,7 @@ export const companiesRouter = router({
         location: input.location ?? null,
         phone: input.phone ?? null,
         description: input.description ?? null,
+        termsSignedAt: input.termsSignedAt ?? null,
         status: input.status ?? "prospect",
         ownerId: input.ownerId ?? ctx.session.user.id
       })
