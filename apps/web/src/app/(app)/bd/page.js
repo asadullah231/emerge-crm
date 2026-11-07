@@ -4,6 +4,7 @@ import { buildTeam } from "@/bd/lib/team";
 import { fmtDate, plural } from "@/bd/lib/text";
 import { StagePill, Progress, Stat, Banner } from "@/bd/components/ui";
 import { PauseResume } from "@/bd/components/controls";
+import { TeamActivity } from "@/bd/components/team-activity";
 
 export const dynamic = "force-dynamic";
 
@@ -52,14 +53,6 @@ export default async function Home({ searchParams }) {
       .toLowerCase()
       .trim() === "yes";
   const sentToday = today(all.outbox).length;
-
-  // Har teammate ki is month ki campaigns (started this month, unke mailbox se)
-  const monthKey = ukDay(new Date()).slice(0, 7);
-  const monthCount = (mailbox) =>
-    everyCampaign.filter(
-      (c) =>
-        c.started && ukDay(c.started).slice(0, 7) === monthKey && c.senderKeys.includes(mailbox)
-    ).length;
 
   const campaigns = everyCampaign.filter(
     (c) =>
@@ -112,43 +105,18 @@ export default async function Home({ searchParams }) {
         <Stat label="Waiting to send" value={totals.queued} />
       </div>
 
-      {/* Teammate strip: click a name to see only their campaigns */}
-      <section className="space-y-3">
-        <h2 className="px-1 text-[11px] font-semibold uppercase tracking-wider text-mute">
-          Team · campaigns this month
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {team
-            .filter((t) => t.active || t.sentTotal > 0)
-            .map((t) => {
-              const selected = who === t.mailbox;
-              return (
-                <Link
-                  key={t.mailbox}
-                  href={selected ? href({ who: "" }) : href({ who: t.mailbox })}
-                  className={`card flex items-center gap-3 px-4 py-2.5 text-sm ${selected ? "ring-2 ring-brand" : ""}`}
-                >
-                  <span className="font-semibold tracking-tight">{t.name}</span>
-                  <span className="text-xs text-mute">
-                    <b className="num text-ink">{monthCount(t.mailbox)}</b> this month
-                  </span>
-                  <span className="text-xs text-mute">
-                    <b className="num text-ink">{t.sentToday}</b>/{t.cap} today
-                  </span>
-                  {t.replies > 0 && (
-                    <span className="text-xs text-ok num">{t.replies} replies</span>
-                  )}
-                </Link>
-              );
-            })}
-          <Link
-            href="/bd/team"
-            className="flex items-center px-3 py-2.5 text-xs text-mute hover:text-ink"
-          >
-            Full team view &rarr;
-          </Link>
-        </div>
-      </section>
+      {/* GitHub-style activity grid: kaun active hai ek nazar me */}
+      <TeamActivity
+        team={team.filter((t) => t.active || t.sentTotal > 0)}
+        outbox={all.outbox}
+        linkTo="campaigns"
+      />
+      <div className="-mt-3 px-1 text-xs text-mute">
+        Click a name to see only their campaigns ·{" "}
+        <Link href="/bd/team" className="text-brand hover:underline">
+          Full team view
+        </Link>
+      </div>
 
       {/* Filters: time window + search */}
       <section className="flex flex-wrap items-center gap-2">
