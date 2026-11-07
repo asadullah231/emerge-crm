@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { loadAll } from "@/bd/lib/data";
 import { buildTeam, windowTeamStats } from "@/bd/lib/team";
+import { TeamActivity } from "@/bd/components/team-activity";
 import { Stat } from "@/bd/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,6 @@ export default async function Team({ searchParams }) {
   const rows = team
     .map((t) => ({ ...t, win: win[t.mailbox] || { sent: 0, replies: 0, rate: 0 } }))
     .sort((a, b) => b.win.sent - a.win.sent || b.sentTotal - a.sentTotal);
-  const maxSent = Math.max(1, ...rows.map((t) => t.win.sent));
 
   return (
     <div className="space-y-6">
@@ -67,43 +67,8 @@ export default async function Team({ searchParams }) {
         </div>
       </div>
 
-      {/* Who is most active: ek nazar me bar graph */}
-      <section className="card space-y-3 px-6 py-5">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-mute">
-            Most active · {whenLabel}
-          </h2>
-          <span className="text-xs text-mute">bar = emails sent · green = replies</span>
-        </div>
-        <div className="space-y-2">
-          {rows.map((t) => (
-            <Link
-              key={t.mailbox}
-              href={`/bd/team/${encodeURIComponent(t.mailbox)}`}
-              className="group flex items-center gap-3"
-            >
-              <span className="w-36 shrink-0 truncate text-sm font-medium group-hover:text-brand">
-                {t.name}
-              </span>
-              <span className="relative h-5 flex-1 overflow-hidden rounded-md bg-black/[0.04]">
-                <span
-                  className="absolute inset-y-0 left-0 rounded-md bg-brand/70"
-                  style={{ width: `${Math.round((t.win.sent / maxSent) * 100)}%` }}
-                />
-                <span
-                  className="absolute inset-y-0 left-0 rounded-md bg-emerald-500"
-                  style={{ width: `${Math.round((t.win.replies / maxSent) * 100)}%` }}
-                />
-              </span>
-              <span className="num w-40 shrink-0 text-right text-xs text-mute">
-                <b className="text-ink">{t.win.sent}</b> sent · {t.win.replies} replies
-                {t.win.sent > 0 ? ` · ${t.win.rate}%` : ""}
-              </span>
-            </Link>
-          ))}
-          {!rows.length && <div className="text-sm text-mute">No senders yet.</div>}
-        </div>
-      </section>
+      {/* GitHub-style grid: har banda, har din */}
+      <TeamActivity team={rows} outbox={all.outbox} linkTo="team" />
 
       {/* Mailbox gallery */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

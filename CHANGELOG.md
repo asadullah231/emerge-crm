@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.27.3 - GitHub-style team activity grid (2026-11-07)
+
+- Who is active is now one familiar picture: a GitHub-style activity
+  grid on the campaigns page and the Team page. One row per teammate,
+  one square per day for the last 14 days, darker blue = more emails
+  sent, a green ring = replies came in that day, plus a small totals
+  bar per row. Hover any square for the exact numbers. It replaces the
+  teammate chips and the separate bar chart, so there is one visual to
+  learn instead of three.
+
 ## v0.27.2 - Team page like a cold email tool (2026-11-07)
 
 - The Team page now works like a sending-tool inbox view: a time
