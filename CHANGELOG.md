@@ -3,6 +3,18 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.32.0 - Reporting: management view (RD-4) (2026-11-07)
+
+- New Management tab in Reports, built for the owner's weekly read:
+  activity counts, conversion and speed in one screen.
+- Conversion: submission to interview, interview to offer, offer to
+  acceptance (cohort-based: follows the candidates from this window),
+  and fill rate from closed jobs.
+- Speed: opening to first submission, time to fill, and client feedback
+  time - the first stage change after a submission counts as the client
+  responding, with a count of submissions still waiting.
+- Filters: consultant, client and the usual date presets.
+
 ## v0.31.0 - Reporting: position tracker (RD-3) (2026-11-07)
 
 - New Positions tab in Reports: one row per live position, longest-running

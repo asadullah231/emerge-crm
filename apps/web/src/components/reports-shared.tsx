@@ -110,7 +110,8 @@ export function ReportWindowPicker({ window }: { window: ReturnType<typeof useRe
 const REPORT_TABS = [
   { href: "/reports/recruiters", label: "Recruiters" },
   { href: "/reports/account-managers", label: "Account managers" },
-  { href: "/reports/positions", label: "Positions" }
+  { href: "/reports/positions", label: "Positions" },
+  { href: "/reports/management", label: "Management" }
 ];
 
 export function ReportsTabs() {
