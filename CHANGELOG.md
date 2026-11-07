@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.31.0 - Reporting: position tracker (RD-3) (2026-11-07)
+
+- New Positions tab in Reports: one row per live position, longest-running
+  first - client, AM, recruiters, days live, shortlisted / submitted /
+  rejected / interviews / offers, days since the last submission and the
+  last activity date.
+- Red flags: 30+ days live without a placement, or 7+ days without a
+  submission, highlighted in red with a one-click Red flags filter.
+- Filter by account manager; the job title links to the full pipeline.
+
 ## v0.30.0 - Reporting: account manager view (RD-2) (2026-11-07)
 
 - Reports now has two tabs: Recruiters and Account managers.
