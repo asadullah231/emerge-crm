@@ -30,6 +30,7 @@ export function NewCompanyModal({
   const [name, setName] = useState("");
   const [website, setWebsite] = useState("");
   const [industry, setIndustry] = useState("");
+  const [source, setSource] = useState("");
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<"prospect" | "active" | "dormant">("prospect");
 
@@ -68,6 +69,7 @@ export function NewCompanyModal({
             name: name.trim(),
             website: website.trim() || null,
             industry: industry.trim() || null,
+            source: source.trim() || null,
             location: location.trim() || null,
             status
           });
@@ -101,6 +103,15 @@ export function NewCompanyModal({
               id="company-industry"
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="company-source">Source</Label>
+            <Input
+              id="company-source"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="referral / outreach / inbound"
             />
           </div>
           <div>

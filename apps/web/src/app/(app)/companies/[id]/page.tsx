@@ -174,6 +174,14 @@ export default function CompanyRecordPage() {
             onSave={save("industry")}
           />
           <InlineField
+            label="Source"
+            value={record.source}
+            canEdit={canEdit}
+            saving={update.isPending}
+            placeholder="referral / outreach / inbound..."
+            onSave={save("source")}
+          />
+          <InlineField
             label="Company size"
             value={record.size}
             canEdit={canEdit}

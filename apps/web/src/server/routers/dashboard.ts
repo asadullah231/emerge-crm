@@ -33,6 +33,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** The linear recruitment funnel, in order. Terminal stages sit outside it. */
 const FUNNEL_STAGES = [
   "screening",
+  "shortlisted",
   "submitted",
   "interview",
   "offered",
@@ -206,6 +207,7 @@ export const dashboardRouter = router({
           name: users.name,
           total: count(),
           submitted: sql<number>`count(*) filter (where ${applications.stage} = 'submitted')`,
+          shortlisted: sql<number>`count(*) filter (where ${applications.stage} = 'shortlisted')`,
           interview: sql<number>`count(*) filter (where ${applications.stage} = 'interview')`,
           offered: sql<number>`count(*) filter (where ${applications.stage} = 'offered')`,
           hired: sql<number>`count(*) filter (where ${applications.stage} = 'hired')`
@@ -590,6 +592,7 @@ export const dashboardRouter = router({
           companyId: companies.id,
           companyName: companies.name,
           screening: sql<number>`count(*) filter (where ${applications.stage} = 'screening')`,
+          shortlisted: sql<number>`count(*) filter (where ${applications.stage} = 'shortlisted')`,
           submitted: sql<number>`count(*) filter (where ${applications.stage} = 'submitted')`,
           interview: sql<number>`count(*) filter (where ${applications.stage} = 'interview')`,
           offered: sql<number>`count(*) filter (where ${applications.stage} = 'offered')`,
@@ -615,6 +618,7 @@ export const dashboardRouter = router({
         companyName: r.companyName,
         counts: {
           screening: Number(r.screening),
+          shortlisted: Number(r.shortlisted),
           submitted: Number(r.submitted),
           interview: Number(r.interview),
           offered: Number(r.offered),

@@ -16,11 +16,19 @@ import { trpc } from "@/lib/trpc/client";
 
 /** The seven pipeline stages, in order, matching Zoho's Pipeline View columns. */
 type PipelineStage =
-  "screening" | "submitted" | "interview" | "offered" | "hired" | "rejected" | "archived";
+  | "screening"
+  | "shortlisted"
+  | "submitted"
+  | "interview"
+  | "offered"
+  | "hired"
+  | "rejected"
+  | "archived";
 
 /** Column label + the header accent strip colour (Zoho's funnel palette). */
 const COLUMNS: { stage: PipelineStage; label: string; color: string }[] = [
   { stage: "screening", label: "Screening", color: "#3a9bd1" },
+  { stage: "shortlisted", label: "Shortlisted", color: "#0d9488" },
   { stage: "submitted", label: "Submissions", color: "#0b2149" },
   { stage: "interview", label: "Interview", color: "#e08a2b" },
   { stage: "offered", label: "Offered", color: "#b0a020" },

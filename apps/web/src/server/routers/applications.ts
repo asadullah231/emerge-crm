@@ -91,6 +91,21 @@ const stageEnum = z.enum(applicationStage.enumValues);
  * Rejection reason is required when transitioning INTO the rejected stage,
  * and forbidden otherwise (M16). Keeps the field trimmed + capped.
  */
+/**
+ * RD-0: who rejected. Required flow sends it from the UI; bulk paths derive it
+ * from the status key (rejected_by_client = client, everything else = us).
+ * Cleared automatically when the application leaves the rejected stage.
+ */
+function coerceRejectedBy(
+  toStage: (typeof applicationStage.enumValues)[number],
+  statusKey: string,
+  provided: "us" | "client" | null | undefined
+): "us" | "client" | null {
+  if (toStage !== "rejected") return null;
+  if (provided === "us" || provided === "client") return provided;
+  return statusKey === "rejected_by_client" ? "client" : "us";
+}
+
 function coerceRejectionReason(
   toStage: (typeof applicationStage.enumValues)[number],
   provided: string | null | undefined
@@ -529,6 +544,7 @@ export const applicationsRouter = router({
         id: z.string().uuid(),
         statusKey: z.string().min(1),
         rejectionReason: z.string().trim().max(2000).nullable().optional(),
+        rejectedBy: z.enum(["us", "client"]).nullable().optional(),
         noteBody: z.string().trim().max(10000).nullable().optional(),
         mentionUserIds: z.array(z.string().uuid()).max(50).optional()
       })
@@ -546,6 +562,9 @@ export const applicationsRouter = router({
       const rejectionReason = stageChanged
         ? coerceRejectionReason(target.stage, input.rejectionReason)
         : current.rejectionReason;
+      const rejectedBy = stageChanged
+        ? coerceRejectedBy(target.stage, target.key, input.rejectedBy)
+        : current.rejectedBy;
 
       const [updated] = await ctx.tx
         .update(applications)
@@ -553,6 +572,7 @@ export const applicationsRouter = router({
           statusKey: target.key,
           stage: target.stage,
           rejectionReason,
+          rejectedBy,
           stageEnteredAt: stageChanged ? new Date() : current.stageEnteredAt
         })
         .where(eq(applications.id, input.id))
@@ -609,6 +629,7 @@ export const applicationsRouter = router({
         id: z.string().uuid(),
         stage: stageEnum,
         rejectionReason: z.string().trim().max(2000).nullable().optional(),
+        rejectedBy: z.enum(["us", "client"]).nullable().optional(),
         noteBody: z.string().trim().max(10000).nullable().optional(),
         mentionUserIds: z.array(z.string().uuid()).max(50).optional()
       })
@@ -624,12 +645,14 @@ export const applicationsRouter = router({
 
       const rejectionReason = coerceRejectionReason(input.stage, input.rejectionReason);
       const entryStatus = await entryStatusForStage(ctx.tx, input.stage);
+      const rejectedBy = coerceRejectedBy(input.stage, entryStatus, input.rejectedBy);
       const [updated] = await ctx.tx
         .update(applications)
         .set({
           stage: input.stage,
           statusKey: entryStatus,
           rejectionReason,
+          rejectedBy,
           stageEnteredAt: new Date()
         })
         .where(eq(applications.id, input.id))

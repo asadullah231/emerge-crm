@@ -3,6 +3,17 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.28.0 - Reporting foundation: RD-0 (2026-11-07)
+
+- New Shortlisted stage between Screening and Submitted, everywhere:
+  kanban, pipeline view, dashboard funnel and the status dictionary
+  (migration 0038). Weekly recruiter KPIs count against it next.
+- Rejections now record who rejected: when moving a candidate to
+  Rejected, the form asks The client / Us alongside the already
+  mandatory reason; bulk paths derive it from the status.
+- Clients gain a Source field (referral, outreach, inbound...) on the
+  record and the new client form, for the account manager reports.
+
 ## v0.27.4 - Simpler filters and a clearer activity grid (2026-11-07)
 
 - The time filter is now one small dropdown instead of a row of pills,
