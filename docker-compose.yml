@@ -30,8 +30,9 @@ services:
       retries: 10
 
   minio:
-    # Docker Hub minio/minio was delisted (Sep 2026); quay.io is MinIO's registry.
-    image: quay.io/minio/minio:latest
+    # MinIO pulled its public images twice (Docker Hub Sep 2026, quay.io Nov
+    # 2026); elestio/minio mirrors the last official image on Docker Hub.
+    image: elestio/minio:latest
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-emerge}
