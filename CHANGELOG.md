@@ -3,6 +3,18 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.27.2 - Team page like a cold email tool (2026-11-07)
+
+- The Team page now works like a sending-tool inbox view: a time
+  filter (today, yesterday, last 7 days, this month, all time), one
+  box per mailbox with sent, replies and reply rate for the chosen
+  window plus today against the cap, campaigns this month, and links
+  to that person's campaigns and day-by-day numbers.
+- A Most active bar graph compares teammates at a glance: bar length
+  is emails sent in the window, the green segment is replies.
+- Campaign cards on the campaigns page show the reply rate next to
+  replies.
+
 ## v0.27.1 - BD campaigns page filters (2026-11-07)
 
 - The campaigns page now has time filters (today, yesterday, last 7
