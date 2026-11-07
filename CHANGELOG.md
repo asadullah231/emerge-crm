@@ -3,6 +3,17 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.33.0 - Reporting: Monday report emails (RD-5) (2026-11-07)
+
+- New workspace setting "Monday report emails" (Settings > Workspace).
+  When on, every Monday morning each recruiter gets a branded
+  week-in-review email (their numbers against the 3 shortlisted /
+  2 submitted targets) and admins get the team digest: per-recruiter
+  table, team totals, new clients / jobs opened / placements, and the
+  red-flagged positions list.
+- Runs on the existing worker email infrastructure; one send per week
+  per workspace, idempotent across restarts.
+
 ## v0.32.0 - Reporting: management view (RD-4) (2026-11-07)
 
 - New Management tab in Reports, built for the owner's weekly read:

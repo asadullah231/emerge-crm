@@ -32,7 +32,8 @@ export const workspaceRouter = router({
         name: z.string().trim().min(1, "Workspace name is required").max(200),
         logoUrl: z.string().trim().url().nullable().optional(),
         compactLayout: z.boolean().optional(),
-        bdOutreach: z.boolean().optional()
+        bdOutreach: z.boolean().optional(),
+        weeklyDigest: z.boolean().optional()
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -42,7 +43,8 @@ export const workspaceRouter = router({
           name: input.name,
           logoUrl: input.logoUrl ?? null,
           ...(input.compactLayout === undefined ? {} : { compactLayout: input.compactLayout }),
-          ...(input.bdOutreach === undefined ? {} : { bdOutreach: input.bdOutreach })
+          ...(input.bdOutreach === undefined ? {} : { bdOutreach: input.bdOutreach }),
+          ...(input.weeklyDigest === undefined ? {} : { weeklyDigest: input.weeklyDigest })
         })
         .where(eq(workspaces.id, ctx.workspaceId))
         .returning({
@@ -50,7 +52,8 @@ export const workspaceRouter = router({
           name: workspaces.name,
           logoUrl: workspaces.logoUrl,
           compactLayout: workspaces.compactLayout,
-          bdOutreach: workspaces.bdOutreach
+          bdOutreach: workspaces.bdOutreach,
+          weeklyDigest: workspaces.weeklyDigest
         });
       await writeAudit({
         workspaceId: ctx.workspaceId,

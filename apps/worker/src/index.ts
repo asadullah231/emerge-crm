@@ -8,6 +8,7 @@ import { sendDueInterviewReminders } from "./interviews/reminders";
 import { expireOverdueOffers } from "./offers/expiry";
 import { startParseWorker } from "./parse/worker";
 import { deliverDueReports } from "./reports/deliver";
+import { sendDueWeeklyDigests } from "./reports/weekly-digest";
 import { dispatchDueWebhooks } from "./webhooks/dispatch";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
@@ -38,6 +39,9 @@ const worker = new Worker(
     } else if (job.name === "retention-sweep") {
       const n = await sweepRetention(db);
       if (n > 0) console.log(`[worker] retention: trashed ${n} stale candidate(s)`);
+    } else if (job.name === "weekly-digest") {
+      const n = await sendDueWeeklyDigests(db);
+      if (n > 0) console.log(`[worker] sent ${n} weekly digest email(s)`);
     }
   },
   { connection }
@@ -76,6 +80,13 @@ await queue.upsertJobScheduler(
   "dispatch-webhooks-scheduler",
   { every: 60_000 },
   { name: "dispatch-webhooks" }
+);
+
+// Weekly digest: Monday-morning report emails per workspace (RD-5).
+await queue.upsertJobScheduler(
+  "weekly-digest-scheduler",
+  { every: 15 * 60_000 },
+  { name: "weekly-digest" }
 );
 
 // Retention sweep: trash stale candidates per workspace policy, daily (M20).

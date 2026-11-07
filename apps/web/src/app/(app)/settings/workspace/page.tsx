@@ -13,6 +13,7 @@ export default function WorkspaceSettingsPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [compactLayout, setCompactLayout] = useState(false);
   const [bdOutreach, setBdOutreach] = useState(false);
+  const [weeklyDigest, setWeeklyDigest] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function WorkspaceSettingsPage() {
       setLogoUrl(me.data.workspace.logoUrl ?? "");
       setCompactLayout(me.data.workspace.compactLayout);
       setBdOutreach(me.data.workspace.bdOutreach);
+      setWeeklyDigest(me.data.workspace.weeklyDigest);
     }
   }, [me.data]);
 
@@ -48,7 +50,8 @@ export default function WorkspaceSettingsPage() {
           name,
           logoUrl: logoUrl.trim() === "" ? null : logoUrl,
           compactLayout,
-          bdOutreach
+          bdOutreach,
+          weeklyDigest
         });
       }}
     >
@@ -114,6 +117,24 @@ export default function WorkspaceSettingsPage() {
             <span className="block text-xs text-[var(--muted)]">
               Adds BD Outreach to the sidebar: campaigns, emails sent, replies and per-mailbox
               numbers from the outreach engine. Needs the BD data connection set up on the server.
+            </span>
+          </span>
+        </label>
+      </div>
+      <div>
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            disabled={!isAdmin}
+            checked={weeklyDigest}
+            onChange={(e) => setWeeklyDigest(e.target.checked)}
+          />
+          <span>
+            Monday report emails
+            <span className="block text-xs text-[var(--muted)]">
+              Every Monday morning each recruiter gets their own week-in-review email and admins get
+              the team digest with red-flagged positions.
             </span>
           </span>
         </label>

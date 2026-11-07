@@ -7,3 +7,4 @@ export * from "./emails/mention.js";
 export * from "./emails/password-reset.js";
 export * from "./emails/task-assigned.js";
 export * from "./emails/task-completed.js";
+export * from "./emails/weekly-digest.js";
