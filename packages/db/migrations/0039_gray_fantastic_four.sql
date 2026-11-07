@@ -1,0 +1,1 @@
+ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "terms_signed_at" timestamp with time zone;
