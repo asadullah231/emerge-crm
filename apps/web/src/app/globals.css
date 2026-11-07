@@ -65,6 +65,25 @@
   --surface-sunken: #111113;
 }
 
+/*
+ * Utility aliases used by the BD Outreach module (src/bd). They point at the
+ * CRM tokens above, so bg-paper / text-mute / bg-brand follow the theme.
+ */
+@theme inline {
+  --color-ink: var(--foreground);
+  --color-mute: var(--muted);
+  --color-line: var(--border);
+  --color-paper: var(--surface-sunken);
+  --color-brand: var(--brand-primary);
+  --color-brandDeep: var(--brand-primary-hover);
+  --color-ok: #1f9d55;
+  --color-warn: #c77700;
+  --color-bad: #d70015;
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -16px rgba(0, 0, 0, 0.12);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.04), 0 16px 40px -20px rgba(0, 0, 0, 0.18);
+  --shadow-inner-soft: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
