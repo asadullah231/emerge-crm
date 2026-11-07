@@ -3,6 +3,20 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.27.0 - BD Outreach module (2026-11-07)
+
+- New BD Outreach module, switched on per workspace in Settings > Workspace
+  and then shown in the sidebar. It brings the team's outreach dashboard
+  into the CRM login: campaigns with progress and plain-English skip
+  reasons, every email sent with its exact text, replies with what the
+  person wrote, today's sending per mailbox, and a Team page with 14-day
+  numbers. Start, pause, resume, rename, archive and cancel work from
+  here too, and Farming campaigns can upload the signed contract.
+  Read-only members can look but not change anything. The data stays in
+  the outreach engine's own base (NocoDB) and the engine itself stays in
+  n8n; the web container only needs the BD connection variables
+  (see .env.production.example). Replaces the separate bd.* dashboard.
+
 ## v0.26.21 - Revenue removed from the app (2026-09-18)
 
 - The Revenue sections on the job and client pages are gone for every
