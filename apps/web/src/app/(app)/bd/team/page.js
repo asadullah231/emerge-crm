@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadAll } from "@/bd/lib/data";
 import { buildTeam, windowTeamStats } from "@/bd/lib/team";
 import { TeamActivity } from "@/bd/components/team-activity";
+import { WhenSelect } from "@/bd/components/when-select";
 import { Stat } from "@/bd/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -54,17 +55,7 @@ export default async function Team({ searchParams }) {
             {paused ? "Sending is paused right now." : ""}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {WHEN.map((w) => (
-            <Link
-              key={w.key}
-              href={w.key === "month" ? "/bd/team" : `/bd/team?when=${w.key}`}
-              className={`pill ${when === w.key ? "bg-brand text-white" : "bg-black/[0.05] text-mute hover:text-ink"}`}
-            >
-              {w.label}
-            </Link>
-          ))}
-        </div>
+        <WhenSelect value={when} options={WHEN} />
       </div>
 
       {/* GitHub-style grid: har banda, har din */}

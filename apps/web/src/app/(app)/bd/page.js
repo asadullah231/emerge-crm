@@ -5,6 +5,7 @@ import { fmtDate, plural } from "@/bd/lib/text";
 import { StagePill, Progress, Stat, Banner } from "@/bd/components/ui";
 import { PauseResume } from "@/bd/components/controls";
 import { TeamActivity } from "@/bd/components/team-activity";
+import { WhenSelect } from "@/bd/components/when-select";
 
 export const dynamic = "force-dynamic";
 
@@ -75,16 +76,6 @@ export default async function Home({ searchParams }) {
   const done = campaigns.filter((c) => !running.includes(c));
   const filtered = Boolean(who || when !== "all" || q);
 
-  const href = (patch) => {
-    const p = new URLSearchParams();
-    const next = { who, when, q, ...patch };
-    if (next.who) p.set("who", next.who);
-    if (next.when && next.when !== "all") p.set("when", next.when);
-    if (next.q) p.set("q", next.q);
-    const s = p.toString();
-    return s ? `/bd?${s}` : "/bd";
-  };
-
   return (
     <div className="space-y-6">
       {sp?.started && (
@@ -105,31 +96,10 @@ export default async function Home({ searchParams }) {
         <Stat label="Waiting to send" value={totals.queued} />
       </div>
 
-      {/* GitHub-style activity grid: kaun active hai ek nazar me */}
-      <TeamActivity
-        team={team.filter((t) => t.active || t.sentTotal > 0)}
-        outbox={all.outbox}
-        linkTo="campaigns"
-      />
-      <div className="-mt-3 px-1 text-xs text-mute">
-        Click a name to see only their campaigns ·{" "}
-        <Link href="/bd/team" className="text-brand hover:underline">
-          Full team view
-        </Link>
-      </div>
-
-      {/* Filters: time window + search */}
-      <section className="flex flex-wrap items-center gap-2">
-        {WHEN.map((w) => (
-          <Link
-            key={w.key}
-            href={href({ when: w.key })}
-            className={`pill ${when === w.key ? "bg-brand text-white" : "bg-black/[0.05] text-mute hover:text-ink"}`}
-          >
-            {w.label}
-          </Link>
-        ))}
-        <form action="/bd" className="ml-auto">
+      {/* Filters: dropdown + search, ek simple line */}
+      <section className="flex flex-wrap items-center gap-3">
+        <WhenSelect value={when} options={WHEN} />
+        <form action="/bd">
           {who && <input type="hidden" name="who" value={who} />}
           {when !== "all" && <input type="hidden" name="when" value={when} />}
           <input
@@ -171,6 +141,19 @@ export default async function Home({ searchParams }) {
           )}
         </div>
       </details>
+
+      {/* GitHub-style activity grid: kaun active hai ek nazar me */}
+      <TeamActivity
+        team={team.filter((t) => t.active || t.sentTotal > 0)}
+        outbox={all.outbox}
+        linkTo="campaigns"
+      />
+      <div className="-mt-3 px-1 text-xs text-mute">
+        Click a name to see only their campaigns ·{" "}
+        <Link href="/bd/team" className="text-brand hover:underline">
+          Full team view
+        </Link>
+      </div>
 
       <div className="text-sm">
         <Link href="/bd/archived" className="text-mute hover:text-ink">

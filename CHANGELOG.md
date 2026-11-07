@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.27.4 - Simpler filters and a clearer activity grid (2026-11-07)
+
+- The time filter is now one small dropdown instead of a row of pills,
+  on both the campaigns page and the Team page.
+- The activity grid got easier to read: a date header over every
+  column, each row shows the person's name with their mailbox under
+  it, bigger squares, and a plain total at the end of the row. It now
+  sits below the campaigns so the page reads campaigns first, team
+  second.
+
 ## v0.27.3 - GitHub-style team activity grid (2026-11-07)
 
 - Who is active is now one familiar picture: a GitHub-style activity
