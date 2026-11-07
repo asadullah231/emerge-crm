@@ -282,7 +282,13 @@ function CampaignCard({ c }) {
       </div>
       <div className="mt-4 grid grid-cols-4 gap-3">
         <Stat label="Sent" value={c.sent} />
-        <Stat label="Replies" value={c.replied} tone={c.replied ? "text-ok" : ""} />
+        <Stat
+          label="Replies"
+          value={
+            c.sent ? `${c.replied} · ${Math.round((c.replied / c.sent) * 1000) / 10}%` : c.replied
+          }
+          tone={c.replied ? "text-ok" : ""}
+        />
         <Stat label="Waiting" value={c.queued} />
         <Stat label="Skipped" value={c.blocked} tone="text-mute" />
       </div>

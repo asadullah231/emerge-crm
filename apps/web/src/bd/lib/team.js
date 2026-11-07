@@ -74,6 +74,41 @@ export function buildTeam({ outbox, senders, state, jobs = [], companies = [], m
     .sort((a, b) => b.sentTotal - a.sentTotal || a.name.localeCompare(b.name));
 }
 
+/** Ek time-window ke andar har mailbox ke numbers (sent, replies, reply rate %). */
+export function windowTeamStats(outbox, when) {
+  const now = new Date();
+  const todayKey = ukDay(now);
+  const from =
+    when === "today"
+      ? todayKey
+      : when === "yesterday"
+        ? ukDay(new Date(now.getTime() - 864e5))
+        : when === "7d"
+          ? ukDay(new Date(now.getTime() - 7 * 864e5))
+          : when === "month"
+            ? todayKey.slice(0, 7) + "-01"
+            : "";
+  const to = when === "yesterday" ? from : todayKey;
+  const inWin = (r) => {
+    if (!from) return true;
+    if (!r.sent_at) return false;
+    const d = ukDay(r.sent_at);
+    return d >= from && d <= to;
+  };
+  const by = {};
+  for (const r of outbox) {
+    if (!r.sender || !inWin(r)) continue;
+    const s = by[r.sender] || (by[r.sender] = { sent: 0, replies: 0 });
+    if (SENT.includes(r.status)) s.sent++;
+    if (r.status === "replied") s.replies++;
+  }
+  for (const k of Object.keys(by)) {
+    const s = by[k];
+    s.rate = s.sent ? Math.round((s.replies / s.sent) * 1000) / 10 : 0;
+  }
+  return by;
+}
+
 /** Day-by-day rows for one mailbox, newest first. days = how many calendar days back (UK). */
 export function dailyFor(outbox, mailbox, days = 14) {
   const mine = outbox.filter((r) => r.sender === mailbox && r.sent_at);
