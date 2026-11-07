@@ -267,7 +267,8 @@ export function ApplicationKanban({
                 stage: opts.stage,
                 noteBody: opts.noteBody,
                 mentionUserIds: opts.mentionUserIds,
-                rejectionReason: opts.rejectionReason
+                rejectionReason: opts.rejectionReason,
+                rejectedBy: opts.rejectedBy
               })
             }
           />

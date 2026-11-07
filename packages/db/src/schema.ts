@@ -182,6 +182,8 @@ export const companies = pgTable(
     domain: text("domain"),
     industry: text("industry"),
     size: text("size"),
+    /** Where this client came from (referral, outreach, inbound...) - RD-0. */
+    source: text("source"),
     location: text("location"),
     phone: text("phone"),
     description: text("description"),
@@ -545,8 +547,12 @@ export const jobs = pgTable(
 // append-only history records every transition for funnels + migration (M8).
 // ---------------------------------------------------------------------------
 
+/** RD-0: rejection kis taraf se aayi - reporting isko alag ginta hai. */
+export const rejectionSource = pgEnum("rejection_source", ["us", "client"]);
+
 export const applicationStage = pgEnum("application_stage", [
   "screening",
+  "shortlisted",
   "submitted",
   "interview",
   "offered",
@@ -598,6 +604,8 @@ export const applications = pgTable(
     /** Fine status key into `application_statuses` for this workspace. */
     statusKey: text("status_key").notNull().default("associated"),
     rejectionReason: text("rejection_reason"),
+    /** Who rejected: our side or the client (required when stage = rejected). */
+    rejectedBy: rejectionSource("rejected_by"),
     /** 1-5 recruiter rating, optional. */
     rating: integer("rating"),
     /** The sourcer who owns this application. */

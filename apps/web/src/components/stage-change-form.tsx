@@ -37,6 +37,7 @@ export function StageChangeForm({
     noteBody: string | null;
     mentionUserIds: string[];
     rejectionReason: string | null;
+    rejectedBy: "us" | "client" | null;
   }) => void;
   onCancel?: () => void;
   submitLabel?: string;
@@ -48,9 +49,11 @@ export function StageChangeForm({
   const [noteBody, setNoteBody] = useState("");
   const [tracked, setTracked] = useState<MentionMember[]>([]);
   const [reason, setReason] = useState("");
+  const [rejectedBy, setRejectedBy] = useState<"us" | "client" | "">("");
 
   const isReject = stage === REJECTION_STAGE;
-  const disabled = saving || stage === currentStage || (isReject && reason.trim().length === 0);
+  const disabled =
+    saving || stage === currentStage || (isReject && (reason.trim().length === 0 || !rejectedBy));
 
   const submit = () => {
     const trimmedBody = noteBody.trim();
@@ -60,7 +63,8 @@ export function StageChangeForm({
       stage,
       noteBody: trimmedBody || null,
       mentionUserIds,
-      rejectionReason: isReject ? trimmedReason : null
+      rejectionReason: isReject ? trimmedReason : null,
+      rejectedBy: isReject && rejectedBy ? rejectedBy : null
     });
   };
 
@@ -110,6 +114,27 @@ export function StageChangeForm({
 
       {isReject ? (
         <div>
+          <Label>
+            Who rejected? <span className="text-red-600">*</span>
+          </Label>
+          <div className="mb-3 flex gap-2">
+            <Button
+              type="button"
+              variant={rejectedBy === "client" ? "primary" : "outline"}
+              className="px-3 py-1.5"
+              onClick={() => setRejectedBy("client")}
+            >
+              The client
+            </Button>
+            <Button
+              type="button"
+              variant={rejectedBy === "us" ? "primary" : "outline"}
+              className="px-3 py-1.5"
+              onClick={() => setRejectedBy("us")}
+            >
+              Us (our side)
+            </Button>
+          </div>
           <Label htmlFor="stage-reason">
             Rejection reason <span className="text-red-600">*</span>
           </Label>
