@@ -1,21 +1,73 @@
 import Link from "next/link";
 import { loadAll, buildCampaigns, queueAdvice, today } from "@/bd/lib/data";
+import { buildTeam } from "@/bd/lib/team";
 import { fmtDate, plural } from "@/bd/lib/text";
 import { StagePill, Progress, Stat, Banner } from "@/bd/components/ui";
 import { PauseResume } from "@/bd/components/controls";
 
 export const dynamic = "force-dynamic";
 
+const WHEN = [
+  { key: "all", label: "All time" },
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "7d", label: "Last 7 days" },
+  { key: "month", label: "This month" }
+];
+
+const ukDay = (d) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date(d));
+
+/** Campaign ki aakhri harkat ka din; filter isi pe chalta hai. */
+function lastDay(c) {
+  const t = c.lastSent || c.started;
+  return t ? ukDay(t) : "";
+}
+
+function inWindow(c, when) {
+  if (when === "all") return true;
+  const day = lastDay(c);
+  if (!day) return false;
+  const now = new Date();
+  const todayKey = ukDay(now);
+  if (when === "today") return day === todayKey;
+  if (when === "yesterday") return day === ukDay(new Date(now.getTime() - 864e5));
+  if (when === "7d") return day >= ukDay(new Date(now.getTime() - 7 * 864e5));
+  if (when === "month") return day.slice(0, 7) === todayKey.slice(0, 7);
+  return true;
+}
+
 export default async function Home({ searchParams }) {
   const sp = await searchParams;
+  const who = typeof sp?.who === "string" ? sp.who : "";
+  const when = WHEN.some((w) => w.key === sp?.when) ? sp.when : "all";
+  const q = typeof sp?.q === "string" ? sp.q.trim().toLowerCase() : "";
+
   const all = await loadAll();
-  const campaigns = buildCampaigns(all).filter((c) => !c.archived);
-  const advice = queueAdvice(campaigns, all.state);
+  const everyCampaign = buildCampaigns(all).filter((c) => !c.archived);
+  const team = buildTeam(all);
+  const advice = queueAdvice(everyCampaign, all.state);
   const paused =
     String(all.state.paused || "")
       .toLowerCase()
       .trim() === "yes";
   const sentToday = today(all.outbox).length;
+
+  // Har teammate ki is month ki campaigns (started this month, unke mailbox se)
+  const monthKey = ukDay(new Date()).slice(0, 7);
+  const monthCount = (mailbox) =>
+    everyCampaign.filter(
+      (c) =>
+        c.started && ukDay(c.started).slice(0, 7) === monthKey && c.senderKeys.includes(mailbox)
+    ).length;
+
+  const campaigns = everyCampaign.filter(
+    (c) =>
+      (!who || c.senderKeys.includes(who) || (!c.senderKeys.length && who === "")) &&
+      inWindow(c, when) &&
+      (!q || c.name.toLowerCase().includes(q))
+  );
+
   const totals = campaigns.reduce(
     (a, c) => ({
       sent: a.sent + c.sent,
@@ -28,6 +80,17 @@ export default async function Home({ searchParams }) {
     ["sending", "researching", "scraping", "paused"].includes(c.stage)
   );
   const done = campaigns.filter((c) => !running.includes(c));
+  const filtered = Boolean(who || when !== "all" || q);
+
+  const href = (patch) => {
+    const p = new URLSearchParams();
+    const next = { who, when, q, ...patch };
+    if (next.who) p.set("who", next.who);
+    if (next.when && next.when !== "all") p.set("when", next.when);
+    if (next.q) p.set("q", next.q);
+    const s = p.toString();
+    return s ? `/bd?${s}` : "/bd";
+  };
 
   return (
     <div className="space-y-6">
@@ -44,17 +107,103 @@ export default async function Home({ searchParams }) {
 
       <div className="card grid grid-cols-2 gap-6 px-6 py-5 sm:grid-cols-4">
         <Stat label="Sent today" value={sentToday} />
-        <Stat label="Sent in total" value={totals.sent} />
+        <Stat label={filtered ? "Sent (filtered)" : "Sent in total"} value={totals.sent} />
         <Stat label="Replies" value={totals.replied} tone="text-ok" />
         <Stat label="Waiting to send" value={totals.queued} />
       </div>
 
+      {/* Teammate strip: click a name to see only their campaigns */}
+      <section className="space-y-3">
+        <h2 className="px-1 text-[11px] font-semibold uppercase tracking-wider text-mute">
+          Team · campaigns this month
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {team
+            .filter((t) => t.active || t.sentTotal > 0)
+            .map((t) => {
+              const selected = who === t.mailbox;
+              return (
+                <Link
+                  key={t.mailbox}
+                  href={selected ? href({ who: "" }) : href({ who: t.mailbox })}
+                  className={`card flex items-center gap-3 px-4 py-2.5 text-sm ${selected ? "ring-2 ring-brand" : ""}`}
+                >
+                  <span className="font-semibold tracking-tight">{t.name}</span>
+                  <span className="text-xs text-mute">
+                    <b className="num text-ink">{monthCount(t.mailbox)}</b> this month
+                  </span>
+                  <span className="text-xs text-mute">
+                    <b className="num text-ink">{t.sentToday}</b>/{t.cap} today
+                  </span>
+                  {t.replies > 0 && (
+                    <span className="text-xs text-ok num">{t.replies} replies</span>
+                  )}
+                </Link>
+              );
+            })}
+          <Link
+            href="/bd/team"
+            className="flex items-center px-3 py-2.5 text-xs text-mute hover:text-ink"
+          >
+            Full team view &rarr;
+          </Link>
+        </div>
+      </section>
+
+      {/* Filters: time window + search */}
+      <section className="flex flex-wrap items-center gap-2">
+        {WHEN.map((w) => (
+          <Link
+            key={w.key}
+            href={href({ when: w.key })}
+            className={`pill ${when === w.key ? "bg-brand text-white" : "bg-black/[0.05] text-mute hover:text-ink"}`}
+          >
+            {w.label}
+          </Link>
+        ))}
+        <form action="/bd" className="ml-auto">
+          {who && <input type="hidden" name="who" value={who} />}
+          {when !== "all" && <input type="hidden" name="when" value={when} />}
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Search campaigns..."
+            className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm outline-none focus:border-black/30"
+          />
+        </form>
+        {filtered && (
+          <Link href="/bd" className="pill bg-black/[0.05] text-mute hover:text-ink">
+            Clear filters
+          </Link>
+        )}
+      </section>
+
       <Section
-        title="Running now"
+        title={`Running now (${running.length})`}
         items={running}
-        empty="Nothing is running. Upload a LinkedIn search in #bd-outreach to start a campaign."
+        empty={
+          filtered
+            ? "Nothing running matches these filters."
+            : "Nothing is running. Upload a LinkedIn search in #bd-outreach to start a campaign."
+        }
       />
-      <Section title="Finished" items={done} empty="No finished campaigns yet." />
+
+      {/* Finished: apni jagah pe, collapsed by default jab filters off hon */}
+      <details open={filtered || running.length === 0} className="group">
+        <summary className="cursor-pointer select-none px-1 text-[11px] font-semibold uppercase tracking-wider text-mute hover:text-ink">
+          Finished ({done.length}) <span className="normal-case">· click to open</span>
+        </summary>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
+          {done.map((c) => (
+            <CampaignCard key={c.batch} c={c} />
+          ))}
+          {!done.length && (
+            <div className="card px-5 py-6 text-sm text-mute">No finished campaigns yet.</div>
+          )}
+        </div>
+      </details>
+
       <div className="text-sm">
         <Link href="/bd/archived" className="text-mute hover:text-ink">
           Archived campaigns
