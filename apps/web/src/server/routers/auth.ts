@@ -132,7 +132,8 @@ export const authRouter = router({
         name: workspaces.name,
         logoUrl: workspaces.logoUrl,
         compactLayout: workspaces.compactLayout,
-        bdOutreach: workspaces.bdOutreach
+        bdOutreach: workspaces.bdOutreach,
+        weeklyDigest: workspaces.weeklyDigest
       })
       .from(workspaces)
       .where(eq(workspaces.id, ctx.session.workspaceId))

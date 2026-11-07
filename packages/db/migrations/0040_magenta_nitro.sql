@@ -1,0 +1,2 @@
+ALTER TABLE "workspaces" ADD COLUMN IF NOT EXISTS "weekly_digest" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "workspaces" ADD COLUMN IF NOT EXISTS "weekly_digest_last_sent_at" timestamp with time zone;

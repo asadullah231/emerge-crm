@@ -71,6 +71,10 @@ export const workspaces = pgTable("workspaces", {
   // BD Outreach module (campaigns, emails, replies read from the NocoDB BD base).
   // Off by default; an admin turns it on in Settings > Workspace.
   bdOutreach: boolean("bd_outreach").notNull().default(false),
+  // RD-5: Monday morning report emails (each member their own summary,
+  // admins the team digest). Off by default; toggled in Settings > Workspace.
+  weeklyDigest: boolean("weekly_digest").notNull().default(false),
+  weeklyDigestLastSentAt: timestamp("weekly_digest_last_sent_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt()
 });
