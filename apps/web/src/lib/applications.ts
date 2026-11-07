@@ -6,6 +6,7 @@
 
 export const APPLICATION_STAGES = [
   "screening",
+  "shortlisted",
   "submitted",
   "interview",
   "offered",
@@ -18,6 +19,7 @@ export type ApplicationStageKey = (typeof APPLICATION_STAGES)[number];
 
 export const STAGE_LABELS: Record<ApplicationStageKey, string> = {
   screening: "Screening",
+  shortlisted: "Shortlisted",
   submitted: "Submitted",
   interview: "Interview",
   offered: "Offered",
@@ -33,6 +35,7 @@ export const STAGE_LABELS: Record<ApplicationStageKey, string> = {
  */
 export const STAGE_ACCENT: Record<ApplicationStageKey, string> = {
   screening: "text-[var(--brand-secondary)]",
+  shortlisted: "text-[var(--brand-secondary)]",
   submitted: "text-[var(--brand-secondary)]",
   interview: "text-[var(--brand-primary)]",
   offered: "text-[var(--brand-primary)]",
@@ -48,6 +51,7 @@ export const STAGE_ACCENT: Record<ApplicationStageKey, string> = {
  */
 export const STAGE_DOT: Record<ApplicationStageKey, string> = {
   screening: "bg-[var(--brand-secondary)]",
+  shortlisted: "bg-teal-500",
   submitted: "bg-sky-500",
   interview: "bg-violet-500",
   offered: "bg-amber-500",
@@ -89,10 +93,18 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     isTerminal: false
   },
   {
+    key: "shortlisted",
+    label: "Shortlisted",
+    stage: "shortlisted",
+    sortOrder: 3,
+    isEntry: true,
+    isTerminal: false
+  },
+  {
     key: "submitted_to_client",
     label: "Submitted to client",
     stage: "submitted",
-    sortOrder: 3,
+    sortOrder: 4,
     isEntry: true,
     isTerminal: false
   },
@@ -100,7 +112,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "approved_by_client",
     label: "Approved by client",
     stage: "submitted",
-    sortOrder: 4,
+    sortOrder: 5,
     isEntry: false,
     isTerminal: false
   },
@@ -108,7 +120,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "interview_to_be_scheduled",
     label: "Interview to be scheduled",
     stage: "interview",
-    sortOrder: 5,
+    sortOrder: 6,
     isEntry: true,
     isTerminal: false
   },
@@ -116,7 +128,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "interview_scheduled",
     label: "Interview scheduled",
     stage: "interview",
-    sortOrder: 6,
+    sortOrder: 7,
     isEntry: false,
     isTerminal: false
   },
@@ -124,7 +136,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "interview_in_progress",
     label: "Interview in progress",
     stage: "interview",
-    sortOrder: 7,
+    sortOrder: 8,
     isEntry: false,
     isTerminal: false
   },
@@ -132,16 +144,16 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "offer_made",
     label: "Offer made",
     stage: "offered",
-    sortOrder: 8,
+    sortOrder: 9,
     isEntry: true,
     isTerminal: false
   },
-  { key: "hired", label: "Hired", stage: "hired", sortOrder: 9, isEntry: true, isTerminal: true },
+  { key: "hired", label: "Hired", stage: "hired", sortOrder: 10, isEntry: true, isTerminal: true },
   {
     key: "unqualified",
     label: "Unqualified",
     stage: "rejected",
-    sortOrder: 10,
+    sortOrder: 11,
     isEntry: false,
     isTerminal: true
   },
@@ -149,7 +161,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "rejected_by_client",
     label: "Rejected by client",
     stage: "rejected",
-    sortOrder: 11,
+    sortOrder: 12,
     isEntry: false,
     isTerminal: true
   },
@@ -157,7 +169,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "rejected",
     label: "Rejected",
     stage: "rejected",
-    sortOrder: 12,
+    sortOrder: 13,
     isEntry: true,
     isTerminal: true
   },
@@ -165,7 +177,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "archived",
     label: "Archived",
     stage: "archived",
-    sortOrder: 13,
+    sortOrder: 14,
     isEntry: true,
     isTerminal: true
   },
@@ -173,7 +185,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "offer_accepted",
     label: "Offer accepted",
     stage: "offered",
-    sortOrder: 14,
+    sortOrder: 15,
     isEntry: false,
     isTerminal: false
   },
@@ -181,7 +193,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "offer_declined",
     label: "Offer declined",
     stage: "rejected",
-    sortOrder: 15,
+    sortOrder: 16,
     isEntry: false,
     isTerminal: true
   },
@@ -189,7 +201,7 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     key: "offer_withdrawn",
     label: "Offer withdrawn",
     stage: "rejected",
-    sortOrder: 16,
+    sortOrder: 17,
     isEntry: false,
     isTerminal: true
   }

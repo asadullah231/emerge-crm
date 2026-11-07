@@ -52,6 +52,7 @@ export function HiringPipelineTab({
   const [noteBody, setNoteBody] = useState("");
   const [mentions, setMentions] = useState<MentionMember[]>([]);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectedBy, setRejectedBy] = useState<"us" | "client" | "">("");
 
   const counts = trpc.applications.relatedCounts.useQuery({ id: record.id });
 
@@ -265,6 +266,23 @@ export function HiringPipelineTab({
           </div>
           {nextIsRejection ? (
             <div>
+              <Label>Who rejected? (required)</Label>
+              <div className="mb-2 flex gap-2">
+                <Button
+                  variant={rejectedBy === "client" ? "primary" : "outline"}
+                  className="px-3 py-1.5"
+                  onClick={() => setRejectedBy("client")}
+                >
+                  The client
+                </Button>
+                <Button
+                  variant={rejectedBy === "us" ? "primary" : "outline"}
+                  className="px-3 py-1.5"
+                  onClick={() => setRejectedBy("us")}
+                >
+                  Us (our side)
+                </Button>
+              </div>
               <Label htmlFor="pipeline-reject">Rejection reason (required)</Label>
               <textarea
                 id="pipeline-reject"
@@ -284,7 +302,10 @@ export function HiringPipelineTab({
               Cancel
             </Button>
             <Button
-              disabled={changeStatus.isPending || (nextIsRejection && !rejectionReason.trim())}
+              disabled={
+                changeStatus.isPending ||
+                (nextIsRejection && (!rejectionReason.trim() || !rejectedBy))
+              }
               onClick={() => {
                 if (!nextStatus) return;
                 changeStatus.mutate({
@@ -292,7 +313,8 @@ export function HiringPipelineTab({
                   statusKey: nextStatus.key,
                   noteBody: noteBody.trim() || undefined,
                   mentionUserIds: mentions.map((m) => m.userId),
-                  rejectionReason: nextIsRejection ? rejectionReason.trim() : undefined
+                  rejectionReason: nextIsRejection ? rejectionReason.trim() : undefined,
+                  rejectedBy: nextIsRejection && rejectedBy ? rejectedBy : undefined
                 });
               }}
             >
