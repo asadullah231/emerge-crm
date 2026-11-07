@@ -3,6 +3,15 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.30.0 - Reporting: account manager view (RD-2) (2026-11-07)
+
+- Reports now has two tabs: Recruiters and Account managers.
+- Account manager scoreboard per AM and team: new clients (with their
+  source), jobs opened, terms signed, meetings logged (notes with kind
+  Meeting) and placements with revenue.
+- Every count opens the list behind it, with links to the records.
+- Clients gain a Terms signed date on the record page, editable inline.
+
 ## v0.29.0 - Reporting: recruiter view (RD-1) (2026-11-07)
 
 - New Reports page (sidebar): per-recruiter weekly scoreboard against the

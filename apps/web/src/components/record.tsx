@@ -85,7 +85,7 @@ export function InlineField({
   value: string | null;
   onSave: (value: string | null) => void;
   canEdit: boolean;
-  type?: "text" | "url" | "email" | "tel" | "textarea";
+  type?: "text" | "url" | "email" | "tel" | "textarea" | "date";
   placeholder?: string;
   /** When set, edit mode renders a select instead of an input. */
   options?: { value: string; label: string }[];
