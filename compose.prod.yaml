@@ -65,6 +65,19 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-}
       SMTP_FROM: ${SMTP_FROM:-no-reply@emergeautomation.tech}
       NEXT_PUBLIC_APP_URL: https://crm.emergeautomation.tech
+      # BD Outreach module (optional). Reads the NocoDB BD base and calls the
+      # n8n webhooks for start / pause / resume. Empty = module pages show no data.
+      NOCODB_BASE_URL: ${NOCODB_BASE_URL:-}
+      NOCODB_TOKEN: ${NOCODB_TOKEN:-}
+      NOCODB_T_JOBS: ${NOCODB_T_JOBS:-}
+      NOCODB_T_COMPANIES: ${NOCODB_T_COMPANIES:-}
+      NOCODB_T_OUTBOX: ${NOCODB_T_OUTBOX:-}
+      NOCODB_T_SEND_STATE: ${NOCODB_T_SEND_STATE:-}
+      NOCODB_T_SENDERS: ${NOCODB_T_SENDERS:-}
+      NOCODB_T_CAMPAIGNS: ${NOCODB_T_CAMPAIGNS:-}
+      NOCODB_T_REPLIES: ${NOCODB_T_REPLIES:-}
+      N8N_BASE_URL: ${N8N_BASE_URL:-}
+      SLACK_BD_CHANNEL: ${SLACK_BD_CHANNEL:-}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 15s

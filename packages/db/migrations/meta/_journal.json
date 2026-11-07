@@ -260,6 +260,13 @@
       "when": 1788917920148,
       "tag": "0036_fearless_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794030036648,
+      "tag": "0037_loose_rocket_raccoon",
+      "breakpoints": true
     }
   ]
 }

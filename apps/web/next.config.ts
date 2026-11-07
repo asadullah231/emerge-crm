@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   // Standalone tracing needs symlink support; enabled only for the Docker (Linux) build
   // because Windows dev machines hit EPERM with pnpm's symlinked node_modules.
   output: process.env.BUILD_STANDALONE === "1" ? "standalone" : undefined,
+  // BD Outreach: the Farming start form uploads the signed contract (PDF/Word, up to 8 MB).
+  experimental: { serverActions: { bodySizeLimit: "10mb" } },
   transpilePackages: [
     "@emerge/core",
     "@emerge/db",

@@ -1,0 +1,1 @@
+ALTER TABLE "workspaces" ADD COLUMN "bd_outreach" boolean DEFAULT false NOT NULL;

@@ -68,6 +68,9 @@ export const workspaces = pgTable("workspaces", {
   // Owner-level customization: trimmed record pages for the whole team
   // (admins keep the full layout; users.compactLayout is a personal opt-in).
   compactLayout: boolean("compact_layout").notNull().default(false),
+  // BD Outreach module (campaigns, emails, replies read from the NocoDB BD base).
+  // Off by default; an admin turns it on in Settings > Workspace.
+  bdOutreach: boolean("bd_outreach").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt()
 });
