@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.27.1 - BD campaigns page filters (2026-11-07)
+
+- The campaigns page now has time filters (today, yesterday, last 7
+  days, this month), a campaign search box, and a teammate strip
+  showing each mailbox with campaigns started this month, sent today
+  against the cap and replies; clicking a teammate shows only their
+  campaigns. Finished campaigns fold into a collapsible section so
+  running work stays on top. Filters sit in the URL so a view can be
+  shared.
+
 ## v0.27.0 - BD Outreach module (2026-11-07)
 
 - New BD Outreach module, switched on per workspace in Settings > Workspace
