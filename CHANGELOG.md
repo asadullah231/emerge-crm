@@ -3,6 +3,24 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.29.0 - Reporting: recruiter view (RD-1) (2026-11-07)
+
+- New Reports page (sidebar): per-recruiter weekly scoreboard against the
+  3 shortlisted / 2 submitted targets, with a green/amber/red status per
+  recruiter and team totals.
+- Every count opens the list behind it (candidate, job, client, who, date);
+  counts follow the date the status change happened.
+- Shortlist to submission rate for the window and rolling 4 weeks.
+- Rejections: click through to the full list with who rejected (client/us)
+  and the written feedback; top rejection reasons per recruiter and team
+  over the last 4 weeks.
+- Daily activity Mon-Fri per recruiter or whole team: candidates added,
+  calls and meetings logged, status changes, tasks completed.
+- Sourcing health: average days from assignment to first shortlist, weekly
+  shortlist trend, and open jobs with no shortlist yet (red at 30+ days).
+- Downstream results: of the window's submissions, how many reached
+  interview, offer and placement.
+
 ## v0.28.0 - Reporting foundation: RD-0 (2026-11-07)
 
 - New Shortlisted stage between Screening and Submitted, everywhere:
