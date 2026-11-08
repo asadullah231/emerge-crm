@@ -3,6 +3,15 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.36.0 - Reporting: clickable tiles scroll to their list (2026-11-08)
+
+- Clicking a stat tile (for example Rejected) now scrolls the page
+  straight to the list it opens, so the who-and-why detail with links
+  to each candidate is immediately visible instead of appearing
+  off-screen further down.
+- Stat tiles get a hover highlight so it is obvious they are clickable.
+- Same scroll behaviour on the account manager report.
+
 ## v0.35.0 - Reporting: scoreboard readability (2026-11-08)
 
 - Recruiter scoreboard now shows the busiest recruiters first and hides
