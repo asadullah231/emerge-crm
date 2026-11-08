@@ -215,17 +215,22 @@ export function DayBars({
 
 export function BucketBars({
   buckets,
-  color = CHART.blue
+  color = CHART.blue,
+  labelClass = "w-24"
 }: {
   buckets: { label: string; count: number }[];
   color?: string;
+  /** Width class for the label column; widen it for long text labels. */
+  labelClass?: string;
 }) {
   const max = Math.max(1, ...buckets.map((b) => b.count));
   return (
     <div className="space-y-1.5">
       {buckets.map((b) => (
         <div key={b.label} className="flex items-center gap-3" title={`${b.label}: ${b.count}`}>
-          <span className="w-24 shrink-0 text-xs text-[var(--muted)]">{b.label}</span>
+          <span className={`${labelClass} shrink-0 truncate text-xs text-[var(--muted)]`}>
+            {b.label}
+          </span>
           <span className="relative h-5 flex-1 overflow-hidden rounded bg-[var(--background)]">
             <span
               className="absolute inset-y-0 left-0 rounded-r"
