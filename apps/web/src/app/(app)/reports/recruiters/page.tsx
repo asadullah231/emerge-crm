@@ -61,6 +61,7 @@ export default function RecruiterReportPage() {
   );
 
   const [dailyUser, setDailyUser] = useState<string>("team");
+  const [showQuiet, setShowQuiet] = useState(false);
 
   const data = overview.data;
   const activeRows =
@@ -68,6 +69,20 @@ export default function RecruiterReportPage() {
       (r) =>
         r.active || r.week.shortlisted + r.week.submitted + r.week.interview + r.week.rejected > 0
     ) ?? [];
+
+  // Busiest first, so the scoreboard reads top-down; quiet rows collapse behind a toggle.
+  const weekTotal = (r: (typeof activeRows)[number]) =>
+    r.week.shortlisted + r.week.submitted + r.week.interview + r.week.rejected;
+  const rankedRows = [...activeRows].sort(
+    (a, b) =>
+      b.week.submitted - a.week.submitted ||
+      b.week.shortlisted - a.week.shortlisted ||
+      weekTotal(b) - weekTotal(a) ||
+      a.name.localeCompare(b.name)
+  );
+  const busyRows = rankedRows.filter((r) => weekTotal(r) > 0);
+  const quietRows = rankedRows.filter((r) => weekTotal(r) === 0);
+  const scoreboardRows = showQuiet ? rankedRows : busyRows;
 
   const weekdays = useMemo(() => {
     // Mon-Fri of the selected window's first week (daily activity is a weekly view).
@@ -178,7 +193,24 @@ export default function RecruiterReportPage() {
 
           <Card
             title={`Weekly scoreboard (target: ${TARGET_SHORTLISTED} shortlisted / ${TARGET_SUBMITTED} submitted)`}
+            right={
+              quietRows.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowQuiet((v) => !v)}
+                  className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+                >
+                  {showQuiet
+                    ? "Hide recruiters with no activity"
+                    : `Show ${quietRows.length} with no activity`}
+                </button>
+              ) : undefined
+            }
           >
+            <p className="mb-2 text-sm text-[var(--muted)]">
+              {busyRows.length} of {activeRows.length} recruiters logged activity this week
+              {showQuiet ? "" : " - the rest are hidden"}. Busiest first.
+            </p>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] border-collapse">
                 <thead>
@@ -194,7 +226,14 @@ export default function RecruiterReportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeRows.map((r) => {
+                  {scoreboardRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className={`${TD} text-[var(--muted)]`}>
+                        No activity in this window.
+                      </td>
+                    </tr>
+                  ) : null}
+                  {scoreboardRows.map((r) => {
                     const status = rag(r.week.shortlisted, r.week.submitted);
                     return (
                       <tr key={r.userId} className="border-b border-[var(--border)]/60">
