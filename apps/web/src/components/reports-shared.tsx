@@ -36,6 +36,22 @@ export function pct(part: number, whole: number): string {
   return `${Math.round((part / whole) * 100)}%`;
 }
 
+// Red flags (Mo's spec): 30+ days live without a placement, or 7+ days since
+// the client last received a submission. Shared by the position tracker and
+// the dashboard so the two never disagree on what counts as stuck.
+export const STALE_DAYS_LIVE = 30;
+export const STALE_DAYS_SUBMISSION = 7;
+
+export function isPositionFlagged(p: {
+  daysLive: number;
+  daysSinceLastSubmission: number | null;
+  placements: number;
+}): boolean {
+  const noPlacementTooLong = p.daysLive >= STALE_DAYS_LIVE && p.placements === 0;
+  const sinceSubmission = p.daysSinceLastSubmission ?? p.daysLive;
+  return noPlacementTooLong || sinceSubmission >= STALE_DAYS_SUBMISSION;
+}
+
 /** Shared preset + custom-range state for every report page. */
 export function useReportWindow() {
   const [preset, setPreset] = useState<ReportPreset>("this_week");

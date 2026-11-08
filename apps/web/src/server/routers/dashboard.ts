@@ -26,6 +26,7 @@ import {
   users
 } from "@emerge/db";
 import { APPLICATION_STAGES, STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
+import { fetchAll, T } from "@/bd/lib/noco";
 import { router, workspaceProcedure } from "../trpc";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -559,6 +560,133 @@ export const dashboardRouter = router({
         .orderBy(desc(applications.stageEnteredAt))
         .limit(input.limit);
     }),
+
+  /**
+   * "Needs attention today" strip: today's interviews, overdue tasks and
+   * submissions the client has not responded to in 3+ days. Counts are exact;
+   * row lists are capped so the panel stays a glance, not a page.
+   */
+  attentionToday: workspaceProcedure.query(async ({ ctx }) => {
+    const now = new Date();
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(now);
+    dayEnd.setHours(23, 59, 59, 999);
+    const staleBefore = new Date(now.getTime() - 3 * DAY_MS);
+
+    const interviewWhere = and(
+      eq(interviews.status, "scheduled"),
+      gte(interviews.scheduledAt, dayStart),
+      lte(interviews.scheduledAt, dayEnd)
+    );
+    const taskWhere = and(sql`${tasks.status} <> 'done'`, lte(tasks.dueAt, now));
+    const waitingWhere = and(
+      isNull(applications.deletedAt),
+      eq(applications.stage, "submitted"),
+      lte(applications.stageEnteredAt, staleBefore)
+    );
+
+    const [ivRows, ivCount, taskRows, taskCount, waitRows, waitCount] = await Promise.all([
+      ctx.tx
+        .select({
+          id: interviews.id,
+          applicationId: interviews.applicationId,
+          type: interviews.type,
+          scheduledAt: interviews.scheduledAt,
+          candidateFirstName: candidates.firstName,
+          candidateLastName: candidates.lastName,
+          jobTitle: jobs.title
+        })
+        .from(interviews)
+        .innerJoin(applications, eq(applications.id, interviews.applicationId))
+        .innerJoin(candidates, eq(candidates.id, applications.candidateId))
+        .innerJoin(jobs, eq(jobs.id, applications.jobId))
+        .where(interviewWhere)
+        .orderBy(asc(interviews.scheduledAt))
+        .limit(10),
+      ctx.tx.select({ c: count() }).from(interviews).where(interviewWhere),
+      ctx.tx
+        .select({
+          id: tasks.id,
+          subject: tasks.subject,
+          dueAt: tasks.dueAt,
+          assigneeName: users.name
+        })
+        .from(tasks)
+        .leftJoin(users, eq(users.id, tasks.assigneeId))
+        .where(taskWhere)
+        .orderBy(asc(tasks.dueAt))
+        .limit(10),
+      ctx.tx.select({ c: count() }).from(tasks).where(taskWhere),
+      ctx.tx
+        .select({
+          id: applications.id,
+          stageEnteredAt: applications.stageEnteredAt,
+          candidateFirstName: candidates.firstName,
+          candidateLastName: candidates.lastName,
+          jobTitle: jobs.title,
+          companyName: companies.name
+        })
+        .from(applications)
+        .innerJoin(candidates, eq(candidates.id, applications.candidateId))
+        .innerJoin(jobs, eq(jobs.id, applications.jobId))
+        .leftJoin(companies, eq(companies.id, jobs.companyId))
+        .where(waitingWhere)
+        .orderBy(asc(applications.stageEnteredAt))
+        .limit(10),
+      ctx.tx.select({ c: count() }).from(applications).where(waitingWhere)
+    ]);
+
+    return {
+      interviewsToday: { count: Number(ivCount[0]?.c ?? 0), rows: ivRows },
+      overdueTasks: { count: Number(taskCount[0]?.c ?? 0), rows: taskRows },
+      waitingOnClient: { count: Number(waitCount[0]?.c ?? 0), staleDays: 3, rows: waitRows }
+    };
+  }),
+
+  /**
+   * BD outreach snapshot from NocoDB (the same source the /bd module reads).
+   * Returns null when NocoDB is not configured or unreachable, so the
+   * dashboard simply hides the strip instead of breaking.
+   */
+  bdSnapshot: workspaceProcedure.query(async () => {
+    if (!process.env.NOCODB_BASE_URL || !T.outbox) return null;
+    try {
+      const rows = (await fetchAll(T.outbox, { fields: "sent_at,status,UpdatedAt" })) as {
+        sent_at: string | null;
+        status: string | null;
+        UpdatedAt: string | null;
+      }[];
+      // Mirrors src/bd/lib/data.js: a failed attempt carries sent_at but was not sent.
+      const SENT = new Set(["sent", "replied", "bounced", "auto_reply"]);
+      const now = new Date();
+      const ws = weekStart(now).getTime();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      const todayKey = now.toDateString();
+      let sentToday = 0;
+      let sentWeek = 0;
+      let sentMonth = 0;
+      let repliesWeek = 0;
+      let repliesMonth = 0;
+      for (const r of rows) {
+        if (r.sent_at && r.status && SENT.has(r.status)) {
+          const d = new Date(r.sent_at);
+          const ms = d.getTime();
+          if (ms >= monthStart) sentMonth++;
+          if (ms >= ws) sentWeek++;
+          if (d.toDateString() === todayKey) sentToday++;
+        }
+        if (r.status === "replied") {
+          const ms = new Date(r.UpdatedAt ?? r.sent_at ?? 0).getTime();
+          if (ms >= monthStart) repliesMonth++;
+          if (ms >= ws) repliesWeek++;
+        }
+      }
+      return { sentToday, sentWeek, sentMonth, repliesWeek, repliesMonth };
+    } catch {
+      return null;
+    }
+  }),
 
   /**
    * Zoho-style pipeline matrix: one row per job opening that has applications,

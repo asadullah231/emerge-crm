@@ -3,6 +3,20 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.37.0 - Dashboard: morning command center (2026-11-08)
+
+- The dashboard now opens with "Needs attention today": red-flag
+  positions (click-through to the pre-filtered position tracker),
+  today's interviews, overdue tasks and submissions waiting 3+ days
+  on a client response - each tile opens its list right below, and
+  every row links to the record.
+- "Team this week" bar chart: shortlisted vs submitted per recruiter
+  against the 3 / 2 targets, with a link to the full recruiter report.
+- BD outreach strip (when the BD module is configured): sent today,
+  sent and replies this week, monthly reply rate, linking into /bd.
+- Everything that was on the dashboard before (pipeline matrix, KPIs,
+  funnel, trends, recents) stays below.
+
 ## v0.36.0 - Reporting: clickable tiles scroll to their list (2026-11-08)
 
 - Clicking a stat tile (for example Rejected) now scrolls the page
