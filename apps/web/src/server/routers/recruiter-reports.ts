@@ -261,12 +261,25 @@ export const recruiterReportsRouter = router({
     }
 
     // ---- Top rejection reasons (rolling window) per recruiter + team
+    // Notes arrive as free text, usually prefixed "Rejected — ...", sometimes a
+    // whole paragraph or just punctuation. Normalise to a short, readable
+    // reason so the report reads like analysis, not a notes dump.
+    const cleanReason = (note: string): string | null => {
+      let s = note.trim();
+      for (let i = 0; i < 3 && /^rejected\b/i.test(s); i++) {
+        s = s.replace(/^rejected\s*[—–:-]*\s*/i, "");
+      }
+      s = s.replace(/\s+/g, " ").trim();
+      if (!s || /^[.\-–—!?,;:\s]*$/.test(s)) return null;
+      const sentence = s.split(/(?<=[.!?])\s/)[0] ?? s;
+      const capped = sentence.length > 90 ? `${sentence.slice(0, 90).trimEnd()}...` : sentence;
+      return capped.toLowerCase().replace(/[.\s]+$/, "");
+    };
     const reasonCounts = new Map<string, Map<string, number>>(); // actor -> reason -> n
     const teamReasons = new Map<string, number>();
     for (const r of rejection4wRows) {
-      const reason = (r.note ?? "").trim();
-      if (!reason) continue;
-      const norm = reason.toLowerCase();
+      const norm = cleanReason(r.note ?? "");
+      if (!norm) continue;
       teamReasons.set(norm, (teamReasons.get(norm) ?? 0) + 1);
       if (!r.actorId) continue;
       const m = reasonCounts.get(r.actorId) ?? new Map<string, number>();
