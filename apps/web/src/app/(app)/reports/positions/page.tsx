@@ -3,19 +3,28 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { FormError } from "@/components/form";
-import { ReportCard, ReportsTabs, TD, TH, fmtDate } from "@/components/reports-shared";
+import {
+  ReportCard,
+  ReportsTabs,
+  STALE_DAYS_LIVE,
+  STALE_DAYS_SUBMISSION,
+  TD,
+  TH,
+  fmtDate,
+  isPositionFlagged
+} from "@/components/reports-shared";
 import { BucketBars, CHART, StatGrid, StatTile } from "@/components/report-charts";
 import { trpc } from "@/lib/trpc/client";
-
-// Red flags (Mo's spec): 30+ days live without a placement, or 7+ days
-// since the client last received a submission.
-const STALE_DAYS_LIVE = 30;
-const STALE_DAYS_SUBMISSION = 7;
 
 export default function PositionTrackerPage() {
   const positions = trpc.positionReports.list.useQuery();
   const [amFilter, setAmFilter] = useState<string>("all");
-  const [flaggedOnly, setFlaggedOnly] = useState(false);
+  // ?flagged=1 (dashboard's red-flag tile) opens the page pre-filtered.
+  const [flaggedOnly, setFlaggedOnly] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("flagged") === "1"
+  );
 
   const ams = useMemo(() => {
     const m = new Map<string, string>();
@@ -25,12 +34,7 @@ export default function PositionTrackerPage() {
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [positions.data]);
 
-  const isFlagged = (p: NonNullable<typeof positions.data>[number]) => {
-    const noPlacementTooLong = p.daysLive >= STALE_DAYS_LIVE && p.placements === 0;
-    const sinceSubmission = p.daysSinceLastSubmission ?? p.daysLive;
-    const submissionStale = sinceSubmission >= STALE_DAYS_SUBMISSION;
-    return noPlacementTooLong || submissionStale;
-  };
+  const isFlagged = isPositionFlagged;
 
   const rows = (positions.data ?? []).filter(
     (p) => (amFilter === "all" || p.ownerId === amFilter) && (!flaggedOnly || isFlagged(p))
