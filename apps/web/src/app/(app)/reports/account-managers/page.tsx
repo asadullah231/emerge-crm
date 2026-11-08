@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FormError } from "@/components/form";
 import {
@@ -36,6 +36,12 @@ export default function AmReportPage() {
   const { from, to } = window;
   const overview = trpc.amReports.overview.useQuery({ from, to });
   const [selected, setSelected] = useState<{ amId: string | null; kind: ListKind } | null>(null);
+
+  // A stat tile can sit screens above the list it opens - bring the list into view.
+  const listRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (selected) listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selected]);
 
   const data = overview.data;
 
@@ -279,103 +285,107 @@ export default function AmReportPage() {
           </ReportCard>
 
           {selected ? (
-            <ReportCard
-              title={`${LIST_TITLES[selected.kind]} - ${selectedName} (${fmtDate(from)} - ${fmtDate(to)})`}
-              right={
-                <button
-                  type="button"
-                  onClick={() => setSelected(null)}
-                  className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-                >
-                  Close
-                </button>
-              }
-            >
-              {selected.kind === "clients" ? (
-                <ListTable
-                  headers={["Client", "Source", "Added"]}
-                  rows={data.newClients.filter((c) => matchesAm(c.ownerId))}
-                  renderRow={(c) => (
-                    <tr key={c.id} className="border-b border-[var(--border)]/60">
-                      <td className={TD}>
-                        <Link
-                          href={`/companies/${c.id}`}
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          {c.name}
-                        </Link>
-                      </td>
-                      <td className={TD}>{c.source ?? "-"}</td>
-                      <td className={`${TD} whitespace-nowrap`}>{fmtDate(c.createdAt)}</td>
-                    </tr>
-                  )}
-                />
-              ) : null}
-              {selected.kind === "jobs" ? (
-                <ListTable
-                  headers={["Job", "Client", "Opened"]}
-                  rows={data.newJobs.filter((j) => matchesAm(j.ownerId))}
-                  renderRow={(j) => (
-                    <tr key={j.id} className="border-b border-[var(--border)]/60">
-                      <td className={TD}>
-                        <Link
-                          href={`/jobs/${j.id}`}
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          {j.title}
-                        </Link>
-                      </td>
-                      <td className={TD}>{j.companyName}</td>
-                      <td className={`${TD} whitespace-nowrap`}>{fmtDate(j.openedAt)}</td>
-                    </tr>
-                  )}
-                />
-              ) : null}
-              {selected.kind === "terms" ? (
-                <ListTable
-                  headers={["Client", "Terms signed"]}
-                  rows={data.termsSigned.filter((t) => matchesAm(t.ownerId))}
-                  renderRow={(t) => (
-                    <tr key={t.id} className="border-b border-[var(--border)]/60">
-                      <td className={TD}>
-                        <Link
-                          href={`/companies/${t.id}`}
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          {t.name}
-                        </Link>
-                      </td>
-                      <td className={`${TD} whitespace-nowrap`}>
-                        {t.termsSignedAt ? fmtDate(t.termsSignedAt) : "-"}
-                      </td>
-                    </tr>
-                  )}
-                />
-              ) : null}
-              {selected.kind === "placements" ? (
-                <ListTable
-                  headers={["Candidate", "Job", "Client", "Fee", "Date"]}
-                  rows={data.placementRows.filter((p) => matchesAm(p.amId))}
-                  renderRow={(p) => (
-                    <tr key={p.id} className="border-b border-[var(--border)]/60">
-                      <td className={TD}>
-                        {[p.candidateFirstName, p.candidateLastName].filter(Boolean).join(" ")}
-                      </td>
-                      <td className={TD}>
-                        <Link href={`/jobs/${p.jobId}`} className="hover:underline">
-                          {p.jobTitle}
-                        </Link>
-                      </td>
-                      <td className={TD}>{p.companyName}</td>
-                      <td className={`${TD} tabular-nums`}>
-                        {p.feeAmount ? `${p.feeAmount.toLocaleString()} ${p.currency ?? ""}` : "-"}
-                      </td>
-                      <td className={`${TD} whitespace-nowrap`}>{fmtDate(p.createdAt)}</td>
-                    </tr>
-                  )}
-                />
-              ) : null}
-            </ReportCard>
+            <div ref={listRef} className="scroll-mt-16">
+              <ReportCard
+                title={`${LIST_TITLES[selected.kind]} - ${selectedName} (${fmtDate(from)} - ${fmtDate(to)})`}
+                right={
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+                  >
+                    Close
+                  </button>
+                }
+              >
+                {selected.kind === "clients" ? (
+                  <ListTable
+                    headers={["Client", "Source", "Added"]}
+                    rows={data.newClients.filter((c) => matchesAm(c.ownerId))}
+                    renderRow={(c) => (
+                      <tr key={c.id} className="border-b border-[var(--border)]/60">
+                        <td className={TD}>
+                          <Link
+                            href={`/companies/${c.id}`}
+                            className="text-[var(--accent)] hover:underline"
+                          >
+                            {c.name}
+                          </Link>
+                        </td>
+                        <td className={TD}>{c.source ?? "-"}</td>
+                        <td className={`${TD} whitespace-nowrap`}>{fmtDate(c.createdAt)}</td>
+                      </tr>
+                    )}
+                  />
+                ) : null}
+                {selected.kind === "jobs" ? (
+                  <ListTable
+                    headers={["Job", "Client", "Opened"]}
+                    rows={data.newJobs.filter((j) => matchesAm(j.ownerId))}
+                    renderRow={(j) => (
+                      <tr key={j.id} className="border-b border-[var(--border)]/60">
+                        <td className={TD}>
+                          <Link
+                            href={`/jobs/${j.id}`}
+                            className="text-[var(--accent)] hover:underline"
+                          >
+                            {j.title}
+                          </Link>
+                        </td>
+                        <td className={TD}>{j.companyName}</td>
+                        <td className={`${TD} whitespace-nowrap`}>{fmtDate(j.openedAt)}</td>
+                      </tr>
+                    )}
+                  />
+                ) : null}
+                {selected.kind === "terms" ? (
+                  <ListTable
+                    headers={["Client", "Terms signed"]}
+                    rows={data.termsSigned.filter((t) => matchesAm(t.ownerId))}
+                    renderRow={(t) => (
+                      <tr key={t.id} className="border-b border-[var(--border)]/60">
+                        <td className={TD}>
+                          <Link
+                            href={`/companies/${t.id}`}
+                            className="text-[var(--accent)] hover:underline"
+                          >
+                            {t.name}
+                          </Link>
+                        </td>
+                        <td className={`${TD} whitespace-nowrap`}>
+                          {t.termsSignedAt ? fmtDate(t.termsSignedAt) : "-"}
+                        </td>
+                      </tr>
+                    )}
+                  />
+                ) : null}
+                {selected.kind === "placements" ? (
+                  <ListTable
+                    headers={["Candidate", "Job", "Client", "Fee", "Date"]}
+                    rows={data.placementRows.filter((p) => matchesAm(p.amId))}
+                    renderRow={(p) => (
+                      <tr key={p.id} className="border-b border-[var(--border)]/60">
+                        <td className={TD}>
+                          {[p.candidateFirstName, p.candidateLastName].filter(Boolean).join(" ")}
+                        </td>
+                        <td className={TD}>
+                          <Link href={`/jobs/${p.jobId}`} className="hover:underline">
+                            {p.jobTitle}
+                          </Link>
+                        </td>
+                        <td className={TD}>{p.companyName}</td>
+                        <td className={`${TD} tabular-nums`}>
+                          {p.feeAmount
+                            ? `${p.feeAmount.toLocaleString()} ${p.currency ?? ""}`
+                            : "-"}
+                        </td>
+                        <td className={`${TD} whitespace-nowrap`}>{fmtDate(p.createdAt)}</td>
+                      </tr>
+                    )}
+                  />
+                ) : null}
+              </ReportCard>
+            </div>
           ) : null}
         </>
       ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FormError } from "@/components/form";
 import {
@@ -62,6 +62,12 @@ export default function RecruiterReportPage() {
 
   const [dailyUser, setDailyUser] = useState<string>("team");
   const [showQuiet, setShowQuiet] = useState(false);
+
+  // A stat tile can sit screens above the list it opens - bring the list into view.
+  const listRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (selected) listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selected]);
 
   const data = overview.data;
   const activeRows =
@@ -340,78 +346,82 @@ export default function RecruiterReportPage() {
           </Card>
 
           {selected ? (
-            <Card
-              title={`${STAGE_LABELS[selected.toStage]} - ${selected.userName} (${fmtDate(from)} - ${fmtDate(to)})`}
-              right={
-                <button
-                  type="button"
-                  onClick={() => setSelected(null)}
-                  className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-                >
-                  Close
-                </button>
-              }
-            >
-              {list.isLoading ? (
-                <p className="text-sm text-[var(--muted)]">Loading list...</p>
-              ) : (list.data ?? []).length === 0 ? (
-                <p className="text-sm text-[var(--muted)]">Nothing in this window.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] border-collapse">
-                    <thead>
-                      <tr className="border-b border-[var(--border)]">
-                        <th className={TH}>Candidate</th>
-                        <th className={TH}>Job</th>
-                        <th className={TH}>Client</th>
-                        <th className={TH}>By</th>
-                        <th className={TH}>Date</th>
-                        {selected.toStage === "rejected" ? (
-                          <th className={TH}>Rejected by</th>
-                        ) : null}
-                        {selected.toStage === "rejected" ? <th className={TH}>Feedback</th> : null}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(list.data ?? []).map((row) => (
-                        <tr key={row.id} className="border-b border-[var(--border)]/60">
-                          <td className={TD}>
-                            <Link
-                              href={`/candidates/${row.candidateId}`}
-                              className="text-[var(--accent)] hover:underline"
-                            >
-                              {candidateName(row.candidateFirstName, row.candidateLastName)}
-                            </Link>
-                          </td>
-                          <td className={TD}>
-                            <Link href={`/jobs/${row.jobId}`} className="hover:underline">
-                              {row.jobTitle}
-                            </Link>
-                          </td>
-                          <td className={TD}>{row.companyName}</td>
-                          <td className={TD}>{row.actorName ?? "-"}</td>
-                          <td className={`${TD} whitespace-nowrap`}>{fmtDate(row.createdAt)}</td>
+            <div ref={listRef} className="scroll-mt-16">
+              <Card
+                title={`${STAGE_LABELS[selected.toStage]} - ${selected.userName} (${fmtDate(from)} - ${fmtDate(to)})`}
+                right={
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+                  >
+                    Close
+                  </button>
+                }
+              >
+                {list.isLoading ? (
+                  <p className="text-sm text-[var(--muted)]">Loading list...</p>
+                ) : (list.data ?? []).length === 0 ? (
+                  <p className="text-sm text-[var(--muted)]">Nothing in this window.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[720px] border-collapse">
+                      <thead>
+                        <tr className="border-b border-[var(--border)]">
+                          <th className={TH}>Candidate</th>
+                          <th className={TH}>Job</th>
+                          <th className={TH}>Client</th>
+                          <th className={TH}>By</th>
+                          <th className={TH}>Date</th>
                           {selected.toStage === "rejected" ? (
-                            <td className={`${TD} capitalize`}>
-                              {row.rejectedBy === "client"
-                                ? "The client"
-                                : row.rejectedBy === "us"
-                                  ? "Us"
-                                  : "-"}
-                            </td>
+                            <th className={TH}>Rejected by</th>
                           ) : null}
                           {selected.toStage === "rejected" ? (
-                            <td className={`${TD} max-w-[320px]`}>
-                              {row.note ?? row.rejectionReason ?? "-"}
-                            </td>
+                            <th className={TH}>Feedback</th>
                           ) : null}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Card>
+                      </thead>
+                      <tbody>
+                        {(list.data ?? []).map((row) => (
+                          <tr key={row.id} className="border-b border-[var(--border)]/60">
+                            <td className={TD}>
+                              <Link
+                                href={`/candidates/${row.candidateId}`}
+                                className="text-[var(--accent)] hover:underline"
+                              >
+                                {candidateName(row.candidateFirstName, row.candidateLastName)}
+                              </Link>
+                            </td>
+                            <td className={TD}>
+                              <Link href={`/jobs/${row.jobId}`} className="hover:underline">
+                                {row.jobTitle}
+                              </Link>
+                            </td>
+                            <td className={TD}>{row.companyName}</td>
+                            <td className={TD}>{row.actorName ?? "-"}</td>
+                            <td className={`${TD} whitespace-nowrap`}>{fmtDate(row.createdAt)}</td>
+                            {selected.toStage === "rejected" ? (
+                              <td className={`${TD} capitalize`}>
+                                {row.rejectedBy === "client"
+                                  ? "The client"
+                                  : row.rejectedBy === "us"
+                                    ? "Us"
+                                    : "-"}
+                              </td>
+                            ) : null}
+                            {selected.toStage === "rejected" ? (
+                              <td className={`${TD} max-w-[320px]`}>
+                                {row.note ?? row.rejectionReason ?? "-"}
+                              </td>
+                            ) : null}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+            </div>
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-2">
