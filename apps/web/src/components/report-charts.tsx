@@ -65,7 +65,7 @@ export function StatTile({
     <button
       type="button"
       onClick={onClick}
-      className="block w-full text-left hover:opacity-90"
+      className="block w-full cursor-pointer rounded-xl text-left transition hover:opacity-90 hover:ring-2 hover:ring-[var(--brand-primary)]/40"
       aria-label={`${label}: view list`}
     >
       {body}
