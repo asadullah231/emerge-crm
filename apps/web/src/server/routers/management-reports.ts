@@ -186,6 +186,13 @@ export const managementReportsRouter = router({
         offers: offerCohort.size,
         placements: firstPerApp(hireEvents).size
       },
+      /** Submission cohort followed stage by stage - drives the funnel chart. */
+      funnel: {
+        submitted: subCohort.size,
+        interview: reached(subCohort, ["interview", "offered", "hired"]),
+        offered: reached(subCohort, ["offered", "hired"]),
+        hired: reached(subCohort, ["hired"])
+      },
       conversion: {
         submissionToInterview: {
           cohort: subCohort.size,
