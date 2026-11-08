@@ -10,6 +10,8 @@ import {
   pct,
   useReportWindow
 } from "@/components/reports-shared";
+import { FunnelChart } from "@/components/dashboard-charts";
+import { CHART, ProgressStat, StatGrid, StatTile } from "@/components/report-charts";
 import { trpc } from "@/lib/trpc/client";
 
 function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
@@ -20,6 +22,10 @@ function Stat({ label, value, detail }: { label: string; value: string; detail?:
       {detail ? <p className="text-xs text-[var(--muted)]">{detail}</p> : null}
     </div>
   );
+}
+
+function ratio(reached: number, cohort: number): number | null {
+  return cohort ? reached / cohort : null;
 }
 
 export default function ManagementReportPage() {
@@ -84,12 +90,69 @@ export default function ManagementReportPage() {
 
       {data ? (
         <>
-          <ReportCard title="Activity in this window">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Stat label="Submissions" value={String(data.counts.submissions)} />
-              <Stat label="Interviews" value={String(data.counts.interviews)} />
-              <Stat label="Offers" value={String(data.counts.offers)} />
-              <Stat label="Placements" value={String(data.counts.placements)} />
+          <StatGrid>
+            <StatTile
+              label="Submissions"
+              value={data.counts.submissions}
+              color={CHART.blue}
+              sublabel="candidates sent to clients"
+            />
+            <StatTile
+              label="Interviews"
+              value={data.counts.interviews}
+              color={CHART.teal}
+              sublabel="booked in this window"
+            />
+            <StatTile
+              label="Offers"
+              value={data.counts.offers}
+              color={CHART.amber}
+              sublabel="made in this window"
+            />
+            <StatTile
+              label="Placements"
+              value={data.counts.placements}
+              color={CHART.purple}
+              sublabel="hires completed"
+            />
+          </StatGrid>
+
+          <ReportCard title="Pipeline funnel (this window's submissions, followed through)">
+            <FunnelChart
+              data={[
+                {
+                  stage: "submitted",
+                  label: "Submitted",
+                  count: data.funnel.submitted,
+                  conversion: null
+                },
+                {
+                  stage: "interview",
+                  label: "Interview",
+                  count: data.funnel.interview,
+                  conversion: ratio(data.funnel.interview, data.funnel.submitted)
+                },
+                {
+                  stage: "offered",
+                  label: "Offer",
+                  count: data.funnel.offered,
+                  conversion: ratio(data.funnel.offered, data.funnel.interview)
+                },
+                {
+                  stage: "hired",
+                  label: "Placed",
+                  count: data.funnel.hired,
+                  conversion: ratio(data.funnel.hired, data.funnel.offered)
+                }
+              ]}
+            />
+            <div className="mt-4 border-t border-[var(--border)] pt-4">
+              <ProgressStat
+                label="Fill rate (filled vs all closed jobs in this window)"
+                part={data.conversion.fillRate.filled}
+                whole={data.conversion.fillRate.decided}
+                color={CHART.teal}
+              />
             </div>
           </ReportCard>
 

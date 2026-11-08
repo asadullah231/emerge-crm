@@ -15,6 +15,7 @@ import {
   useReportWindow,
   weekStart
 } from "@/components/reports-shared";
+import { CHART, DayBars, PeopleBars, StatGrid, StatTile } from "@/components/report-charts";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { trpc } from "@/lib/trpc/client";
 
@@ -122,6 +123,59 @@ export default function RecruiterReportPage() {
 
       {data ? (
         <>
+          <StatGrid>
+            <StatTile
+              label="Shortlisted"
+              value={data.totals.week.shortlisted}
+              color={CHART.teal}
+              sublabel={`team target ${TARGET_SHORTLISTED} per recruiter`}
+              onClick={() => openList(null, "Team", "shortlisted")}
+            />
+            <StatTile
+              label="Submitted"
+              value={data.totals.week.submitted}
+              color={CHART.blue}
+              sublabel={`team target ${TARGET_SUBMITTED} per recruiter`}
+              onClick={() => openList(null, "Team", "submitted")}
+            />
+            <StatTile
+              label="Interviews"
+              value={data.totals.week.interview}
+              color={CHART.amber}
+              sublabel="booked in this window"
+              onClick={() => openList(null, "Team", "interview")}
+            />
+            <StatTile
+              label="Rejected"
+              value={data.totals.week.rejected}
+              color="#ef4444"
+              status
+              sublabel="click for who and why"
+              onClick={() => openList(null, "Team", "rejected")}
+            />
+          </StatGrid>
+
+          <Card title="Who did what (click a recruiter for their submissions)">
+            <PeopleBars
+              rows={activeRows
+                .filter((r) => r.week.shortlisted + r.week.submitted > 0)
+                .sort((a, b) => b.week.submitted - a.week.submitted)
+                .map((r) => ({
+                  key: r.userId,
+                  name: r.name,
+                  values: [r.week.shortlisted, r.week.submitted]
+                }))}
+              series={[
+                { label: "Shortlisted", color: CHART.teal },
+                { label: "Submitted", color: CHART.blue }
+              ]}
+              onRowClick={(key) => {
+                const row = activeRows.find((r) => r.userId === key);
+                if (row) openList(row.userId, row.name, "submitted");
+              }}
+            />
+          </Card>
+
           <Card
             title={`Weekly scoreboard (target: ${TARGET_SHORTLISTED} shortlisted / ${TARGET_SUBMITTED} submitted)`}
           >
@@ -411,6 +465,28 @@ export default function RecruiterReportPage() {
               </select>
             }
           >
+            <div className="mb-4">
+              <DayBars
+                groups={weekdays.map((d) => {
+                  const row = dailyByKey.get(`${dailyUser}|${d.toISOString().slice(0, 10)}`);
+                  return {
+                    label: d.toLocaleDateString(undefined, { weekday: "short" }),
+                    values: [
+                      row?.candidatesAdded ?? 0,
+                      (row?.calls ?? 0) + (row?.meetings ?? 0),
+                      row?.statusChanges ?? 0,
+                      row?.tasksDone ?? 0
+                    ]
+                  };
+                })}
+                series={[
+                  { label: "Candidates added", color: CHART.blue },
+                  { label: "Calls + meetings", color: CHART.teal },
+                  { label: "Status changes", color: CHART.amber },
+                  { label: "Tasks done", color: CHART.purple }
+                ]}
+              />
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] border-collapse">
                 <thead>

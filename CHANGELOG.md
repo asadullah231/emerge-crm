@@ -3,6 +3,23 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.34.0 - Reporting: visual dashboard pass (2026-11-08)
+
+- Every Reports tab now leads with graphics, AdminLTE-style: colored
+  stat tiles (clickable, same lists behind them), bar charts and a
+  funnel, so the team reads the week at a glance instead of scanning
+  tables. The tables stay below as the detailed view.
+- Recruiters: team stat tiles, a "who did what" bar chart per recruiter
+  (shortlisted vs submitted) and a Mon-Fri activity bar chart.
+- Account managers: stat tiles and a per-AM bar chart (new clients vs
+  jobs opened).
+- Positions: stat tiles (live, red flags, never submitted, with
+  placements) and a days-live distribution chart.
+- Management: stat tiles, a submission-cohort pipeline funnel
+  (Submitted -> Interview -> Offer -> Placed) and a fill-rate bar.
+- Chart colors are a fixed, colorblind-validated palette that works in
+  light and dark mode.
+
 ## v0.33.0 - Reporting: Monday report emails (RD-5) (2026-11-07)
 
 - New workspace setting "Monday report emails" (Settings > Workspace).
