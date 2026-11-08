@@ -133,7 +133,11 @@ export const authRouter = router({
         logoUrl: workspaces.logoUrl,
         compactLayout: workspaces.compactLayout,
         bdOutreach: workspaces.bdOutreach,
-        weeklyDigest: workspaces.weeklyDigest
+        weeklyDigest: workspaces.weeklyDigest,
+        monthlyTargetPlacements: workspaces.monthlyTargetPlacements,
+        monthlyTargetSubmissions: workspaces.monthlyTargetSubmissions,
+        monthlyTargetRevenue: workspaces.monthlyTargetRevenue,
+        monthlyTargetBdReplies: workspaces.monthlyTargetBdReplies
       })
       .from(workspaces)
       .where(eq(workspaces.id, ctx.session.workspaceId))

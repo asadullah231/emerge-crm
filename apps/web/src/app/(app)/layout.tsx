@@ -23,7 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/pipeline", label: "Pipeline" },
   { href: "/tasks?tab=interviews", label: "Interviews" },
   { href: "/tasks", label: "Tasks" },
-  { href: "/reports/recruiters", label: "Reports" },
+  { href: "/reports/overview", label: "Reports" },
   { href: "/settings", label: "Settings" }
 ];
 

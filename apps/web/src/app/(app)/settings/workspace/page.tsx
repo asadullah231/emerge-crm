@@ -14,6 +14,10 @@ export default function WorkspaceSettingsPage() {
   const [compactLayout, setCompactLayout] = useState(false);
   const [bdOutreach, setBdOutreach] = useState(false);
   const [weeklyDigest, setWeeklyDigest] = useState(false);
+  const [targetPlacements, setTargetPlacements] = useState("");
+  const [targetSubmissions, setTargetSubmissions] = useState("");
+  const [targetRevenue, setTargetRevenue] = useState("");
+  const [targetBdReplies, setTargetBdReplies] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -23,6 +27,10 @@ export default function WorkspaceSettingsPage() {
       setCompactLayout(me.data.workspace.compactLayout);
       setBdOutreach(me.data.workspace.bdOutreach);
       setWeeklyDigest(me.data.workspace.weeklyDigest);
+      setTargetPlacements(me.data.workspace.monthlyTargetPlacements?.toString() ?? "");
+      setTargetSubmissions(me.data.workspace.monthlyTargetSubmissions?.toString() ?? "");
+      setTargetRevenue(me.data.workspace.monthlyTargetRevenue?.toString() ?? "");
+      setTargetBdReplies(me.data.workspace.monthlyTargetBdReplies?.toString() ?? "");
     }
   }, [me.data]);
 
@@ -46,12 +54,17 @@ export default function WorkspaceSettingsPage() {
       className="max-w-md space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
+        const num = (v: string) => (v.trim() === "" ? null : Math.max(0, Number(v) || 0));
         update.mutate({
           name,
           logoUrl: logoUrl.trim() === "" ? null : logoUrl,
           compactLayout,
           bdOutreach,
-          weeklyDigest
+          weeklyDigest,
+          monthlyTargetPlacements: num(targetPlacements),
+          monthlyTargetSubmissions: num(targetSubmissions),
+          monthlyTargetRevenue: num(targetRevenue),
+          monthlyTargetBdReplies: num(targetBdReplies)
         });
       }}
     >
@@ -138,6 +151,59 @@ export default function WorkspaceSettingsPage() {
             </span>
           </span>
         </label>
+      </div>
+      <div className="border-t border-[var(--border)] pt-4">
+        <h3 className="text-sm font-semibold">Monthly targets</h3>
+        <p className="mb-3 mt-1 text-xs text-[var(--muted)]">
+          Drive the Reports overview: how this month is pacing against the plan. Leave a field empty
+          to hide that target.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="t-pl">Placements</Label>
+            <Input
+              id="t-pl"
+              type="number"
+              min={0}
+              disabled={!isAdmin}
+              value={targetPlacements}
+              onChange={(e) => setTargetPlacements(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="t-sub">Submissions</Label>
+            <Input
+              id="t-sub"
+              type="number"
+              min={0}
+              disabled={!isAdmin}
+              value={targetSubmissions}
+              onChange={(e) => setTargetSubmissions(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="t-rev">Revenue</Label>
+            <Input
+              id="t-rev"
+              type="number"
+              min={0}
+              disabled={!isAdmin}
+              value={targetRevenue}
+              onChange={(e) => setTargetRevenue(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="t-bd">BD replies</Label>
+            <Input
+              id="t-bd"
+              type="number"
+              min={0}
+              disabled={!isAdmin}
+              value={targetBdReplies}
+              onChange={(e) => setTargetBdReplies(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
       {isAdmin ? (
         <div className="flex items-center gap-3">

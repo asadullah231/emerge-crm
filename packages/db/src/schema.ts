@@ -75,6 +75,13 @@ export const workspaces = pgTable("workspaces", {
   // admins the team digest). Off by default; toggled in Settings > Workspace.
   weeklyDigest: boolean("weekly_digest").notNull().default(false),
   weeklyDigestLastSentAt: timestamp("weekly_digest_last_sent_at", { withTimezone: true }),
+  // Monthly targets for the strategic Reports overview (null = not set yet).
+  // Admins set them in Settings > Workspace; revenue is in whole currency
+  // units of the workspace's placement fees.
+  monthlyTargetPlacements: integer("monthly_target_placements"),
+  monthlyTargetSubmissions: integer("monthly_target_submissions"),
+  monthlyTargetRevenue: integer("monthly_target_revenue"),
+  monthlyTargetBdReplies: integer("monthly_target_bd_replies"),
   createdAt: createdAt(),
   updatedAt: updatedAt()
 });
