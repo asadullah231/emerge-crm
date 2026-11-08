@@ -15,7 +15,14 @@ import {
   useReportWindow,
   weekStart
 } from "@/components/reports-shared";
-import { CHART, DayBars, PeopleBars, StatGrid, StatTile } from "@/components/report-charts";
+import {
+  BucketBars,
+  CHART,
+  DayBars,
+  PeopleBars,
+  StatGrid,
+  StatTile
+} from "@/components/report-charts";
 import { STAGE_LABELS, type ApplicationStageKey } from "@/lib/applications";
 import { trpc } from "@/lib/trpc/client";
 
@@ -62,6 +69,8 @@ export default function RecruiterReportPage() {
 
   const [dailyUser, setDailyUser] = useState<string>("team");
   const [showQuiet, setShowQuiet] = useState(false);
+  const [showReasonDetail, setShowReasonDetail] = useState(false);
+  const [showAllZeroShortlist, setShowAllZeroShortlist] = useState(false);
 
   // A stat tile can sit screens above the list it opens - bring the list into view.
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -411,7 +420,12 @@ export default function RecruiterReportPage() {
                             ) : null}
                             {selected.toStage === "rejected" ? (
                               <td className={`${TD} max-w-[320px]`}>
-                                {row.note ?? row.rejectionReason ?? "-"}
+                                <span
+                                  className="line-clamp-2"
+                                  title={row.note ?? row.rejectionReason ?? undefined}
+                                >
+                                  {row.note ?? row.rejectionReason ?? "-"}
+                                </span>
                               </td>
                             ) : null}
                           </tr>
@@ -425,34 +439,53 @@ export default function RecruiterReportPage() {
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card title="Top rejection reasons (last 4 weeks)">
+            <Card
+              title="Why candidates get rejected"
+              subtitle="Last 4 weeks, grouped from rejection feedback"
+              right={
+                data.rows.some((r) => r.topRejectionReasons.length > 0) ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowReasonDetail((v) => !v)}
+                    className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+                  >
+                    {showReasonDetail ? "Hide by recruiter" : "By recruiter"}
+                  </button>
+                ) : undefined
+              }
+            >
               {data.teamTopRejectionReasons.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No rejection feedback recorded yet.</p>
               ) : (
                 <div className="space-y-3">
-                  <ul className="space-y-1">
-                    {data.teamTopRejectionReasons.map((r) => (
-                      <li
-                        key={r.reason}
-                        className="flex items-baseline justify-between gap-3 text-sm"
-                      >
-                        <span className="min-w-0 flex-1 truncate" title={r.reason}>
-                          {r.reason}
-                        </span>
-                        <span className="tabular-nums text-[var(--muted)]">{r.count}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="space-y-1 border-t border-[var(--border)] pt-2">
-                    {data.rows
-                      .filter((r) => r.topRejectionReasons.length > 0)
-                      .map((r) => (
-                        <p key={r.userId} className="text-xs text-[var(--muted)]">
-                          <span className="font-medium text-[var(--foreground)]">{r.name}:</span>{" "}
-                          {r.topRejectionReasons.map((x) => `${x.reason} (${x.count})`).join(" - ")}
-                        </p>
-                      ))}
-                  </div>
+                  <BucketBars
+                    color={CHART.amber}
+                    labelClass="w-56"
+                    buckets={data.teamTopRejectionReasons.slice(0, 6).map((r) => ({
+                      label: r.reason,
+                      count: r.count
+                    }))}
+                  />
+                  {showReasonDetail ? (
+                    <div className="space-y-1.5 border-t border-[var(--border)] pt-3">
+                      {data.rows
+                        .filter((r) => r.topRejectionReasons.length > 0)
+                        .map((r) => (
+                          <div key={r.userId} className="text-xs">
+                            <span className="font-medium">{r.name}</span>
+                            {r.topRejectionReasons.map((x) => (
+                              <span
+                                key={x.reason}
+                                className="ml-1.5 inline-block max-w-[260px] truncate rounded-full bg-[var(--background)] px-2 py-0.5 align-bottom text-[var(--muted)]"
+                                title={x.reason}
+                              >
+                                {x.reason} ({x.count})
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </Card>
@@ -625,9 +658,22 @@ export default function RecruiterReportPage() {
               </div>
             </div>
             <div className="mt-4">
-              <p className="mb-1 text-xs font-medium text-[var(--muted)]">
-                Open jobs with no shortlist yet ({data.sourcing.zeroShortlistJobs.length})
-              </p>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <p className="text-xs font-medium text-[var(--muted)]">
+                  Open jobs with no shortlist yet ({data.sourcing.zeroShortlistJobs.length})
+                </p>
+                {data.sourcing.zeroShortlistJobs.length > 8 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllZeroShortlist((v) => !v)}
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    {showAllZeroShortlist
+                      ? "Show longest-waiting only"
+                      : `Show all ${data.sourcing.zeroShortlistJobs.length}`}
+                  </button>
+                ) : null}
+              </div>
               {data.sourcing.zeroShortlistJobs.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">
                   Every open job has at least one shortlisted candidate.
@@ -644,7 +690,10 @@ export default function RecruiterReportPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.sourcing.zeroShortlistJobs.map((j) => (
+                      {(showAllZeroShortlist
+                        ? data.sourcing.zeroShortlistJobs
+                        : data.sourcing.zeroShortlistJobs.slice(0, 8)
+                      ).map((j) => (
                         <tr key={j.id} className="border-b border-[var(--border)]/60">
                           <td className={TD}>
                             <Link

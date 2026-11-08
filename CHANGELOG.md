@@ -3,6 +3,19 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.39.0 - Reports: readable rejection analysis, capped lists (2026-11-08)
+
+- "Why candidates get rejected" is now real analysis instead of a notes
+  dump: rejection feedback is cleaned (the "rejected" prefix and
+  punctuation-only notes dropped, long notes cut to their first
+  sentence), grouped, and shown as a bar chart. The per-recruiter
+  breakdown sits behind a "By recruiter" toggle as compact chips.
+- "Open jobs with no shortlist yet" shows the 8 longest-waiting jobs
+  with a "Show all N" toggle instead of dumping 160+ rows on the page.
+- Rejected-list feedback cells clamp to two lines (full text on hover).
+- Report cards and tables got a cleaner look: more whitespace, lighter
+  uppercase column headers, consistent rounded cards.
+
 ## v0.38.0 - Reports: strategic overview with monthly targets (2026-11-08)
 
 - New Reports > Overview tab (and the Reports landing page): the month
