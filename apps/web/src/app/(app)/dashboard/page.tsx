@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import {
   BigNumber,
@@ -8,6 +9,8 @@ import {
   MultiTrendChart,
   type TrendSeries
 } from "@/components/dashboard-charts";
+import { CHART, PeopleBars, StatGrid, StatTile } from "@/components/report-charts";
+import { isPositionFlagged, pct, weekStart } from "@/components/reports-shared";
 import { PipelineView } from "@/components/pipeline-view";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
@@ -34,13 +37,50 @@ const TREND_SERIES: TrendSeries[] = [
   { key: "jobs", label: "Jobs opened", color: "#a1a1aa" }
 ];
 
+/** Weekly KPI targets (Mo's spec), matching the recruiter report. */
+const TARGET_SHORTLISTED = 3;
+const TARGET_SUBMITTED = 2;
+
+type AttentionPick = "interviews" | "tasks" | "waiting" | null;
+
 export default function DashboardPage() {
+  const router = useRouter();
   const me = trpc.auth.me.useQuery();
   const members = trpc.members.list.useQuery();
 
   const [rangeKey, setRangeKey] = useState<string>("all");
   const [ownerId, setOwnerId] = useState<string>("");
   const [activeStage, setActiveStage] = useState<string | null>(null);
+  const [attentionPick, setAttentionPick] = useState<AttentionPick>(null);
+
+  // "Needs attention today" + "Team this week" + BD strip (Mo's morning view).
+  const attention = trpc.dashboard.attentionToday.useQuery(undefined, {
+    refetchInterval: REFRESH_MS
+  });
+  const positions = trpc.positionReports.list.useQuery(undefined, {
+    refetchInterval: REFRESH_MS
+  });
+  const teamWindow = useMemo(() => ({ from: weekStart(new Date()), to: new Date() }), []);
+  const team = trpc.recruiterReports.overview.useQuery(teamWindow, {
+    refetchInterval: REFRESH_MS
+  });
+  const bd = trpc.dashboard.bdSnapshot.useQuery(undefined, { refetchInterval: REFRESH_MS });
+
+  const flaggedCount = useMemo(
+    () => (positions.data ?? []).filter(isPositionFlagged).length,
+    [positions.data]
+  );
+  const teamRows = useMemo(() => {
+    const rows = (team.data?.rows ?? []).filter((r) => r.active);
+    const total = (r: (typeof rows)[number]) =>
+      r.week.shortlisted + r.week.submitted + r.week.interview + r.week.rejected;
+    return {
+      busy: rows
+        .filter((r) => total(r) > 0)
+        .sort((a, b) => b.week.submitted - a.week.submitted || total(b) - total(a)),
+      all: rows.length
+    };
+  }, [team.data]);
 
   const range = RANGES.find((r) => r.key === rangeKey) ?? RANGES[0];
   const from = useMemo(
@@ -177,6 +217,112 @@ export default function DashboardPage() {
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600">
           Could not load the dashboard: {overview.error.message}
         </div>
+      ) : null}
+
+      {/* Needs attention today: the four things Mo acts on first */}
+      <StatGrid>
+        <StatTile
+          label="Red-flag positions"
+          value={positions.data ? flaggedCount : "-"}
+          color="#ef4444"
+          status
+          sublabel="stuck jobs - click to review"
+          onClick={() => router.push("/reports/positions?flagged=1")}
+        />
+        <StatTile
+          label="Interviews today"
+          value={attention.data?.interviewsToday.count ?? "-"}
+          color={CHART.blue}
+          sublabel="scheduled for today"
+          onClick={() => setAttentionPick((c) => (c === "interviews" ? null : "interviews"))}
+        />
+        <StatTile
+          label="Overdue tasks"
+          value={attention.data?.overdueTasks.count ?? "-"}
+          color={CHART.amber}
+          status
+          sublabel="past their due date"
+          onClick={() => setAttentionPick((c) => (c === "tasks" ? null : "tasks"))}
+        />
+        <StatTile
+          label="Waiting on client"
+          value={attention.data?.waitingOnClient.count ?? "-"}
+          color={CHART.teal}
+          sublabel="submitted 3+ days ago, no response"
+          onClick={() => setAttentionPick((c) => (c === "waiting" ? null : "waiting"))}
+        />
+      </StatGrid>
+      {attentionPick && attention.data ? (
+        <AttentionDetail
+          pick={attentionPick}
+          data={attention.data}
+          onClose={() => setAttentionPick(null)}
+        />
+      ) : null}
+
+      {/* Team this week vs targets */}
+      <Panel
+        title="Team this week"
+        subtitle={`Shortlisted vs submitted per recruiter - target ${TARGET_SHORTLISTED} / ${TARGET_SUBMITTED} each`}
+        action={<PanelLink href="/reports/recruiters">Full report</PanelLink>}
+      >
+        {team.isLoading ? (
+          <RowsSkeleton />
+        ) : (
+          <>
+            <p className="mb-2 text-xs text-[var(--muted)]">
+              {teamRows.busy.length} of {teamRows.all} recruiters have logged activity this week.
+            </p>
+            <PeopleBars
+              rows={teamRows.busy.map((r) => ({
+                key: r.userId,
+                name: r.name,
+                values: [r.week.shortlisted, r.week.submitted]
+              }))}
+              series={[
+                { label: "Shortlisted", color: CHART.teal },
+                { label: "Submitted", color: CHART.blue }
+              ]}
+              onRowClick={() => router.push("/reports/recruiters")}
+            />
+          </>
+        )}
+      </Panel>
+
+      {/* BD outreach strip (NocoDB, same source as /bd); hidden when not configured */}
+      {bd.data ? (
+        <Panel
+          title="BD outreach"
+          subtitle="Client emails from the outreach system"
+          action={<PanelLink href="/bd">Open BD</PanelLink>}
+        >
+          <StatGrid>
+            <StatTile
+              label="Sent today"
+              value={bd.data.sentToday}
+              color={CHART.blue}
+              onClick={() => router.push("/bd/today")}
+            />
+            <StatTile
+              label="Sent this week"
+              value={bd.data.sentWeek}
+              color={CHART.blue}
+              onClick={() => router.push("/bd")}
+            />
+            <StatTile
+              label="Replies this week"
+              value={bd.data.repliesWeek}
+              color={CHART.teal}
+              onClick={() => router.push("/bd/replies")}
+            />
+            <StatTile
+              label="Reply rate (month)"
+              value={pct(bd.data.repliesMonth, bd.data.sentMonth)}
+              color={CHART.purple}
+              sublabel={`${bd.data.repliesMonth} of ${bd.data.sentMonth} sent`}
+            />
+          </StatGrid>
+        </Panel>
       ) : null}
 
       {/* Zoho-style pipeline matrix (job x stage) */}
@@ -470,6 +616,131 @@ function StageDrill({
         </ul>
       )}
     </div>
+  );
+}
+
+type Attention = RouterOutputs["dashboard"]["attentionToday"];
+
+/** Inline detail for the "Needs attention today" tiles: who, what, and a link. */
+function AttentionDetail({
+  pick,
+  data,
+  onClose
+}: {
+  pick: "interviews" | "tasks" | "waiting";
+  data: Attention;
+  onClose: () => void;
+}) {
+  const titles = {
+    interviews: `Interviews today (${data.interviewsToday.count})`,
+    tasks: `Overdue tasks (${data.overdueTasks.count})`,
+    waiting: `Waiting on client (${data.waitingOnClient.count}) - submitted ${data.waitingOnClient.staleDays}+ days ago`
+  } as const;
+  const name = (first: string | null, last: string | null) =>
+    [first, last].filter(Boolean).join(" ") || "Candidate";
+  const daysAgo = (d: Date | string) => Math.floor((Date.now() - new Date(d).getTime()) / DAY_MS);
+  return (
+    <Panel
+      title={titles[pick]}
+      action={
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+        >
+          Close
+        </button>
+      }
+    >
+      {pick === "interviews" ? (
+        data.interviewsToday.rows.length === 0 ? (
+          <Empty>No interviews scheduled today.</Empty>
+        ) : (
+          <ul className="divide-y divide-[var(--border)]">
+            {data.interviewsToday.rows.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/applications/${r.applicationId}`}
+                  className="flex items-center justify-between gap-3 py-2 hover:bg-[var(--background)]"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-[var(--foreground)]">
+                      {name(r.candidateFirstName, r.candidateLastName)}
+                    </span>
+                    <span className="block truncate text-xs text-[var(--muted)]">
+                      {r.jobTitle} · {r.type}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs text-[var(--muted)]">
+                    {new Date(r.scheduledAt).toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
+      {pick === "tasks" ? (
+        data.overdueTasks.rows.length === 0 ? (
+          <Empty>Nothing overdue. All caught up.</Empty>
+        ) : (
+          <ul className="divide-y divide-[var(--border)]">
+            {data.overdueTasks.rows.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href="/tasks"
+                  className="flex items-center justify-between gap-3 py-2 hover:bg-[var(--background)]"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-[var(--foreground)]">
+                      {r.subject}
+                    </span>
+                    <span className="block truncate text-xs text-[var(--muted)]">
+                      {r.assigneeName ?? "Unassigned"}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs font-medium text-red-600">
+                    {r.dueAt ? `${daysAgo(r.dueAt)}d overdue` : ""}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
+      {pick === "waiting" ? (
+        data.waitingOnClient.rows.length === 0 ? (
+          <Empty>No submissions waiting on a client response.</Empty>
+        ) : (
+          <ul className="divide-y divide-[var(--border)]">
+            {data.waitingOnClient.rows.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/applications/${r.id}`}
+                  className="flex items-center justify-between gap-3 py-2 hover:bg-[var(--background)]"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-[var(--foreground)]">
+                      {name(r.candidateFirstName, r.candidateLastName)}
+                    </span>
+                    <span className="block truncate text-xs text-[var(--muted)]">
+                      {r.jobTitle}
+                      {r.companyName ? ` · ${r.companyName}` : ""}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs text-[var(--muted)]">
+                    {daysAgo(r.stageEnteredAt)}d waiting
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
+    </Panel>
   );
 }
 
