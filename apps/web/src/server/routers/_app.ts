@@ -17,6 +17,7 @@ import { followsRouter } from "./follows";
 import { interviewFeedbackRouter } from "./interview-feedback";
 import { amReportsRouter } from "./am-reports";
 import { managementReportsRouter } from "./management-reports";
+import { overviewReportsRouter } from "./overview-reports";
 import { positionReportsRouter } from "./position-reports";
 import { recruiterReportsRouter } from "./recruiter-reports";
 import { reportSchedulesRouter } from "./report-schedules";
@@ -82,6 +83,7 @@ export const appRouter = router({
   amReports: amReportsRouter,
   positionReports: positionReportsRouter,
   managementReports: managementReportsRouter,
+  overviewReports: overviewReportsRouter,
   reportSchedules: reportSchedulesRouter,
   search: searchRouter,
   submissions: submissionsRouter,

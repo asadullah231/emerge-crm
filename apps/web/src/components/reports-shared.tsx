@@ -124,6 +124,7 @@ export function ReportWindowPicker({ window }: { window: ReturnType<typeof useRe
 }
 
 const REPORT_TABS = [
+  { href: "/reports/overview", label: "Overview" },
   { href: "/reports/recruiters", label: "Recruiters" },
   { href: "/reports/account-managers", label: "Account managers" },
   { href: "/reports/positions", label: "Positions" },

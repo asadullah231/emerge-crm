@@ -3,6 +3,20 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.38.0 - Reports: strategic overview with monthly targets (2026-11-08)
+
+- New Reports > Overview tab (and the Reports landing page): the month
+  at a glance against targets. Four pace tiles - placements, revenue,
+  submissions and BD replies month-to-date vs the monthly target, each
+  marked on pace or behind based on how much of the month has passed,
+  with a one-line meaning under each number.
+- Monthly targets live in Settings > Workspace (placements,
+  submissions, revenue, BD replies); leave a field empty to hide that
+  target. New workspace columns via migration 0041.
+- "More info" expands to a 6-month submissions/placements history,
+  this month's per-recruiter table and placements per client.
+- Auto-refreshes every 30 seconds while open, same as the dashboard.
+
 ## v0.37.0 - Dashboard: morning command center (2026-11-08)
 
 - The dashboard now opens with "Needs attention today": red-flag

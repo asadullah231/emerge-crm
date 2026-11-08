@@ -33,7 +33,11 @@ export const workspaceRouter = router({
         logoUrl: z.string().trim().url().nullable().optional(),
         compactLayout: z.boolean().optional(),
         bdOutreach: z.boolean().optional(),
-        weeklyDigest: z.boolean().optional()
+        weeklyDigest: z.boolean().optional(),
+        monthlyTargetPlacements: z.number().int().min(0).max(100000).nullable().optional(),
+        monthlyTargetSubmissions: z.number().int().min(0).max(100000).nullable().optional(),
+        monthlyTargetRevenue: z.number().int().min(0).max(100000000).nullable().optional(),
+        monthlyTargetBdReplies: z.number().int().min(0).max(100000).nullable().optional()
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -44,7 +48,19 @@ export const workspaceRouter = router({
           logoUrl: input.logoUrl ?? null,
           ...(input.compactLayout === undefined ? {} : { compactLayout: input.compactLayout }),
           ...(input.bdOutreach === undefined ? {} : { bdOutreach: input.bdOutreach }),
-          ...(input.weeklyDigest === undefined ? {} : { weeklyDigest: input.weeklyDigest })
+          ...(input.weeklyDigest === undefined ? {} : { weeklyDigest: input.weeklyDigest }),
+          ...(input.monthlyTargetPlacements === undefined
+            ? {}
+            : { monthlyTargetPlacements: input.monthlyTargetPlacements }),
+          ...(input.monthlyTargetSubmissions === undefined
+            ? {}
+            : { monthlyTargetSubmissions: input.monthlyTargetSubmissions }),
+          ...(input.monthlyTargetRevenue === undefined
+            ? {}
+            : { monthlyTargetRevenue: input.monthlyTargetRevenue }),
+          ...(input.monthlyTargetBdReplies === undefined
+            ? {}
+            : { monthlyTargetBdReplies: input.monthlyTargetBdReplies })
         })
         .where(eq(workspaces.id, ctx.workspaceId))
         .returning({
@@ -53,7 +69,11 @@ export const workspaceRouter = router({
           logoUrl: workspaces.logoUrl,
           compactLayout: workspaces.compactLayout,
           bdOutreach: workspaces.bdOutreach,
-          weeklyDigest: workspaces.weeklyDigest
+          weeklyDigest: workspaces.weeklyDigest,
+          monthlyTargetPlacements: workspaces.monthlyTargetPlacements,
+          monthlyTargetSubmissions: workspaces.monthlyTargetSubmissions,
+          monthlyTargetRevenue: workspaces.monthlyTargetRevenue,
+          monthlyTargetBdReplies: workspaces.monthlyTargetBdReplies
         });
       await writeAudit({
         workspaceId: ctx.workspaceId,
