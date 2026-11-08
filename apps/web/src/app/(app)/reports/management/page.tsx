@@ -24,8 +24,9 @@ function Stat({ label, value, detail }: { label: string; value: string; detail?:
   );
 }
 
-function ratio(reached: number, cohort: number): number | null {
-  return cohort ? reached / cohort : null;
+// Never null for non-top stages: FunnelChart renders null as the "top" badge.
+function ratio(reached: number, cohort: number): number {
+  return cohort ? reached / cohort : 0;
 }
 
 export default function ManagementReportPage() {
