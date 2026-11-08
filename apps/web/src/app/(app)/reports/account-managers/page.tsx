@@ -12,6 +12,7 @@ import {
   fmtDate,
   useReportWindow
 } from "@/components/reports-shared";
+import { CHART, PeopleBars, StatGrid, StatTile } from "@/components/report-charts";
 import { trpc } from "@/lib/trpc/client";
 
 type ListKind = "clients" | "jobs" | "terms" | "placements";
@@ -148,6 +149,57 @@ export default function AmReportPage() {
 
       {data ? (
         <>
+          <StatGrid>
+            <StatTile
+              label="New clients"
+              value={totals.newClients}
+              color={CHART.blue}
+              sublabel="added in this window"
+              onClick={() => setSelected({ amId: null, kind: "clients" })}
+            />
+            <StatTile
+              label="Jobs opened"
+              value={totals.newJobs}
+              color={CHART.teal}
+              sublabel="new live positions"
+              onClick={() => setSelected({ amId: null, kind: "jobs" })}
+            />
+            <StatTile
+              label="Terms signed"
+              value={totals.termsSigned}
+              color={CHART.amber}
+              sublabel="from the client record date"
+              onClick={() => setSelected({ amId: null, kind: "terms" })}
+            />
+            <StatTile
+              label="Placements"
+              value={totals.placements}
+              color={CHART.purple}
+              sublabel={fmtMoney(totals.revenue)}
+              onClick={() => setSelected({ amId: null, kind: "placements" })}
+            />
+          </StatGrid>
+
+          <ReportCard title="Who brought what in (per account manager)">
+            <PeopleBars
+              rows={rows
+                .filter((r) => r.newClients + r.newJobs > 0)
+                .sort((a, b) => b.newJobs - a.newJobs)
+                .map((r) => ({
+                  key: r.userId ?? "unassigned",
+                  name: r.name,
+                  values: [r.newClients, r.newJobs]
+                }))}
+              series={[
+                { label: "New clients", color: CHART.blue },
+                { label: "Jobs opened", color: CHART.teal }
+              ]}
+              onRowClick={(key) =>
+                setSelected({ amId: key === "unassigned" ? null : key, kind: "jobs" })
+              }
+            />
+          </ReportCard>
+
           <ReportCard title="Weekly scoreboard">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] border-collapse">
