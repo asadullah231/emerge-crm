@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.35.0 - Reporting: scoreboard readability (2026-11-08)
+
+- Recruiter scoreboard now shows the busiest recruiters first and hides
+  recruiters with no activity this week behind a "Show N with no
+  activity" toggle, with a one-line summary of how many of the team
+  logged activity. No more scanning 30 zero rows to find the 5 people
+  who worked.
+- Account manager scoreboard sorts busiest first too (Unassigned always
+  last).
+
 ## v0.34.0 - Reporting: visual dashboard pass (2026-11-08)
 
 - Every Reports tab now leads with graphics, AdminLTE-style: colored

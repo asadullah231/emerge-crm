@@ -83,8 +83,14 @@ export default function AmReportPage() {
         r.revenue.set(cur, (r.revenue.get(cur) ?? 0) + p.feeAmount);
       }
     }
+    // Busiest first; the Unassigned bucket always sits last.
+    const score = (r: Row) => r.placements * 100 + r.newJobs * 10 + r.newClients + r.termsSigned;
     return [...byId.values()].sort((a, b) =>
-      a.userId === null ? 1 : b.userId === null ? -1 : a.name.localeCompare(b.name)
+      a.userId === null
+        ? 1
+        : b.userId === null
+          ? -1
+          : score(b) - score(a) || a.name.localeCompare(b.name)
     );
   }, [data]);
 
