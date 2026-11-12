@@ -9,7 +9,10 @@ export const API_SCOPES = [
   "read:candidates",
   "read:jobs",
   "read:applications",
-  "write:candidates"
+  "write:candidates",
+  // Full CRM assistant access over the MCP endpoint (/api/mcp/<key>):
+  // find/view/create candidates, jobs, clients, stage moves, notes, tasks, reports.
+  "mcp"
 ] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 

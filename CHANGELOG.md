@@ -3,6 +3,18 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.40.0 - MCP server: manage the CRM from Claude (2026-11-12)
+
+- New MCP endpoint at /api/mcp/&lt;api-key&gt; (streamable HTTP). Connect it
+  to Claude as a custom connector and manage the CRM from chat: search
+  and view candidates, jobs and clients, create candidates, move
+  applications through the pipeline (with rejection reason and
+  rejected-by), log notes/calls/meetings, create tasks, and pull the
+  today / this-week / month-pacing reports.
+- New "mcp" API key scope (Settings &gt; API keys) gates the endpoint;
+  stage moves, notes and tasks are recorded as the key's creator, and
+  stage changes write the same history, audit and webhooks as the app.
+
 ## v0.39.0 - Reports: readable rejection analysis, capped lists (2026-11-08)
 
 - "Why candidates get rejected" is now real analysis instead of a notes
