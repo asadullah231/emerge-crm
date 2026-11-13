@@ -17,6 +17,36 @@ import { useState, type ReactNode } from "react";
 
 export type KpiTone = "default" | "positive" | "negative" | "warning";
 
+/** Superset-style area sparkline under a big number: soft fill, 2px line, emphasized endpoint. */
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  if (values.length < 2 || values.every((v) => v === 0)) return null;
+  const W = 120;
+  const H = 28;
+  const max = Math.max(...values, 1);
+  const pt = (v: number, i: number) =>
+    [(i / (values.length - 1)) * W, H - 2 - (v / max) * (H - 6)] as const;
+  const pts = values.map(pt);
+  const line = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`);
+  const last = pts[pts.length - 1]!;
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="mt-2 h-7 w-full"
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <path
+        d={`${line.join(" ")} L${W},${H} L0,${H} Z`}
+        fill={color}
+        opacity={0.12}
+        stroke="none"
+      />
+      <path d={line.join(" ")} fill="none" stroke={color} strokeWidth={2} opacity={0.8} />
+      <circle cx={last[0]} cy={last[1]} r={2.5} fill={color} />
+    </svg>
+  );
+}
+
 export function BigNumber({
   label,
   value,
@@ -25,7 +55,8 @@ export function BigNumber({
   tone = "default",
   sublabel,
   emptyHint,
-  loading
+  loading,
+  trend
 }: {
   label: string;
   value: number | null | undefined;
@@ -35,6 +66,8 @@ export function BigNumber({
   sublabel?: string;
   emptyHint?: string;
   loading?: boolean;
+  /** Weekly values, oldest first; drawn as an area sparkline under the number. */
+  trend?: number[];
 }) {
   const toneClass =
     tone === "positive"
@@ -54,7 +87,7 @@ export function BigNumber({
         ) : value == null ? (
           <span className="text-sm text-[var(--muted)]">{emptyHint ?? "-"}</span>
         ) : (
-          <span className={`text-2xl font-semibold tabular-nums ${toneClass}`}>
+          <span className={`text-3xl font-semibold tabular-nums ${toneClass}`}>
             {value.toLocaleString()}
             {unit ? (
               <span className="ml-0.5 text-base font-medium text-[var(--muted)]">{unit}</span>
@@ -64,6 +97,7 @@ export function BigNumber({
         {sublabel && !loading ? (
           <p className="mt-1 truncate text-xs text-[var(--muted)]">{sublabel}</p>
         ) : null}
+        {trend && !loading ? <Sparkline values={trend} color="var(--brand-secondary)" /> : null}
       </div>
     </div>
   );

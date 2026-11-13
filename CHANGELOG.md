@@ -3,6 +3,14 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.42.0 - Dashboard: Superset-style trendlines (2026-11-13)
+
+- The dashboard KPI tiles now carry Superset-style trendlines: a soft
+  area sparkline of the last weeks under each big number (active jobs,
+  candidates, applications, interviews), with the latest point marked.
+- Bigger KPI numbers and Superset-like panel headers (title row with a
+  hairline underneath) across the dashboard panels.
+
 ## v0.41.0 - MCP: create jobs and clients from Claude (2026-11-13)
 
 - Two new connector tools: create_job (title + client, with optional
