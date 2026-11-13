@@ -116,6 +116,16 @@ export default function DashboardPage() {
   );
 
   const data = overview.data;
+  // Superset-style trendlines under the KPI numbers, from the weekly trend buckets.
+  const spark = useMemo(() => {
+    const t = data?.trends ?? [];
+    return {
+      candidates: t.map((x) => x.candidates),
+      applications: t.map((x) => x.applications),
+      interviews: t.map((x) => x.interviews),
+      jobs: t.map((x) => x.jobs)
+    };
+  }, [data]);
   const filtersActive = rangeKey !== "all" || ownerId !== "";
   const ownerName = members.data?.find((m) => m.userId === ownerId)?.name;
 
@@ -336,18 +346,21 @@ export default function DashboardPage() {
           href="/jobs"
           sublabel={data ? `${data.kpis.totalJobs} total` : undefined}
           loading={overview.isLoading}
+          trend={spark.jobs}
         />
         <BigNumber
           label="Candidates"
           value={data?.kpis.totalCandidates}
           href="/candidates"
           loading={overview.isLoading}
+          trend={spark.candidates}
         />
         <BigNumber
           label="Applications"
           value={data?.kpis.totalApplications}
           href="/pipeline"
           loading={overview.isLoading}
+          trend={spark.applications}
         />
         <BigNumber
           label="Submissions"
@@ -360,6 +373,7 @@ export default function DashboardPage() {
           value={data?.kpis.interviews}
           href="/tasks?tab=interviews"
           loading={overview.isLoading}
+          trend={spark.interviews}
         />
         <BigNumber
           label="Offers"
@@ -502,7 +516,7 @@ function Panel({
 }) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2.5">
         <div>
           <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
           {subtitle ? <p className="text-xs text-[var(--muted)]">{subtitle}</p> : null}
