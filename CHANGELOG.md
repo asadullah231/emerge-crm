@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.43.0 - shadcn/ui foundation (2026-11-13)
+
+- The app now ships shadcn/ui: Button, Card, Badge and Skeleton
+  components (src/components/ui), the cn() utility, lucide-react icons
+  and a components.json for adding more with the shadcn CLI. All
+  component colors map to the existing EmergeTech brand tokens, so
+  light/dark theming carries over unchanged.
+- The dashboard is the first adopter: its panels are shadcn Cards and
+  the toolbar uses shadcn Buttons with icons.
+
 ## v0.42.0 - Dashboard: Superset-style trendlines (2026-11-13)
 
 - The dashboard KPI tiles now carry Superset-style trendlines: a soft
