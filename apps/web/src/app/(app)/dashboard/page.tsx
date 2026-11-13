@@ -12,6 +12,9 @@ import {
 import { CHART, PeopleBars, StatGrid, StatTile } from "@/components/report-charts";
 import { isPositionFlagged, pct, weekStart } from "@/components/reports-shared";
 import { PipelineView } from "@/components/pipeline-view";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Download, RotateCcw } from "lucide-react";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 
@@ -200,25 +203,21 @@ export default function DashboardPage() {
               </select>
             </label>
             {filtersActive ? (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setRangeKey("all");
                   setOwnerId("");
                 }}
-                className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted)] hover:bg-[var(--background)]"
               >
-                Reset
-              </button>
+                <RotateCcw /> Reset
+              </Button>
             ) : null}
-            <button
-              type="button"
-              onClick={exportCsv}
-              disabled={!data}
-              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--foreground)] hover:bg-[var(--background)] disabled:opacity-50"
-            >
-              Export CSV
-            </button>
+            <Button type="button" variant="outline" size="sm" onClick={exportCsv} disabled={!data}>
+              <Download /> Export CSV
+            </Button>
           </div>
         </div>
       </div>
@@ -515,16 +514,16 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5">
-      <div className="mb-4 flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2.5">
-        <div>
-          <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
-          {subtitle ? <p className="text-xs text-[var(--muted)]">{subtitle}</p> : null}
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 border-b border-border !pb-3">
+        <div className="space-y-1">
+          <CardTitle>{title}</CardTitle>
+          {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
         </div>
         {action}
-      </div>
-      {children}
-    </section>
+      </CardHeader>
+      <CardContent className="pt-4">{children}</CardContent>
+    </Card>
   );
 }
 
