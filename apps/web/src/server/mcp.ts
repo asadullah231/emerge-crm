@@ -87,6 +87,19 @@ async function resolveJob(ctx: McpCtx, ref: string) {
   return row;
 }
 
+/** Email -> active member's userId; throws when given but unknown, null when empty. */
+async function resolveMemberByEmail(ctx: McpCtx, email: string): Promise<string | null> {
+  if (!email) return null;
+  const [member] = await ctx.tx
+    .select({ userId: memberships.userId })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(and(eq(users.email, email.toLowerCase()), isNull(memberships.deactivatedAt)))
+    .limit(1);
+  if (!member) throw new Error(`No active team member with email ${email}`);
+  return member.userId;
+}
+
 async function entryStatusFor(ctx: McpCtx, stage: ApplicationStageKey): Promise<string> {
   const [row] = await ctx.tx
     .select({ key: applicationStatuses.key })
@@ -258,6 +271,130 @@ export const MCP_TOOLS: ToolDef[] = [
         });
       }
       return row;
+    }
+  },
+  {
+    name: "create_company",
+    description: "Create a new client (company). Only name is required.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        website: { type: "string" },
+        location: { type: "string" },
+        ownerEmail: { type: "string", description: "Account manager's email (defaults to you)" }
+      },
+      required: ["name"]
+    },
+    handler: async (ctx, args) => {
+      const name = str(args.name);
+      if (!name) throw new Error("name is required");
+      const [existing] = await ctx.tx
+        .select({ id: companies.id, name: companies.name })
+        .from(companies)
+        .where(and(isNull(companies.deletedAt), ilike(companies.name, name)))
+        .limit(1);
+      if (existing) return { ok: true, existing: true, ...existing };
+      const ownerId = (await resolveMemberByEmail(ctx, str(args.ownerEmail))) ?? ctx.actorId;
+      const [row] = await ctx.tx
+        .insert(companies)
+        .values({
+          workspaceId: ctx.workspaceId,
+          name,
+          website: str(args.website) || null,
+          location: str(args.location) || null,
+          status: "prospect",
+          ownerId
+        })
+        .returning({ id: companies.id, name: companies.name });
+      return { ok: true, existing: false, ...row };
+    }
+  },
+  {
+    name: "create_job",
+    description:
+      "Create a new job opening. Needs a title and a client (company name - matched to an existing client, or created as a new one). Owner defaults to you; pass ownerEmail for someone else. Status starts as open.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        client: { type: "string", description: "Client/company name" },
+        location: { type: "string" },
+        description: { type: "string", description: "JD or brief" },
+        ownerEmail: { type: "string", description: "Owner's email (defaults to you)" },
+        workMode: { type: "string", description: "onsite (default), hybrid or remote" },
+        salaryText: { type: "string", description: "Free-text salary, e.g. 60-70k EUR" }
+      },
+      required: ["title", "client"]
+    },
+    handler: async (ctx, args) => {
+      const title = str(args.title);
+      const clientName = str(args.client);
+      if (!title || !clientName) throw new Error("title and client are required");
+      const workMode = str(args.workMode) || "onsite";
+      if (!["onsite", "hybrid", "remote"].includes(workMode)) {
+        throw new Error("workMode must be onsite, hybrid or remote");
+      }
+
+      // Match the client by name (case-insensitive); create it when new.
+      let [company] = await ctx.tx
+        .select({ id: companies.id, name: companies.name })
+        .from(companies)
+        .where(and(isNull(companies.deletedAt), ilike(companies.name, clientName)))
+        .limit(1);
+      let createdCompany = false;
+      if (!company) {
+        const [row] = await ctx.tx
+          .insert(companies)
+          .values({
+            workspaceId: ctx.workspaceId,
+            name: clientName,
+            status: "prospect",
+            ownerId: ctx.actorId
+          })
+          .returning({ id: companies.id, name: companies.name });
+        if (!row) throw new Error("Failed to create the client");
+        company = row;
+        createdCompany = true;
+      }
+
+      const ownerId = (await resolveMemberByEmail(ctx, str(args.ownerEmail))) ?? ctx.actorId;
+      const next = await nextCounter(ctx.tx, ctx.workspaceId, "job");
+      const [job] = await ctx.tx
+        .insert(jobs)
+        .values({
+          workspaceId: ctx.workspaceId,
+          humanId: humanId("JOB", next),
+          title,
+          companyId: company.id,
+          ownerId,
+          status: "open",
+          employmentType: "permanent",
+          workMode: workMode as "onsite" | "hybrid" | "remote",
+          location: str(args.location) || null,
+          description: str(args.description) || null,
+          salaryText: str(args.salaryText) || null,
+          positions: 1
+        })
+        .returning({ id: jobs.id, humanId: jobs.humanId, title: jobs.title });
+      if (!job) throw new Error("Failed to create the job");
+      if (ctx.actorId) {
+        await writeAudit({
+          workspaceId: ctx.workspaceId,
+          actorUserId: ctx.actorId,
+          action: "job.created",
+          targetType: "job",
+          targetId: job.id,
+          meta: { humanId: job.humanId, title: job.title, via: "mcp" }
+        });
+      }
+      return {
+        ok: true,
+        job,
+        client: company.name,
+        clientWasCreated: createdCompany,
+        owner: ownerId ? "set" : "unassigned"
+      };
     }
   },
   {
