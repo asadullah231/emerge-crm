@@ -3,6 +3,13 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.41.0 - MCP: create jobs and clients from Claude (2026-11-13)
+
+- Two new connector tools: create_job (title + client, with optional
+  location, JD, owner by email, work mode and salary text - the client
+  is matched by name or created on the fly) and create_company.
+  Job creation lands in the audit log like the app.
+
 ## v0.40.0 - MCP server: manage the CRM from Claude (2026-11-12)
 
 - New MCP endpoint at /api/mcp/&lt;api-key&gt; (streamable HTTP). Connect it
