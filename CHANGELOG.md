@@ -3,6 +3,16 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.44.0 - Application stage timeline (2026-11-17)
+
+- The application page's History section is now a visual stage
+  timeline: every transition with its exact timestamp, who moved it,
+  the note, and how many days the application sat in each stage.
+- The header answers the daily question directly: a chip for how long
+  the application has been in its current stage, and for submitted
+  candidates a "Waiting on client feedback for Nd" badge that turns
+  red at 3+ days.
+
 ## v0.43.0 - shadcn/ui foundation (2026-11-13)
 
 - The app now ships shadcn/ui: Button, Card, Badge and Skeleton

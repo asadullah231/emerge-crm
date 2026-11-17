@@ -15,6 +15,7 @@ import { OffersPanel } from "@/components/offers-panel";
 import { ReviewsPanel } from "@/components/reviews-panel";
 import { TasksPanel } from "@/components/tasks-panel";
 import { StageChangeForm } from "@/components/stage-change-form";
+import { StageTimeline } from "@/components/stage-timeline";
 import { SubmissionsLog } from "@/components/submissions-log";
 import { SubmitToClientModal } from "@/components/submit-to-client-modal";
 import { TimelinePanel } from "@/components/timeline-panel";
@@ -351,33 +352,12 @@ export default function ApplicationRecordPage() {
           <OffersPanel applicationId={record.id} canWrite={canEdit} />
         </RecordSection>
 
-        <RecordSection title="History">
-          {record.history.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No transitions yet.</p>
-          ) : (
-            <ol className="space-y-2">
-              {record.history.map((h) => (
-                <li key={h.id} className="flex items-start justify-between gap-3 text-sm">
-                  <span>
-                    {h.fromStatusKey ? (
-                      <>
-                        <span className="text-[var(--muted)]">{h.fromStatusKey}</span>
-                        {" -> "}
-                      </>
-                    ) : (
-                      <span className="text-[var(--muted)]">Created as </span>
-                    )}
-                    <span className="font-medium">{h.toStatusKey}</span>
-                    {h.note ? <span className="text-[var(--muted)]"> ({h.note})</span> : null}
-                  </span>
-                  <span className="whitespace-nowrap text-xs text-[var(--muted)]">
-                    {h.actorName ? `${h.actorName} · ` : ""}
-                    {new Date(h.createdAt).toLocaleDateString()}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
+        <RecordSection title="Stage timeline">
+          <StageTimeline
+            history={record.history}
+            currentStage={record.stage as ApplicationStageKey}
+            stageEnteredAt={record.stageEnteredAt}
+          />
         </RecordSection>
         <div id="section-communication">
           <RecordSection title="Communication">
