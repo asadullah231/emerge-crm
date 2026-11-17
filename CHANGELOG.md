@@ -3,6 +3,15 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.45.0 - MCP: set job status from Claude (2026-11-17)
+
+- New connector tool set_job_status: change a job to open, on_hold,
+  filled, cancelled, declined or inactive from chat - e.g. "move the
+  stale roles to closed". Closing statuses stamp the closed date
+  (reopening clears it), an optional note records why, and the change
+  is audited like the app.
+- find_jobs now also accepts the declined status.
+
 ## v0.44.0 - Application stage timeline (2026-11-17)
 
 - The application page's History section is now a visual stage
