@@ -398,6 +398,71 @@ export const MCP_TOOLS: ToolDef[] = [
     }
   },
   {
+    name: "set_job_status",
+    description:
+      "Change a job opening's status: open, on_hold, filled, cancelled, declined or inactive. Closing statuses (filled, cancelled, declined) stamp the job's closed date; reopening clears it. Optionally record a note on the job saying why.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        job: { type: "string", description: "Job id (uuid) or JOB number like JOB-0112" },
+        status: {
+          type: "string",
+          description: "open, on_hold, filled, cancelled, declined or inactive"
+        },
+        note: { type: "string", description: "Optional reason, saved as a note on the job" }
+      },
+      required: ["job", "status"]
+    },
+    handler: async (ctx, args) => {
+      const status = str(args.status);
+      const allowed = ["open", "on_hold", "filled", "cancelled", "declined", "inactive"];
+      if (!allowed.includes(status)) {
+        throw new Error(`status must be one of: ${allowed.join(", ")}`);
+      }
+      const job = await resolveJob(ctx, str(args.job));
+      if (!job) throw new Error("Job not found");
+      if (job.status === status) {
+        return { ok: true, unchanged: true, job: job.humanId, status };
+      }
+      const closed = ["filled", "cancelled", "declined"].includes(status);
+      const [current] = await ctx.tx
+        .select({ closedAt: jobs.closedAt })
+        .from(jobs)
+        .where(eq(jobs.id, job.id));
+      await ctx.tx
+        .update(jobs)
+        .set({
+          status: status as "open" | "on_hold" | "filled" | "cancelled" | "declined" | "inactive",
+          // Mirrors the app: a closing status keeps its first closed date;
+          // reopening clears it so days-live math restarts honestly.
+          closedAt: closed ? (current?.closedAt ?? new Date()) : null
+        })
+        .where(eq(jobs.id, job.id));
+      const note = str(args.note);
+      if (note) {
+        await ctx.tx.insert(notes).values({
+          workspaceId: ctx.workspaceId,
+          entityType: "job",
+          entityId: job.id,
+          authorId: ctx.actorId,
+          kind: "note",
+          body: note
+        });
+      }
+      if (ctx.actorId) {
+        await writeAudit({
+          workspaceId: ctx.workspaceId,
+          actorUserId: ctx.actorId,
+          action: "job.status_changed",
+          targetType: "job",
+          targetId: job.id,
+          meta: { from: job.status, to: status, via: "mcp" }
+        });
+      }
+      return { ok: true, job: job.humanId, title: job.title, from: job.status, to: status };
+    }
+  },
+  {
     name: "find_jobs",
     description:
       "Search job openings by title or client name. Status defaults to open; pass status 'any' for all.",
@@ -407,7 +472,7 @@ export const MCP_TOOLS: ToolDef[] = [
         query: { type: "string", description: "Job title or client name (empty = newest first)" },
         status: {
           type: "string",
-          description: "open (default), on_hold, filled, cancelled, inactive or any"
+          description: "open (default), on_hold, filled, cancelled, declined, inactive or any"
         },
         limit: { type: "number", description: "Max results (default 10, max 25)" }
       }
@@ -415,7 +480,7 @@ export const MCP_TOOLS: ToolDef[] = [
     handler: async (ctx, args) => {
       const q = str(args.query);
       const status = str(args.status) || "open";
-      const allowed = ["open", "on_hold", "filled", "cancelled", "inactive", "any"];
+      const allowed = ["open", "on_hold", "filled", "cancelled", "declined", "inactive", "any"];
       if (!allowed.includes(status)) {
         throw new Error(`status must be one of: ${allowed.join(", ")}`);
       }
