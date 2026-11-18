@@ -3,6 +3,24 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.48.0 - Role-allocation fixes: paging, grades, feedback dates, interview sub-stages (2026-11-19)
+
+- Connector find_jobs now returns up to 200 jobs per call with an
+  offset for paging, so one run can pull every open job.
+- Jobs carry a quality grade (A+, A, B, C): editable on the job page,
+  settable from Claude with the new set_job_grade tool, and returned
+  by find_jobs and get_job (migration 0042).
+- find_jobs and get_job return lastClientFeedbackAt per job: the
+  newest job note or client-side stage move (interview, offer, hire,
+  rejection) on its candidates - no manual upkeep needed.
+- Three interview sub-stages in the status dictionary (first stage,
+  second stage, finalist); move_candidate_stage takes an optional
+  status key and keeps the stage clock honest on within-stage moves.
+- The BD Outreach sidebar item is gone: the dashboard's Outreach
+  dashboard button and the /bd redirect cover it.
+- get_job adds last-7-day submission and interview counts and shows
+  each pipeline candidate's status and stage-entry date.
+
 ## v0.47.0 - /bd hands off to the outreach dashboard (2026-11-18)
 
 - The in-app /bd overview now redirects straight to the team's

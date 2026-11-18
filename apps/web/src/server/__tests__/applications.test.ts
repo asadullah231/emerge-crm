@@ -7,11 +7,12 @@ import {
 
 // Unit checks: the status dictionary + status->stage machine (no DB needed).
 describe("application status machine (M5)", () => {
-  it("has 17 unique status keys", () => {
-    // 13 seeded in M5 + 3 offer-resolution statuses (M12) + shortlisted (RD-0).
+  it("has 20 unique status keys", () => {
+    // 13 seeded in M5 + 3 offer-resolution statuses (M12) + shortlisted (RD-0)
+    // + 3 interview sub-stages (role-allocation rules, 18 Nov 2026).
     const keys = DEFAULT_APPLICATION_STATUSES.map((s) => s.key);
-    expect(keys).toHaveLength(17);
-    expect(new Set(keys).size).toBe(17);
+    expect(keys).toHaveLength(20);
+    expect(new Set(keys).size).toBe(20);
   });
 
   it("maps every status to a valid stage", () => {
@@ -130,7 +131,7 @@ describe.skipIf(!process.env.DATABASE_URL)("applications (M5, DB)", () => {
   }
 
   it(
-    "seeds the status dictionary idempotently (17 rows after two runs)",
+    "seeds the status dictionary idempotently (20 rows after two runs)",
     async () => {
       const { and, eq } = await import("drizzle-orm");
       await seedStatuses(wsA);
@@ -138,7 +139,7 @@ describe.skipIf(!process.env.DATABASE_URL)("applications (M5, DB)", () => {
       const rows = await dbmod.withWorkspace(db, wsA, (tx) =>
         tx.select().from(dbmod.applicationStatuses)
       );
-      expect(rows).toHaveLength(17);
+      expect(rows).toHaveLength(20);
       const associated = rows.find((r) => r.key === "associated");
       expect(associated?.stage).toBe("screening");
       // Sanity: the query above is workspace-scoped by RLS.
