@@ -16,6 +16,8 @@ versions follow semantic versioning (one minor version per completed milestone).
 - Three interview sub-stages in the status dictionary (first stage,
   second stage, finalist); move_candidate_stage takes an optional
   status key and keeps the stage clock honest on within-stage moves.
+- The BD Outreach sidebar item is gone: the dashboard's Outreach
+  dashboard button and the /bd redirect cover it.
 - get_job adds last-7-day submission and interview counts and shows
   each pipeline candidate's status and stage-entry date.
 
