@@ -3,6 +3,13 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.47.0 - /bd hands off to the outreach dashboard (2026-11-18)
+
+- The in-app /bd overview now redirects straight to the team's
+  outreach dashboard, so BD Outreach in the sidebar and the dashboard
+  button land in the same place. The module's subpages and data layer
+  stay (the dashboard BD strip and the Claude connector read them).
+
 ## v0.46.0 - Dashboard: outreach dashboard button (2026-11-18)
 
 - A one-click Outreach dashboard button in the dashboard toolbar opens
