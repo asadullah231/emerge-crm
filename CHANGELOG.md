@@ -3,6 +3,11 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.49.0 - Dashboard: BD outreach strip removed (2026-11-19)
+
+- The BD outreach stat strip left the dashboard: those numbers live on
+  the outreach dashboard, one click away via the toolbar button.
+
 ## v0.48.0 - Role-allocation fixes: paging, grades, feedback dates, interview sub-stages (2026-11-19)
 
 - Connector find_jobs now returns up to 200 jobs per call with an
