@@ -3,6 +3,12 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.46.0 - Dashboard: outreach dashboard button (2026-11-18)
+
+- A one-click Outreach dashboard button in the dashboard toolbar opens
+  the BD team outreach dashboard in a new tab. Shown only for
+  workspaces with the BD Outreach module enabled.
+
 ## v0.45.0 - MCP: set job status from Claude (2026-11-17)
 
 - New connector tool set_job_status: change a job to open, on_hold,

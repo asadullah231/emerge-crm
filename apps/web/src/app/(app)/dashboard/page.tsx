@@ -12,9 +12,9 @@ import {
 import { CHART, PeopleBars, StatGrid, StatTile } from "@/components/report-charts";
 import { isPositionFlagged, pct, weekStart } from "@/components/reports-shared";
 import { PipelineView } from "@/components/pipeline-view";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, RotateCcw } from "lucide-react";
+import { Download, ExternalLink, RotateCcw } from "lucide-react";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 
@@ -218,6 +218,16 @@ export default function DashboardPage() {
             <Button type="button" variant="outline" size="sm" onClick={exportCsv} disabled={!data}>
               <Download /> Export CSV
             </Button>
+            {me.data?.workspace?.bdOutreach ? (
+              <a
+                href="https://bd.187-127-75-106.sslip.io/dashboard"
+                target="_blank"
+                rel="noreferrer"
+                className={buttonVariants({ variant: "default", size: "sm" })}
+              >
+                <ExternalLink /> Outreach dashboard
+              </a>
+            ) : null}
           </div>
         </div>
       </div>
