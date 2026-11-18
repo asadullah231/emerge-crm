@@ -10,7 +10,7 @@ import {
   type TrendSeries
 } from "@/components/dashboard-charts";
 import { CHART, PeopleBars, StatGrid, StatTile } from "@/components/report-charts";
-import { isPositionFlagged, pct, weekStart } from "@/components/reports-shared";
+import { isPositionFlagged, weekStart } from "@/components/reports-shared";
 import { PipelineView } from "@/components/pipeline-view";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,8 +67,6 @@ export default function DashboardPage() {
   const team = trpc.recruiterReports.overview.useQuery(teamWindow, {
     refetchInterval: REFRESH_MS
   });
-  const bd = trpc.dashboard.bdSnapshot.useQuery(undefined, { refetchInterval: REFRESH_MS });
-
   const flaggedCount = useMemo(
     () => (positions.data ?? []).filter(isPositionFlagged).length,
     [positions.data]
@@ -307,42 +305,6 @@ export default function DashboardPage() {
           </>
         )}
       </Panel>
-
-      {/* BD outreach strip (NocoDB, same source as /bd); hidden when not configured */}
-      {bd.data ? (
-        <Panel
-          title="BD outreach"
-          subtitle="Client emails from the outreach system"
-          action={<PanelLink href="/bd">Open BD</PanelLink>}
-        >
-          <StatGrid>
-            <StatTile
-              label="Sent today"
-              value={bd.data.sentToday}
-              color={CHART.blue}
-              onClick={() => router.push("/bd/today")}
-            />
-            <StatTile
-              label="Sent this week"
-              value={bd.data.sentWeek}
-              color={CHART.blue}
-              onClick={() => router.push("/bd")}
-            />
-            <StatTile
-              label="Replies this week"
-              value={bd.data.repliesWeek}
-              color={CHART.teal}
-              onClick={() => router.push("/bd/replies")}
-            />
-            <StatTile
-              label="Reply rate (month)"
-              value={pct(bd.data.repliesMonth, bd.data.sentMonth)}
-              color={CHART.purple}
-              sublabel={`${bd.data.repliesMonth} of ${bd.data.sentMonth} sent`}
-            />
-          </StatGrid>
-        </Panel>
-      ) : null}
 
       {/* Zoho-style pipeline matrix (job x stage) */}
       <PipelineView />
