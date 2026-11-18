@@ -391,6 +391,22 @@ export default function JobRecordPage() {
             onSave={(v) => update.mutate({ id: record.id, patch: { ownerId: v || null } })}
           />
           <InlineField
+            label="Grade"
+            value={record.grade ?? ""}
+            canEdit={canEdit}
+            saving={update.isPending}
+            options={[
+              { value: "A+", label: "A+" },
+              { value: "A", label: "A" },
+              { value: "B", label: "B" },
+              { value: "C", label: "C" }
+            ]}
+            placeholder="Not graded"
+            onSave={(v) =>
+              update.mutate({ id: record.id, patch: { grade: (v || null) as JobPatch["grade"] } })
+            }
+          />
+          <InlineField
             label="Employment type"
             value={record.employmentType}
             canEdit={canEdit}

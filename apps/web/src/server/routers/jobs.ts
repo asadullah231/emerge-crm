@@ -70,7 +70,8 @@ export const jobInput = z.object({
   salaryMin: z.number().int().min(0).nullable().optional(),
   salaryMax: z.number().int().min(0).nullable().optional(),
   salaryCurrency: optionalText(10),
-  salaryPeriod: optionalText(20)
+  salaryPeriod: optionalText(20),
+  grade: z.enum(["A+", "A", "B", "C"]).nullable().optional()
 });
 
 const ownerCols = { ownerName: users.name, ownerEmail: users.email };
@@ -347,6 +348,7 @@ export const jobsRouter = router({
           salaryMax: jobs.salaryMax,
           salaryCurrency: jobs.salaryCurrency,
           salaryPeriod: jobs.salaryPeriod,
+          grade: jobs.grade,
           openedAt: jobs.openedAt,
           targetCloseAt: jobs.targetCloseAt,
           deletedAt: jobs.deletedAt,
@@ -509,7 +511,8 @@ export const jobsRouter = router({
         salaryMin: input.salaryMin ?? null,
         salaryMax: input.salaryMax ?? null,
         salaryCurrency: input.salaryCurrency ?? null,
-        salaryPeriod: input.salaryPeriod ?? null
+        salaryPeriod: input.salaryPeriod ?? null,
+        grade: input.grade ?? null
       })
       .returning();
     if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });

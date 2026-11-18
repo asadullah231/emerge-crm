@@ -534,6 +534,9 @@ export const jobs = pgTable(
     salaryCurrency: text("salary_currency"),
     /** Salary period the range refers to, e.g. "year", "day", "hour". */
     salaryPeriod: text("salary_period"),
+    /** Role quality grade (A+, A, B, C) from the post-meeting quality prompt;
+     * drives the ops team's grade caps and ADD/PAUSE allocation rules. */
+    grade: text("grade"),
     openedAt: timestamp("opened_at", { withTimezone: true }).notNull().defaultNow(),
     targetCloseAt: timestamp("target_close_at", { withTimezone: true }),
     /** Auto-set when status enters Filled/Cancelled/Declined; cleared on reopen (M17a, Zoho Date_Closed). */
