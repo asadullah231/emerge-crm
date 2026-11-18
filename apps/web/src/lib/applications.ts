@@ -204,6 +204,34 @@ export const DEFAULT_APPLICATION_STATUSES: DefaultStatus[] = [
     sortOrder: 17,
     isEntry: false,
     isTerminal: true
+  },
+  // Interview sub-stages (role-allocation rules, 18 Nov 2026): first/second/
+  // finalist let the finalist backup-sourcer rule target the right candidates.
+  // Appended with high sort orders so existing workspace dictionaries keep
+  // their numbering; ensureDefaultStatuses seeds them on the next status write.
+  {
+    key: "interview_first_stage",
+    label: "First stage interview",
+    stage: "interview",
+    sortOrder: 18,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "interview_second_stage",
+    label: "Second stage interview",
+    stage: "interview",
+    sortOrder: 19,
+    isEntry: false,
+    isTerminal: false
+  },
+  {
+    key: "interview_finalist",
+    label: "Finalist",
+    stage: "interview",
+    sortOrder: 20,
+    isEntry: false,
+    isTerminal: false
   }
 ];
 

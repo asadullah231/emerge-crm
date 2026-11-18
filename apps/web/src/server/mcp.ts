@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, isNull, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import {
   applicationStatusHistory,
   applicationStatuses,
@@ -98,6 +98,46 @@ async function resolveMemberByEmail(ctx: McpCtx, email: string): Promise<string 
     .limit(1);
   if (!member) throw new Error(`No active team member with email ${email}`);
   return member.userId;
+}
+
+/**
+ * Latest client-feedback moment per job: the newest of (a) any note logged on
+ * the job and (b) any client-side stage move on the job's candidates
+ * (interview, offered, hired, rejected - submissions are our action, not
+ * feedback). Powers the ops team's PAUSE rule (no feedback 10+ days).
+ */
+async function lastClientFeedback(ctx: McpCtx, jobIds: string[]): Promise<Map<string, Date>> {
+  const out = new Map<string, Date>();
+  if (jobIds.length === 0) return out;
+  const [noteRows, historyRows] = await Promise.all([
+    ctx.tx
+      .select({ jobId: notes.entityId, last: sql<string>`max(${notes.createdAt})` })
+      .from(notes)
+      .where(
+        and(eq(notes.entityType, "job"), inArray(notes.entityId, jobIds), isNull(notes.deletedAt))
+      )
+      .groupBy(notes.entityId),
+    ctx.tx
+      .select({
+        jobId: applications.jobId,
+        last: sql<string>`max(${applicationStatusHistory.createdAt})`
+      })
+      .from(applicationStatusHistory)
+      .innerJoin(applications, eq(applications.id, applicationStatusHistory.applicationId))
+      .where(
+        and(
+          inArray(applications.jobId, jobIds),
+          inArray(applicationStatusHistory.toStage, ["interview", "offered", "hired", "rejected"])
+        )
+      )
+      .groupBy(applications.jobId)
+  ]);
+  for (const r of [...noteRows, ...historyRows]) {
+    const at = new Date(r.last);
+    const prev = out.get(r.jobId);
+    if (!prev || at > prev) out.set(r.jobId, at);
+  }
+  return out;
 }
 
 async function entryStatusFor(ctx: McpCtx, stage: ApplicationStageKey): Promise<string> {
@@ -398,6 +438,41 @@ export const MCP_TOOLS: ToolDef[] = [
     }
   },
   {
+    name: "set_job_grade",
+    description:
+      "Set a job's quality grade (A+, A, B or C) from the post-meeting quality assessment, or 'none' to clear it. Grades drive the ops team's grade caps and ADD/PAUSE allocation rules.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        job: { type: "string", description: "Job id (uuid) or JOB number like JOB-0112" },
+        grade: { type: "string", description: "A+, A, B, C or none" }
+      },
+      required: ["job", "grade"]
+    },
+    handler: async (ctx, args) => {
+      const gradeRaw = str(args.grade);
+      const allowed = ["A+", "A", "B", "C", "none"];
+      if (!allowed.includes(gradeRaw)) {
+        throw new Error(`grade must be one of: ${allowed.join(", ")}`);
+      }
+      const grade = gradeRaw === "none" ? null : gradeRaw;
+      const job = await resolveJob(ctx, str(args.job));
+      if (!job) throw new Error("Job not found");
+      await ctx.tx.update(jobs).set({ grade }).where(eq(jobs.id, job.id));
+      if (ctx.actorId) {
+        await writeAudit({
+          workspaceId: ctx.workspaceId,
+          actorUserId: ctx.actorId,
+          action: "job.updated",
+          targetType: "job",
+          targetId: job.id,
+          meta: { grade, via: "mcp" }
+        });
+      }
+      return { ok: true, job: job.humanId, title: job.title, grade };
+    }
+  },
+  {
     name: "set_job_status",
     description:
       "Change a job opening's status: open, on_hold, filled, cancelled, declined or inactive. Closing statuses (filled, cancelled, declined) stamp the job's closed date; reopening clears it. Optionally record a note on the job saying why.",
@@ -465,7 +540,7 @@ export const MCP_TOOLS: ToolDef[] = [
   {
     name: "find_jobs",
     description:
-      "Search job openings by title or client name. Status defaults to open; pass status 'any' for all.",
+      "Search job openings by title or client name. Status defaults to open; pass status 'any' for all. Returns up to 200 per call with an offset for paging, plus each job's grade and lastClientFeedbackAt (latest job note or client-side stage move on its candidates).",
     inputSchema: {
       type: "object",
       properties: {
@@ -474,7 +549,8 @@ export const MCP_TOOLS: ToolDef[] = [
           type: "string",
           description: "open (default), on_hold, filled, cancelled, declined, inactive or any"
         },
-        limit: { type: "number", description: "Max results (default 10, max 25)" }
+        limit: { type: "number", description: "Max results (default 25, max 200)" },
+        offset: { type: "number", description: "Skip this many results (for paging)" }
       }
     },
     handler: async (ctx, args) => {
@@ -484,7 +560,8 @@ export const MCP_TOOLS: ToolDef[] = [
       if (!allowed.includes(status)) {
         throw new Error(`status must be one of: ${allowed.join(", ")}`);
       }
-      const limit = Math.min(25, Math.max(1, num(args.limit, 10)));
+      const limit = Math.min(200, Math.max(1, num(args.limit, 25)));
+      const offset = Math.max(0, num(args.offset, 0));
       const rows = await ctx.tx
         .select({
           id: jobs.id,
@@ -492,6 +569,7 @@ export const MCP_TOOLS: ToolDef[] = [
           title: jobs.title,
           client: companies.name,
           status: jobs.status,
+          grade: jobs.grade,
           openedAt: jobs.openedAt
         })
         .from(jobs)
@@ -504,17 +582,23 @@ export const MCP_TOOLS: ToolDef[] = [
           )
         )
         .orderBy(desc(jobs.openedAt))
-        .limit(limit);
+        .limit(limit)
+        .offset(offset);
+      const feedback = await lastClientFeedback(
+        ctx,
+        rows.map((r) => r.id)
+      );
       return rows.map((r) => ({
         ...r,
-        daysLive: Math.floor((Date.now() - r.openedAt.getTime()) / DAY_MS)
+        daysLive: Math.floor((Date.now() - r.openedAt.getTime()) / DAY_MS),
+        lastClientFeedbackAt: feedback.get(r.id) ?? null
       }));
     }
   },
   {
     name: "get_job",
     description:
-      "Full job opening by id or JOB number: details, assigned recruiters, and the live pipeline (every candidate with their stage).",
+      "Full job opening by id or JOB number: details (grade included), assigned recruiters, the live pipeline (every candidate with stage, status and the date they entered it), lastClientFeedbackAt, and last-7-day submission/interview counts.",
     inputSchema: {
       type: "object",
       properties: {
@@ -531,6 +615,7 @@ export const MCP_TOOLS: ToolDef[] = [
           status: jobs.status,
           client: companies.name,
           location: jobs.location,
+          grade: jobs.grade,
           openedAt: jobs.openedAt,
           owner: users.name
         })
@@ -561,19 +646,50 @@ export const MCP_TOOLS: ToolDef[] = [
           .innerJoin(users, eq(users.id, jobRecruiters.userId))
           .where(eq(jobRecruiters.jobId, job.id))
       ]);
-      const byStage: Record<string, { candidate: string; applicationId: string }[]> = {};
+      const byStage: Record<
+        string,
+        { candidate: string; applicationId: string; status: string | null; since: Date }[]
+      > = {};
       for (const p of pipeline) {
         const list = (byStage[p.stage] ??= []);
         list.push({
           candidate: `${fullName(p.firstName, p.lastName)} (${p.candidateHumanId})`,
-          applicationId: p.applicationId
+          applicationId: p.applicationId,
+          status: p.status,
+          since: p.since
         });
+      }
+      const weekAgo = new Date(Date.now() - 7 * DAY_MS);
+      const [feedback, recent] = await Promise.all([
+        lastClientFeedback(ctx, [job.id]),
+        ctx.tx
+          .select({
+            stage: applicationStatusHistory.toStage,
+            c: sql<number>`count(*)`
+          })
+          .from(applicationStatusHistory)
+          .innerJoin(applications, eq(applications.id, applicationStatusHistory.applicationId))
+          .where(
+            and(
+              eq(applications.jobId, job.id),
+              gte(applicationStatusHistory.createdAt, weekAgo),
+              inArray(applicationStatusHistory.toStage, ["submitted", "interview"])
+            )
+          )
+          .groupBy(applicationStatusHistory.toStage)
+      ]);
+      const last7d = { submitted: 0, interviews: 0 };
+      for (const r of recent) {
+        if (r.stage === "submitted") last7d.submitted = Number(r.c);
+        if (r.stage === "interview") last7d.interviews = Number(r.c);
       }
       return {
         id: job.id,
         humanId: job.humanId,
         ...detail,
         daysLive: detail ? Math.floor((Date.now() - detail.openedAt.getTime()) / DAY_MS) : null,
+        lastClientFeedbackAt: feedback.get(job.id) ?? null,
+        last7d,
         recruiters: recruiters.map((r) => r.name),
         pipeline: byStage
       };
@@ -582,7 +698,7 @@ export const MCP_TOOLS: ToolDef[] = [
   {
     name: "move_candidate_stage",
     description:
-      "Move a candidate's application to another pipeline stage (screening, shortlisted, submitted, interview, offered, hired, rejected, archived). Pass the applicationId from get_job/get_candidate, or candidate + job references. For rejections, always give rejectionReason and rejectedBy (us or client).",
+      "Move a candidate's application to another pipeline stage (screening, shortlisted, submitted, interview, offered, hired, rejected, archived), or to a specific status within a stage. Interview sub-stages: pass stage 'interview' with status interview_first_stage, interview_second_stage or interview_finalist. Pass the applicationId from get_job/get_candidate, or candidate + job references. For rejections, always give rejectionReason and rejectedBy (us or client).",
     inputSchema: {
       type: "object",
       properties: {
@@ -590,6 +706,11 @@ export const MCP_TOOLS: ToolDef[] = [
         candidate: { type: "string", description: "Candidate id or CAND number (with job)" },
         job: { type: "string", description: "Job id or JOB number (with candidate)" },
         stage: { type: "string", description: APPLICATION_STAGES.join(", ") },
+        status: {
+          type: "string",
+          description:
+            "Optional status key within the stage, e.g. interview_first_stage, interview_second_stage, interview_finalist (default: the stage's entry status)"
+        },
         note: { type: "string", description: "Optional note recorded with the change" },
         rejectionReason: { type: "string", description: "Why rejected (rejected stage only)" },
         rejectedBy: { type: "string", description: "us or client (rejected stage only)" }
@@ -633,8 +754,36 @@ export const MCP_TOOLS: ToolDef[] = [
         .from(applications)
         .where(and(eq(applications.id, appId), isNull(applications.deletedAt)));
       if (!current) throw new Error("Application not found");
-      if (current.stage === stage) {
-        return { ok: true, unchanged: true, stage, humanId: current.humanId };
+
+      // An explicit status key (e.g. interview_first_stage) wins over the
+      // stage's entry status; it must belong to the requested stage.
+      const statusReq = str(args.status);
+      let entryStatus: string;
+      if (statusReq) {
+        const [row] = await ctx.tx
+          .select({ key: applicationStatuses.key, stage: applicationStatuses.stage })
+          .from(applicationStatuses)
+          .where(eq(applicationStatuses.key, statusReq))
+          .limit(1);
+        if (!row) {
+          const options = await ctx.tx
+            .select({ key: applicationStatuses.key })
+            .from(applicationStatuses)
+            .where(eq(applicationStatuses.stage, stage));
+          throw new Error(
+            `Unknown status "${statusReq}". Statuses for ${stage}: ${options.map((o) => o.key).join(", ")}`
+          );
+        }
+        if (row.stage !== stage) {
+          throw new Error(`Status "${statusReq}" belongs to the ${row.stage} stage, not ${stage}`);
+        }
+        entryStatus = row.key;
+      } else {
+        entryStatus = await entryStatusFor(ctx, stage);
+      }
+
+      if (current.stage === stage && current.statusKey === entryStatus) {
+        return { ok: true, unchanged: true, stage, status: entryStatus, humanId: current.humanId };
       }
 
       const note = str(args.note) || null;
@@ -644,16 +793,17 @@ export const MCP_TOOLS: ToolDef[] = [
         stage === "rejected" && (rejectedByRaw === "us" || rejectedByRaw === "client")
           ? rejectedByRaw
           : null;
-      const entryStatus = await entryStatusFor(ctx, stage);
 
+      const stageChanged = current.stage !== stage;
       await ctx.tx
         .update(applications)
         .set({
           stage,
           statusKey: entryStatus,
-          rejectionReason,
-          rejectedBy,
-          stageEnteredAt: new Date()
+          rejectionReason: stageChanged ? rejectionReason : current.rejectionReason,
+          rejectedBy: stageChanged ? rejectedBy : current.rejectedBy,
+          // A status move within the same stage keeps the stage clock honest.
+          stageEnteredAt: stageChanged ? new Date() : current.stageEnteredAt
         })
         .where(eq(applications.id, appId));
       await ctx.tx.insert(applicationStatusHistory).values({
