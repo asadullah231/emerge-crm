@@ -137,13 +137,13 @@ function SuccessRates({ card, onPatch }: CardBodyProps) {
           value={d.fillRatio}
           color={CHART.teal}
           label="Fill ratio"
-          sub={`${d.filled} filled of ${d.closed} closed`}
+          sub={`${d.filled} of ${d.closed} closed jobs`}
         />
         <Gauge
           value={d.hitRatio}
           color={CHART.blue}
           label="Hit ratio"
-          sub={`${d.placed} hired of ${d.submitted} submitted`}
+          sub={`${d.placed} hires / ${d.submitted} CVs`}
         />
       </div>
       <Caption
@@ -179,17 +179,17 @@ function ResponseTimes({ card, onPatch }: CardBodyProps) {
   const metrics = [
     {
       key: "toActivity" as const,
-      label: "To first candidate",
+      label: "1st candidate",
       value: d.toActivity,
       color: CHART.amber
     },
     {
       key: "toSubmission" as const,
-      label: "To send CVs",
+      label: "CVs sent",
       value: d.toSubmission,
       color: CHART.blue
     },
-    { key: "toFill" as const, label: "To fill", value: d.toFill, color: CHART.purple }
+    { key: "toFill" as const, label: "Filled", value: d.toFill, color: CHART.purple }
   ];
   const data = d.history.map((h) => ({
     x: bucketLabel(h.start, g),
@@ -207,7 +207,7 @@ function ResponseTimes({ card, onPatch }: CardBodyProps) {
                 className="inline-block h-2 w-2 shrink-0 rounded-sm"
                 style={{ background: m.color }}
               />
-              <span className="truncate">{m.label}</span>
+              <span className="leading-tight">{m.label}</span>
             </p>
             <p className="text-base font-semibold tabular-nums text-[var(--foreground)]">
               {m.value == null ? "-" : m.value}

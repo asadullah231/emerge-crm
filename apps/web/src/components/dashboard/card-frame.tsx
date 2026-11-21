@@ -34,6 +34,9 @@ import {
   type DatePreset
 } from "./card-registry";
 
+/** Cards that grow with their content; every other card keeps one even height. */
+const AUTO_HEIGHT = new Set<CardType>(["attention", "kpis", "pipeline"]);
+
 const SIZE_CLASS: Record<CardSize, string> = {
   s: "",
   m: "md:col-span-2",
@@ -70,10 +73,10 @@ export function CardFrame({
   const view = viewOf(card);
   const icon =
     "rounded p-1 text-[var(--muted)] transition-colors hover:bg-[var(--background)] hover:text-[var(--foreground)]";
-  const fixed = card.size !== "l";
+  const fixed = !AUTO_HEIGHT.has(card.type);
   return (
     <section
-      className={`flex min-w-0 flex-col rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-sm transition-opacity ${SIZE_CLASS[card.size]} ${dragging ? "opacity-40" : ""}`}
+      className={`group flex min-w-0 flex-col rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-sm transition-opacity ${SIZE_CLASS[card.size]} ${dragging ? "opacity-40" : ""}`}
       onDragOver={(e: DragEvent) => e.preventDefault()}
       onDragEnter={onDragEnter}
       aria-label={title}
@@ -96,49 +99,51 @@ export function CardFrame({
         <h2 className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--foreground)]">
           {title}
         </h2>
-        {headerExtra}
-        {meta.toggle ? (
+        <div className="flex items-center gap-0.5 md:hidden md:group-focus-within:flex md:group-hover:flex">
+          {headerExtra}
+          {meta.toggle ? (
+            <button
+              type="button"
+              className={icon}
+              onClick={() => onPatch({ view: view === "chart" ? "list" : "chart" })}
+              title={view === "chart" ? "Show as list" : "Show as graph"}
+              aria-label={view === "chart" ? "Show as list" : "Show as graph"}
+            >
+              {view === "chart" ? (
+                <List className="h-3.5 w-3.5" />
+              ) : (
+                <BarChart3 className="h-3.5 w-3.5" />
+              )}
+            </button>
+          ) : null}
           <button
             type="button"
             className={icon}
-            onClick={() => onPatch({ view: view === "chart" ? "list" : "chart" })}
-            title={view === "chart" ? "Show as list" : "Show as graph"}
-            aria-label={view === "chart" ? "Show as list" : "Show as graph"}
+            onClick={onConfigure}
+            title="Configure card"
+            aria-label="Configure card"
           >
-            {view === "chart" ? (
-              <List className="h-3.5 w-3.5" />
-            ) : (
-              <BarChart3 className="h-3.5 w-3.5" />
-            )}
+            <Settings2 className="h-3.5 w-3.5" />
           </button>
-        ) : null}
-        <button
-          type="button"
-          className={icon}
-          onClick={onConfigure}
-          title="Configure card"
-          aria-label="Configure card"
-        >
-          <Settings2 className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          className={icon}
-          onClick={onRefresh}
-          title="Refresh"
-          aria-label="Refresh card"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          className={icon}
-          onClick={onRemove}
-          title="Remove card"
-          aria-label="Remove card"
-        >
-          <XCircle className="h-3.5 w-3.5" />
-        </button>
+          <button
+            type="button"
+            className={icon}
+            onClick={onRefresh}
+            title="Refresh"
+            aria-label="Refresh card"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            className={icon}
+            onClick={onRemove}
+            title="Remove card"
+            aria-label="Remove card"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </header>
       <div className={`min-w-0 p-3 ${fixed ? "h-[256px] overflow-y-auto" : "flex-1"}`}>
         {children}
