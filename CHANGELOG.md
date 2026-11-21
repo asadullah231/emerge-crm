@@ -3,6 +3,21 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.52.0 - Dashboard: compact cards on Recharts (2026-11-21)
+
+- Dashboard charts now use Recharts (3.10.1): area and line charts with
+  hover tooltips, donuts with a total in the middle, ranked and column
+  bar charts. Every chart fills its card, so cards no longer carry empty
+  space.
+- Cards are a compact, even height; lists scroll inside the card.
+- Team this week is a wide card with grouped bars per recruiter and a
+  list view showing who hit the shortlist and submission targets.
+- Needs attention today uses compact tiles.
+- Companies by Open Jobs and Companies by Hires get a graph/list toggle.
+- Jobs without Coverage shows one Action menu per job (assign to a
+  recruiter or close as on hold, cancelled or inactive).
+- The default layout is packed for the four-column grid.
+
 ## v0.51.1 - Dashboard cards: live-data fixes (2026-11-21)
 
 - Response Times no longer fails to load.

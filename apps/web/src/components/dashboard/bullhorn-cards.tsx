@@ -6,22 +6,23 @@
  */
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CHART } from "@/components/report-charts";
 import { trpc } from "@/lib/trpc/client";
 import { viewOf, type CardInstance, type CardType } from "./card-registry";
 import {
-  BarList,
   bucketLabel,
   CardEmpty,
+  ColumnChart,
   CountTable,
-  Donut,
+  DonutChart,
   foldSlices,
   fmtPct,
+  Gauge,
   GranularitySwitch,
-  LineChart,
-  PieChart
+  RankChart,
+  TimeChart
 } from "./mini-charts";
 
 const REFRESH = { refetchInterval: 60_000, refetchOnWindowFocus: true } as const;
@@ -98,10 +99,21 @@ export function BullhornCardBody({ card, onPatch }: CardBodyProps) {
 
 function Loading() {
   return (
-    <div className="space-y-2">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-6 animate-pulse rounded bg-[var(--border)]/60" />
-      ))}
+    <div className="flex h-full flex-col gap-2">
+      <div className="h-10 animate-pulse rounded bg-[var(--border)]/60" />
+      <div className="flex-1 animate-pulse rounded bg-[var(--border)]/40" />
+    </div>
+  );
+}
+
+/** Small uppercase caption with an optional control on the right. */
+function Caption({ children, right }: { children: ReactNode; right?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+        {children}
+      </p>
+      {right}
     </div>
   );
 }
@@ -114,42 +126,42 @@ function SuccessRates({ card, onPatch }: CardBodyProps) {
   if (q.isLoading) return <Loading />;
   const d = q.data;
   if (!d) return <CardEmpty>Could not load success rates.</CardEmpty>;
+  const data = d.history.map((h) => ({
+    x: bucketLabel(h.start, g),
+    fill: h.closed ? Math.round(h.ratio * 1000) / 10 : null
+  }));
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 rounded-md bg-[var(--background)] py-2">
-        <Donut
+    <div className="flex h-full flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Gauge
           value={d.fillRatio}
           color={CHART.teal}
           label="Fill ratio"
-          sub={`${d.filled} of ${d.closed} closed jobs`}
+          sub={`${d.filled} filled of ${d.closed} closed`}
         />
-        <Donut
+        <Gauge
           value={d.hitRatio}
           color={CHART.blue}
           label="Hit ratio"
-          sub={`${d.placed} hires / ${d.submitted} subs`}
+          sub={`${d.placed} hired of ${d.submitted} submitted`}
         />
       </div>
-      <div>
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-          Historic fill ratio
-        </p>
-        <LineChart
+      <Caption
+        right={
+          <GranularitySwitch
+            value={g}
+            onChange={(v) => onPatch({ filter: { ...card.filter, granularity: v } })}
+          />
+        }
+      >
+        Historic fill ratio
+      </Caption>
+      <div className="min-h-0 flex-1">
+        <TimeChart
           area
-          height={110}
-          series={[
-            {
-              label: "Fill ratio",
-              color: CHART.teal,
-              values: d.history.map((h) => (h.closed ? h.ratio * 100 : null))
-            }
-          ]}
-          xLabels={d.history.map((h) => bucketLabel(h.start, g))}
-          format={(v) => `${Math.round(v)}%`}
-        />
-        <GranularitySwitch
-          value={g}
-          onChange={(v) => onPatch({ filter: { ...card.filter, granularity: v } })}
+          data={data}
+          series={[{ key: "fill", label: "Fill ratio", color: CHART.teal }]}
+          format={(v) => `${v}%`}
         />
       </div>
     </div>
@@ -166,54 +178,61 @@ function ResponseTimes({ card, onPatch }: CardBodyProps) {
   if (!d) return <CardEmpty>Could not load response times.</CardEmpty>;
   const metrics = [
     {
-      label: "Time to first candidate",
+      key: "toActivity" as const,
+      label: "To first candidate",
       value: d.toActivity,
-      color: CHART.amber,
-      key: "toActivity" as const
+      color: CHART.amber
     },
     {
-      label: "Time to send CVs",
+      key: "toSubmission" as const,
+      label: "To send CVs",
       value: d.toSubmission,
-      color: CHART.blue,
-      key: "toSubmission" as const
+      color: CHART.blue
     },
-    { label: "Time to fill", value: d.toFill, color: CHART.purple, key: "toFill" as const }
+    { key: "toFill" as const, label: "To fill", value: d.toFill, color: CHART.purple }
   ];
+  const data = d.history.map((h) => ({
+    x: bucketLabel(h.start, g),
+    toActivity: h.toActivity,
+    toSubmission: h.toSubmission,
+    toFill: h.toFill
+  }));
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2 rounded-md bg-[var(--background)] p-2">
+    <div className="flex h-full flex-col gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {metrics.map((m) => (
-          <div key={m.label}>
-            <p className="flex items-start gap-1 text-[10px] font-semibold uppercase leading-tight tracking-wide text-[var(--muted)]">
+          <div key={m.key} className="rounded-md bg-[var(--background)] px-2 py-1.5">
+            <p className="flex items-center gap-1 text-[10px] text-[var(--muted)]">
               <span
-                className="mt-0.5 inline-block h-2 w-2 shrink-0 rounded-sm"
+                className="inline-block h-2 w-2 shrink-0 rounded-sm"
                 style={{ background: m.color }}
               />
-              {m.label}
+              <span className="truncate">{m.label}</span>
             </p>
-            <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">
-              {m.value == null ? "-" : `${m.value} days`}
+            <p className="text-base font-semibold tabular-nums text-[var(--foreground)]">
+              {m.value == null ? "-" : m.value}
+              {m.value == null ? null : (
+                <span className="ml-0.5 text-[11px] font-normal text-[var(--muted)]">days</span>
+              )}
             </p>
           </div>
         ))}
       </div>
-      <div>
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-          Historic
-        </p>
-        <LineChart
-          height={110}
-          series={metrics.map((m) => ({
-            label: m.label,
-            color: m.color,
-            values: d.history.map((h) => h[m.key])
-          }))}
-          xLabels={d.history.map((h) => bucketLabel(h.start, g))}
+      <Caption
+        right={
+          <GranularitySwitch
+            value={g}
+            onChange={(v) => onPatch({ filter: { ...card.filter, granularity: v } })}
+          />
+        }
+      >
+        Average days by opening date
+      </Caption>
+      <div className="min-h-0 flex-1">
+        <TimeChart
+          data={data}
+          series={metrics.map((m) => ({ key: m.key, label: m.label, color: m.color }))}
           format={(v) => `${v}d`}
-        />
-        <GranularitySwitch
-          value={g}
-          onChange={(v) => onPatch({ filter: { ...card.filter, granularity: v } })}
         />
       </div>
     </div>
@@ -242,64 +261,56 @@ function JobsWithoutCoverage({ card }: { card: CardInstance }) {
   if (q.isLoading) return <Loading />;
   const rows = q.data ?? [];
   if (rows.length === 0) return <CardEmpty>Every open job has at least one candidate.</CardEmpty>;
+  const act = (jobId: string, title: string, v: string) => {
+    if (v.startsWith("owner:")) assign.mutate({ ids: [jobId], ownerId: v.slice(6) });
+    else if (v.startsWith("status:")) {
+      const s = v.slice(7) as "on_hold" | "cancelled" | "inactive";
+      if (window.confirm(`Change "${title}" to ${s.replace("_", " ")}?`)) {
+        close.mutate({ id: jobId, status: s });
+      }
+    }
+  };
   return (
     <div>
-      <p className="mb-2 text-xs text-[var(--muted)]">
-        <span className="font-semibold text-[var(--foreground)]">{rows.length}</span> open{" "}
-        {rows.length === 1 ? "job has" : "jobs have"} no candidates yet. Assign or close them.
+      <p className="mb-1 text-xs text-[var(--muted)]">
+        <span className="text-base font-semibold text-[var(--foreground)]">{rows.length}</span> open{" "}
+        {rows.length === 1 ? "job has" : "jobs have"} no candidates
       </p>
-      {err ? <p className="mb-2 text-xs text-red-600">{err}</p> : null}
+      {err ? <p className="mb-1 text-xs text-red-600">{err}</p> : null}
       <ul className="divide-y divide-[var(--border)]">
         {rows.map((j) => {
           const age = Math.floor((Date.now() - new Date(j.openedAt).getTime()) / DAY_MS);
           return (
-            <li key={j.id} className="py-2">
-              <div className="flex items-start justify-between gap-2">
-                <Link href={`/jobs/${j.id}`} className="min-w-0 hover:underline">
-                  <span className="block truncate text-sm font-medium text-[var(--foreground)]">
-                    {j.title}
-                  </span>
-                  <span className="block truncate text-xs text-[var(--muted)]">
-                    {j.companyName ?? j.humanId} · {j.ownerName ?? "Unassigned"}
-                  </span>
-                </Link>
-                <span className="shrink-0 text-xs tabular-nums text-[var(--muted)]">{age}d</span>
-              </div>
-              <div className="mt-1.5 flex gap-1.5">
-                <select
-                  aria-label={`Assign ${j.title}`}
-                  className="min-w-0 flex-1 rounded border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 text-xs"
-                  value=""
-                  disabled={assign.isPending}
-                  onChange={(e) =>
-                    e.target.value && assign.mutate({ ids: [j.id], ownerId: e.target.value })
-                  }
-                >
-                  <option value="">Assign to...</option>
+            <li key={j.id} className="flex items-center gap-2 py-1.5">
+              <Link href={`/jobs/${j.id}`} className="min-w-0 flex-1 hover:underline">
+                <span className="block truncate text-[13px] font-medium text-[var(--foreground)]">
+                  {j.title}
+                </span>
+                <span className="block truncate text-[11px] text-[var(--muted)]">
+                  {j.companyName ?? j.humanId} · {j.ownerName ?? "Unassigned"} · {age}d
+                </span>
+              </Link>
+              <select
+                aria-label={`Assign or close ${j.title}`}
+                className="w-[74px] shrink-0 rounded border border-[var(--border)] bg-[var(--card)] px-1 py-0.5 text-[11px]"
+                value=""
+                disabled={assign.isPending || close.isPending}
+                onChange={(e) => act(j.id, j.title, e.target.value)}
+              >
+                <option value="">Action</option>
+                <optgroup label="Assign to">
                   {(members.data ?? []).map((m) => (
-                    <option key={m.userId} value={m.userId}>
+                    <option key={m.userId} value={`owner:${m.userId}`}>
                       {m.name}
                     </option>
                   ))}
-                </select>
-                <select
-                  aria-label={`Close ${j.title}`}
-                  className="rounded border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 text-xs"
-                  value=""
-                  disabled={close.isPending}
-                  onChange={(e) => {
-                    const s = e.target.value as "on_hold" | "cancelled" | "inactive" | "";
-                    if (s && window.confirm(`Change "${j.title}" to ${s.replace("_", " ")}?`)) {
-                      close.mutate({ id: j.id, status: s });
-                    }
-                  }}
-                >
-                  <option value="">Close...</option>
-                  <option value="on_hold">On hold</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
+                </optgroup>
+                <optgroup label="Close as">
+                  <option value="status:on_hold">On hold</option>
+                  <option value="status:cancelled">Cancelled</option>
+                  <option value="status:inactive">Inactive</option>
+                </optgroup>
+              </select>
             </li>
           );
         })}
@@ -334,71 +345,61 @@ function Starts({ card }: { card: CardInstance }) {
       const d = new Date(c.year, c.month + delta, 1);
       return { year: d.getFullYear(), month: d.getMonth() };
     });
+  const list = q.data ?? [];
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
+    <div className="flex gap-3">
+      <div className="w-[56%] shrink-0">
+        <div className="mb-1 flex items-center justify-between">
           <button
             type="button"
             onClick={() => shift(-1)}
-            className="rounded p-1 hover:bg-[var(--background)]"
+            className="rounded p-0.5 hover:bg-[var(--background)]"
             aria-label="Previous month"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="min-w-28 text-center text-sm font-medium">
+          <span className="text-xs font-medium">
             {first.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
           </span>
           <button
             type="button"
             onClick={() => shift(1)}
-            className="rounded p-1 hover:bg-[var(--background)]"
+            className="rounded p-0.5 hover:bg-[var(--background)]"
             aria-label="Next month"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setYm({ year: now.getFullYear(), month: now.getMonth() })}
-          className="text-xs text-[var(--accent)] hover:underline"
-        >
-          Today
-        </button>
+        <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] text-[var(--muted)]">
+          {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+            <span key={i}>{d}</span>
+          ))}
+          {cells.map((d, i) =>
+            d == null ? (
+              <span key={`e${i}`} />
+            ) : (
+              <span
+                key={d}
+                className={`flex h-6 items-center justify-center rounded text-[11px] ${
+                  isToday(d) ? "ring-1 ring-[var(--brand-secondary)]" : ""
+                } ${byDay.get(d) ? "bg-[var(--brand-secondary)] font-semibold text-white" : "text-[var(--foreground)]"}`}
+                title={byDay.get(d) ? `${byDay.get(d)} start(s)` : undefined}
+              >
+                {d}
+              </span>
+            )
+          )}
+        </div>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-[var(--muted)]">
-        {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-          <span key={i}>{d}</span>
-        ))}
-        {cells.map((d, i) =>
-          d == null ? (
-            <span key={`e${i}`} />
-          ) : (
-            <span
-              key={d}
-              className={`flex h-7 flex-col items-center justify-center rounded border text-[11px] ${
-                isToday(d) ? "border-[var(--brand-secondary)]" : "border-[var(--border)]"
-              } ${byDay.get(d) ? "bg-[var(--brand-secondary-soft)] font-semibold text-[var(--brand-secondary)]" : "text-[var(--foreground)]"}`}
-              title={byDay.get(d) ? `${byDay.get(d)} start(s)` : undefined}
-            >
-              {d}
-            </span>
-          )
-        )}
-      </div>
-      <div>
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-          Placements starting ({q.data?.length ?? 0})
-        </p>
-        {q.isLoading ? (
-          <Loading />
-        ) : (q.data ?? []).length === 0 ? (
-          <CardEmpty>
-            No placement start dates this month. Start dates come from placement records.
-          </CardEmpty>
+      <div className="min-w-0 flex-1">
+        <Caption>Starting ({list.length})</Caption>
+        {q.isLoading ? null : list.length === 0 ? (
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            No placement start dates this month. They come from placement records.
+          </p>
         ) : (
-          <ul className="divide-y divide-[var(--border)]">
-            {(q.data ?? []).map((r) => (
+          <ul className="mt-1 divide-y divide-[var(--border)]">
+            {list.map((r) => (
               <li key={r.id}>
                 <Link
                   href={
@@ -406,24 +407,19 @@ function Starts({ card }: { card: CardInstance }) {
                       ? `/applications/${r.applicationId}`
                       : `/candidates/${r.candidateId}`
                   }
-                  className="flex items-center justify-between gap-2 py-1.5 hover:bg-[var(--background)]"
+                  className="block py-1 hover:bg-[var(--background)]"
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-[var(--foreground)]">
-                      {[r.firstName, r.lastName].filter(Boolean).join(" ") || "Candidate"}
-                    </span>
-                    <span className="block truncate text-xs text-[var(--muted)]">
-                      {r.jobTitle}
-                      {r.companyName ? ` · ${r.companyName}` : ""}
-                    </span>
+                  <span className="block truncate text-xs font-medium text-[var(--foreground)]">
+                    {[r.firstName, r.lastName].filter(Boolean).join(" ") || "Candidate"}
                   </span>
-                  <span className="shrink-0 text-xs text-[var(--muted)]">
+                  <span className="block truncate text-[11px] text-[var(--muted)]">
                     {r.startDate
                       ? new Date(`${r.startDate}T00:00:00`).toLocaleDateString(undefined, {
                           day: "numeric",
                           month: "short"
                         })
-                      : ""}
+                      : ""}{" "}
+                    · {r.companyName ?? r.jobTitle}
                   </span>
                 </Link>
               </li>
@@ -461,29 +457,47 @@ function JobsBySkill({ card }: { card: CardInstance }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.label}>
-              <td className="py-1 pr-2 text-[var(--foreground)]">{r.label}</td>
-              <td className="py-1 text-right tabular-nums">{r.jobs}</td>
-              <td className="py-1 text-right tabular-nums">{r.open}</td>
-              <td className="py-1 text-right tabular-nums">{r.roles}</td>
-              <td className="py-1 text-right tabular-nums">{fmtPct(r.fillRate)}</td>
+            <tr key={r.label} className="border-b border-[var(--border)]/50 last:border-0">
+              <td className="py-1.5 pr-2 text-[var(--foreground)]">{r.label}</td>
+              <td className="py-1.5 text-right tabular-nums">{r.jobs}</td>
+              <td className="py-1.5 text-right tabular-nums">{r.open}</td>
+              <td className="py-1.5 text-right tabular-nums">{r.roles}</td>
+              <td className="py-1.5 text-right tabular-nums">{fmtPct(r.fillRate)}</td>
             </tr>
           ))}
         </tbody>
       </table>
     );
   }
-  return <PieChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.jobs })))} />;
+  return <DonutChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.jobs })))} />;
 }
 
-/* Simple grouped cards ------------------------------------------------------ */
+/* Grouped cards ------------------------------------------------------------- */
 
 function JobsByAge({ card }: { card: CardInstance }) {
   const q = trpc.dashboardCards.jobsByAge.useQuery({ filter: card.filter }, REFRESH);
   if (q.isLoading) return <Loading />;
-  const rows = q.data ?? [];
-  if (rows.every((r) => r.count === 0)) return <CardEmpty>No open jobs.</CardEmpty>;
-  return <BarList rows={rows} color={CHART.blue} unit="jobs" />;
+  const short: Record<string, string> = {
+    "0 to 7 days": "0-7d",
+    "8 to 30 days": "8-30d",
+    "31 to 60 days": "31-60d",
+    "61 to 90 days": "61-90d",
+    "Over 90 days": "90d+"
+  };
+  const rows = (q.data ?? []).map((r) => ({ label: short[r.label] ?? r.label, count: r.count }));
+  const total = rows.reduce((a, r) => a + r.count, 0);
+  if (total === 0) return <CardEmpty>No open jobs.</CardEmpty>;
+  return (
+    <div className="flex h-full flex-col gap-1">
+      <p className="text-xs text-[var(--muted)]">
+        <span className="text-base font-semibold text-[var(--foreground)]">{total}</span> open jobs
+        by days since opening
+      </p>
+      <div className="min-h-0 flex-1">
+        <ColumnChart rows={rows} name="Open jobs" />
+      </div>
+    </div>
+  );
 }
 
 function JobsByIndustry({ card }: { card: CardInstance }) {
@@ -494,21 +508,23 @@ function JobsByIndustry({ card }: { card: CardInstance }) {
   return viewOf(card) === "list" ? (
     <CountTable rows={rows} head={["Business sector", "Open jobs"]} />
   ) : (
-    <PieChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
+    <DonutChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
   );
 }
+
+const cap = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1).replace(/_/g, " ") : s);
 
 function CompaniesByStatus({ card }: { card: CardInstance }) {
   const q = trpc.dashboardCards.companiesByStatus.useQuery({ filter: card.filter }, REFRESH);
   if (q.isLoading) return <Loading />;
   const rows = (q.data ?? []).map((r) => ({
-    label: r.label[0]!.toUpperCase() + r.label.slice(1),
+    label: cap(r.label),
     count: r.count,
     href: "/companies"
   }));
   if (rows.length === 0) return <CardEmpty>No companies yet.</CardEmpty>;
   return viewOf(card) === "chart" ? (
-    <PieChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
+    <DonutChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
   ) : (
     <CountTable rows={rows} head={["Status", "Number"]} />
   );
@@ -530,12 +546,15 @@ function CompaniesRanked({ card, by }: { card: CardInstance; by: "open-jobs" | "
     count: r.count,
     href: `/companies/${r.id}`
   }));
+  const unit = by === "open-jobs" ? "Open jobs" : "Hires";
   if (rows.length === 0)
     return (
       <CardEmpty>{by === "open-jobs" ? "No open jobs." : "No hires in this period."}</CardEmpty>
     );
-  return (
-    <CountTable rows={rows} head={["Company", by === "open-jobs" ? "Open jobs" : "Placements"]} />
+  return viewOf(card) === "chart" ? (
+    <RankChart rows={rows} color={by === "open-jobs" ? CHART.blue : CHART.teal} name={unit} />
+  ) : (
+    <CountTable rows={rows} head={["Company", unit]} />
   );
 }
 
@@ -545,7 +564,11 @@ function ByOwner({ card, entity }: { card: CardInstance; entity: "contacts" | "c
   const rows = q.data ?? [];
   if (rows.length === 0) return <CardEmpty>No records yet.</CardEmpty>;
   return viewOf(card) === "chart" ? (
-    <BarList rows={rows} color={CHART.teal} />
+    <RankChart
+      rows={rows}
+      color={CHART.teal}
+      name={entity === "contacts" ? "Contacts" : "Candidates"}
+    />
   ) : (
     <CountTable rows={rows} head={["Consultant", "Number"]} />
   );
@@ -554,15 +577,12 @@ function ByOwner({ card, entity }: { card: CardInstance; entity: "contacts" | "c
 function CandidatesBySource({ card }: { card: CardInstance }) {
   const q = trpc.dashboardCards.candidatesBySource.useQuery({ filter: card.filter }, REFRESH);
   if (q.isLoading) return <Loading />;
-  const rows = (q.data ?? []).map((r) => ({
-    label: r.label[0]!.toUpperCase() + r.label.slice(1),
-    count: r.count
-  }));
+  const rows = (q.data ?? []).map((r) => ({ label: cap(r.label), count: r.count }));
   if (rows.length === 0) return <CardEmpty>No candidates yet.</CardEmpty>;
   return viewOf(card) === "list" ? (
     <CountTable rows={rows} head={["Source", "Candidates"]} />
   ) : (
-    <PieChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
+    <DonutChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
   );
 }
 
@@ -572,6 +592,14 @@ const NEWEST: Partial<Record<string, "companies" | "contacts" | "candidates">> =
   companies: "companies",
   contacts: "contacts",
   candidates: "candidates"
+};
+
+const OVER_TIME_LABEL: Record<string, string> = {
+  companies: "New companies",
+  contacts: "New contacts",
+  candidates: "New candidates",
+  jobs: "New jobs",
+  placements: "Hires"
 };
 
 function OverTime({
@@ -597,26 +625,25 @@ function OverTime({
     const base =
       entity === "companies" ? "/companies" : entity === "contacts" ? "/contacts" : "/candidates";
     return (
-      <table className="w-full text-xs">
+      <table className="w-full table-fixed text-xs">
         <thead>
           <tr className="border-b border-[var(--border)] text-left text-[var(--muted)]">
             <th className="pb-1.5 font-medium">Name</th>
             <th className="pb-1.5 font-medium">{entity === "companies" ? "Status" : "Title"}</th>
-            <th className="pb-1.5 text-right font-medium">Age</th>
+            <th className="w-14 pb-1.5 text-right font-medium">Age</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.id}>
-              <td className="max-w-0 truncate py-1 pr-2">
+            <tr key={r.id} className="border-b border-[var(--border)]/50 last:border-0">
+              <td className="truncate py-1.5 pr-2">
                 <Link href={`${base}/${r.id}`} className="text-[var(--accent)] hover:underline">
                   {r.name}
                 </Link>
               </td>
-              <td className="max-w-0 truncate py-1 pr-2 text-[var(--muted)]">{r.sub ?? ""}</td>
-              <td className="py-1 text-right tabular-nums text-[var(--muted)]">
-                {Math.max(0, Math.floor((Date.now() - new Date(r.createdAt).getTime()) / DAY_MS))}{" "}
-                days
+              <td className="truncate py-1.5 pr-2 text-[var(--muted)]">{cap(r.sub ?? "")}</td>
+              <td className="py-1.5 text-right tabular-nums text-[var(--muted)]">
+                {Math.max(0, Math.floor((Date.now() - new Date(r.createdAt).getTime()) / DAY_MS))}d
               </td>
             </tr>
           ))}
@@ -627,21 +654,28 @@ function OverTime({
   if (series.isLoading) return <Loading />;
   const pts = series.data?.points ?? [];
   const total = pts.reduce((a, p) => a + p.count, 0);
+  const data = pts.map((p) => ({ x: bucketLabel(p.start, g), n: p.count }));
   return (
-    <div>
-      <p className="mb-1 text-xs text-[var(--muted)]">
-        <span className="text-lg font-semibold tabular-nums text-[var(--foreground)]">{total}</span>{" "}
-        in the last {pts.length} {g}s
-      </p>
-      <LineChart
-        height={120}
-        series={[{ label: "New", color: CHART.blue, values: pts.map((p) => p.count) }]}
-        xLabels={pts.map((p) => bucketLabel(p.start, g))}
-      />
-      <GranularitySwitch
-        value={g}
-        onChange={(v) => onPatch({ filter: { ...card.filter, granularity: v } })}
-      />
+    <div className="flex h-full flex-col gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-[var(--muted)]">
+          <span className="text-base font-semibold tabular-nums text-[var(--foreground)]">
+            {total}
+          </span>{" "}
+          in the last {pts.length} {g}s
+        </p>
+        <GranularitySwitch
+          value={g}
+          onChange={(v) => onPatch({ filter: { ...card.filter, granularity: v } })}
+        />
+      </div>
+      <div className="min-h-0 flex-1">
+        <TimeChart
+          area
+          data={data}
+          series={[{ key: "n", label: OVER_TIME_LABEL[entity] ?? "New", color: CHART.blue }]}
+        />
+      </div>
     </div>
   );
 }

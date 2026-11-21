@@ -9,17 +9,19 @@ import {
   MultiTrendChart,
   type TrendSeries
 } from "@/components/dashboard-charts";
-import { CHART, PeopleBars, StatGrid, StatTile } from "@/components/report-charts";
+import { CHART } from "@/components/report-charts";
 import { isPositionFlagged, weekStart } from "@/components/reports-shared";
 import { PipelineView } from "@/components/pipeline-view";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BullhornCardBody, BULLHORN_TYPES } from "@/components/dashboard/bullhorn-cards";
 import { CardFrame, CardLibrary, ConfigureDialog } from "@/components/dashboard/card-frame";
+import { GroupedColumns } from "@/components/dashboard/mini-charts";
 import {
   CARD_META,
   DEFAULT_LAYOUT,
   newCardId,
+  viewOf,
   type CardInstance,
   type CardType
 } from "@/components/dashboard/card-registry";
@@ -257,46 +259,47 @@ export default function DashboardPage() {
   };
 
   /** Body + optional header link for each Emerge (non-Bullhorn) card. */
-  const emergeCard = (type: CardType): { body: ReactNode; extra?: ReactNode } => {
-    switch (type) {
+  const emergeCard = (card: CardInstance): { body: ReactNode; extra?: ReactNode } => {
+    switch (card.type) {
       case "attention":
         return {
           body: (
-            <div className="space-y-4">
-              <StatGrid>
-                <StatTile
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                <AttentionTile
                   label="Red-flag positions"
-                  value={positions.data ? flaggedCount : "-"}
+                  value={positions.data ? flaggedCount : null}
+                  sub="stuck jobs, click to review"
                   color="#ef4444"
-                  status
-                  sublabel="stuck jobs - click to review"
                   onClick={() => router.push("/reports/positions?flagged=1")}
                 />
-                <StatTile
+                <AttentionTile
                   label="Interviews today"
-                  value={attention.data?.interviewsToday.count ?? "-"}
+                  value={attention.data?.interviewsToday.count ?? null}
+                  sub="scheduled for today"
                   color={CHART.blue}
-                  sublabel="scheduled for today"
+                  active={attentionPick === "interviews"}
                   onClick={() =>
                     setAttentionPick((c) => (c === "interviews" ? null : "interviews"))
                   }
                 />
-                <StatTile
+                <AttentionTile
                   label="Overdue tasks"
-                  value={attention.data?.overdueTasks.count ?? "-"}
+                  value={attention.data?.overdueTasks.count ?? null}
+                  sub="past their due date"
                   color={CHART.amber}
-                  status
-                  sublabel="past their due date"
+                  active={attentionPick === "tasks"}
                   onClick={() => setAttentionPick((c) => (c === "tasks" ? null : "tasks"))}
                 />
-                <StatTile
+                <AttentionTile
                   label="Waiting on client"
-                  value={attention.data?.waitingOnClient.count ?? "-"}
+                  value={attention.data?.waitingOnClient.count ?? null}
+                  sub="submitted 3+ days ago"
                   color={CHART.teal}
-                  sublabel="submitted 3+ days ago, no response"
+                  active={attentionPick === "waiting"}
                   onClick={() => setAttentionPick((c) => (c === "waiting" ? null : "waiting"))}
                 />
-              </StatGrid>
+              </div>
               {attentionPick && attention.data ? (
                 <AttentionDetail
                   pick={attentionPick}
@@ -307,32 +310,78 @@ export default function DashboardPage() {
             </div>
           )
         };
-      case "team-week":
+      case "team-week": {
+        const rows = teamRows.busy.slice(0, 10);
+        const hit = (n: number, target: number) =>
+          n >= target ? "font-semibold text-[var(--brand-secondary)]" : "";
         return {
           extra: <PanelLink href="/reports/recruiters">Full report</PanelLink>,
           body: team.isLoading ? (
             <RowsSkeleton />
+          ) : rows.length === 0 ? (
+            <Empty>No shortlists or submissions logged this week yet.</Empty>
+          ) : viewOf(card) === "list" ? (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-left text-[var(--muted)]">
+                  <th className="pb-1.5 font-medium">Recruiter</th>
+                  <th className="pb-1.5 text-right font-medium">Shortlisted</th>
+                  <th className="pb-1.5 text-right font-medium">Submitted</th>
+                  <th className="pb-1.5 text-right font-medium">Interviews</th>
+                  <th className="pb-1.5 text-right font-medium">Rejected</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.userId} className="border-b border-[var(--border)]/50 last:border-0">
+                    <td className="py-1.5 pr-2 text-[var(--foreground)]">{r.name}</td>
+                    <td
+                      className={`py-1.5 text-right tabular-nums ${hit(r.week.shortlisted, TARGET_SHORTLISTED)}`}
+                    >
+                      {r.week.shortlisted}
+                    </td>
+                    <td
+                      className={`py-1.5 text-right tabular-nums ${hit(r.week.submitted, TARGET_SUBMITTED)}`}
+                    >
+                      {r.week.submitted}
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums">{r.week.interview}</td>
+                    <td className="py-1.5 text-right tabular-nums">{r.week.rejected}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : (
-            <>
-              <p className="mb-2 text-xs text-[var(--muted)]">
-                {teamRows.busy.length} of {teamRows.all} recruiters have logged activity this week.
-                Target {TARGET_SHORTLISTED} shortlisted / {TARGET_SUBMITTED} submitted each.
-              </p>
-              <PeopleBars
-                rows={teamRows.busy.map((r) => ({
-                  key: r.userId,
-                  name: r.name,
-                  values: [r.week.shortlisted, r.week.submitted]
-                }))}
-                series={[
-                  { label: "Shortlisted", color: CHART.teal },
-                  { label: "Submitted", color: CHART.blue }
-                ]}
-                onRowClick={() => router.push("/reports/recruiters")}
-              />
-            </>
+            <div className="flex h-full flex-col gap-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted)]">
+                <span>
+                  <span className="text-base font-semibold text-[var(--foreground)]">
+                    {teamRows.busy.length}
+                  </span>
+                  {` of ${teamRows.all} recruiters active, target ${TARGET_SHORTLISTED} shortlisted / ${TARGET_SUBMITTED} submitted`}
+                </span>
+                <span className="flex items-center gap-3">
+                  <LegendDot color={CHART.teal} label="Shortlisted" />
+                  <LegendDot color={CHART.blue} label="Submitted" />
+                </span>
+              </div>
+              <div className="min-h-0 flex-1">
+                <GroupedColumns
+                  data={rows.map((r) => ({
+                    x: r.name,
+                    shortlisted: r.week.shortlisted,
+                    submitted: r.week.submitted
+                  }))}
+                  series={[
+                    { key: "shortlisted", label: "Shortlisted", color: CHART.teal },
+                    { key: "submitted", label: "Submitted", color: CHART.blue }
+                  ]}
+                />
+              </div>
+            </div>
           )
         };
+      }
       case "pipeline":
         return { body: <PipelineView /> };
       case "kpis":
@@ -582,7 +631,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {layout.map((card) => {
           const isBullhorn = BULLHORN_TYPES.includes(card.type);
-          const emerge = isBullhorn ? null : emergeCard(card.type);
+          const emerge = isBullhorn ? null : emergeCard(card);
           return (
             <CardFrame
               key={card.id}
@@ -675,6 +724,48 @@ function PanelLink({ href, children }: { href: string; children: ReactNode }) {
     <Link href={href} className="text-xs font-medium text-[var(--accent)] hover:underline">
       {children}
     </Link>
+  );
+}
+
+function AttentionTile({
+  label,
+  value,
+  sub,
+  color,
+  active,
+  onClick
+}: {
+  label: string;
+  value: number | null;
+  sub: string;
+  color: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md border border-l-[3px] border-[var(--border)] bg-[var(--card)] px-3 py-2 text-left transition-colors hover:bg-[var(--background)] ${active ? "ring-1 ring-[var(--brand-secondary)]" : ""}`}
+      style={{ borderLeftColor: color }}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+        {label}
+      </p>
+      <p className="text-2xl font-semibold leading-tight tabular-nums text-[var(--foreground)]">
+        {value == null ? "-" : value}
+      </p>
+      <p className="truncate text-[11px] text-[var(--muted)]">{sub}</p>
+    </button>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />
+      {label}
+    </span>
   );
 }
 

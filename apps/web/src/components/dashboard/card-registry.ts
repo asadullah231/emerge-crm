@@ -236,6 +236,7 @@ export const CARD_META: Record<CardType, CardMeta> = {
     category: "Companies",
     description: "Clients ranked by open jobs",
     size: "s",
+    toggle: true,
     filters: ["user", "industry", "jobType", "skill"],
     mineLabel: "My jobs"
   },
@@ -244,6 +245,7 @@ export const CARD_META: Record<CardType, CardMeta> = {
     category: "Companies",
     description: "Clients ranked by candidates moved to Hired",
     size: "s",
+    toggle: true,
     filters: ["user", "date", "industry", "jobType"],
     mineLabel: "My jobs"
   },
@@ -315,8 +317,9 @@ export const CARD_META: Record<CardType, CardMeta> = {
     title: "Team this week",
     category: "Team",
     description: "Shortlisted vs submitted per recruiter against targets",
-    size: "l",
-    filters: []
+    size: "m",
+    filters: [],
+    toggle: true
   },
   recruiters: {
     title: "Recruiter performance",
@@ -369,7 +372,7 @@ function inst(type: CardType, size?: CardSize): CardInstance {
   return { id: `d-${type}`, type, size: size ?? CARD_META[type].size };
 }
 
-/** Default layout: Mo's morning view first, then the Bullhorn cards. */
+/** Default layout, packed for the 4-column grid (S = 1, M = 2, L = 4 columns). */
 export const DEFAULT_LAYOUT: CardInstance[] = [
   inst("attention"),
   inst("success-rates"),
@@ -377,20 +380,23 @@ export const DEFAULT_LAYOUT: CardInstance[] = [
   inst("jobs-without-coverage"),
   inst("jobs-by-age"),
   inst("team-week"),
-  inst("pipeline"),
+  inst("companies-by-status"),
+  inst("candidates-by-source"),
   inst("kpis"),
   inst("funnel"),
   inst("trends"),
-  inst("companies-by-status"),
   inst("companies-by-open-jobs"),
-  inst("candidates-by-source"),
   inst("placements-over-time"),
   inst("companies-by-placements"),
   inst("contacts-over-time"),
+  inst("pipeline"),
   inst("recruiters"),
   inst("interviews"),
   inst("tasks"),
-  inst("activity")
+  inst("activity"),
+  inst("jobs-over-time"),
+  inst("candidates-over-time"),
+  inst("recent-jobs")
 ];
 
 export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
