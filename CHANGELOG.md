@@ -3,6 +3,22 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.51.1 - Dashboard cards: live-data fixes (2026-11-21)
+
+- Response Times no longer fails to load.
+- Small and wide cards keep a fixed height and scroll inside, so one
+  long list no longer stretches the whole row.
+- Success Rates counts every closed job (filled, cancelled, inactive,
+  declined), including the roles closed as inactive, and the hit ratio
+  and time to send CVs now come from pipeline stage moves (Submitted,
+  Hired), which is how the team logs them.
+- "Placements over Time" and "Companies by Placements" are now "Hires
+  over Time" and "Companies by Hires", counted from moves into Hired.
+- Jobs by Required Skills and Starts stay in the card library but are
+  off the default layout until skills and placement start dates are
+  filled in.
+- Chart date labels no longer overlap at the right edge.
+
 ## v0.51.0 - Dashboard: Bullhorn-style card dashboard (2026-11-21)
 
 - Four-column card grid. Every card has a drag handle, a graph/list
