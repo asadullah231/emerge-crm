@@ -140,7 +140,7 @@ export function CardFrame({
           <XCircle className="h-3.5 w-3.5" />
         </button>
       </header>
-      <div className={`min-w-0 flex-1 p-3 ${fixed ? "h-[340px] overflow-y-auto" : ""}`}>
+      <div className={`min-w-0 p-3 ${fixed ? "h-[340px] overflow-y-auto" : "flex-1"}`}>
         {children}
       </div>
     </section>

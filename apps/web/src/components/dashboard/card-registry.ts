@@ -214,9 +214,9 @@ export const CARD_META: Record<CardType, CardMeta> = {
     mineLabel: "My jobs"
   },
   "placements-over-time": {
-    title: "Placements over Time",
+    title: "Hires over Time",
     category: "Placements",
-    description: "Placements per week, month or year",
+    description: "Candidates moved to Hired per week, month or year",
     size: "s",
     filters: ["user", "company", "industry", "jobType", "skill"],
     granularity: true,
@@ -240,9 +240,9 @@ export const CARD_META: Record<CardType, CardMeta> = {
     mineLabel: "My jobs"
   },
   "companies-by-placements": {
-    title: "Companies by Placements",
+    title: "Companies by Hires",
     category: "Companies",
-    description: "Clients ranked by placements",
+    description: "Clients ranked by candidates moved to Hired",
     size: "s",
     filters: ["user", "date", "industry", "jobType"],
     mineLabel: "My jobs"
@@ -377,8 +377,6 @@ export const DEFAULT_LAYOUT: CardInstance[] = [
   inst("jobs-without-coverage"),
   inst("jobs-by-age"),
   inst("team-week"),
-  inst("jobs-by-skill"),
-  inst("starts"),
   inst("pipeline"),
   inst("kpis"),
   inst("funnel"),
@@ -386,6 +384,8 @@ export const DEFAULT_LAYOUT: CardInstance[] = [
   inst("companies-by-status"),
   inst("companies-by-open-jobs"),
   inst("candidates-by-source"),
+  inst("placements-over-time"),
+  inst("companies-by-placements"),
   inst("contacts-over-time"),
   inst("recruiters"),
   inst("interviews"),
