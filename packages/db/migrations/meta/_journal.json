@@ -302,6 +302,13 @@
       "when": 1795028236036,
       "tag": "0042_thick_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795235531996,
+      "tag": "0043_spicy_toxin",
+      "breakpoints": true
     }
   ]
 }

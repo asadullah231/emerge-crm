@@ -1045,6 +1045,32 @@ export const savedViews = pgTable(
 );
 export type SavedView = typeof savedViews.$inferSelect;
 
+/**
+ * Per-user dashboard layout (Bullhorn-style card grid). One row per user per
+ * dashboard key ("main", or an entity dashboard like "jobs"). `cards` is the
+ * ordered card list with each card's size, title and filter config.
+ */
+export const userDashboards = pgTable(
+  "user_dashboards",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dashboardKey: text("dashboard_key").notNull(),
+    cards: jsonb("cards").$type<unknown[]>().notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (t) => [
+    uniqueIndex("user_dashboards_ws_user_key_unique").on(t.workspaceId, t.userId, t.dashboardKey)
+  ]
+);
+export type UserDashboard = typeof userDashboards.$inferSelect;
+
 // ---------------------------------------------------------------------------
 // M10: client submissions & feedback. A submission is a formal "sent this
 // candidate to the client" record layered on the M5 application. One send can
