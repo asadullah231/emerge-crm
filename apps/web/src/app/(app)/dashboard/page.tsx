@@ -57,9 +57,10 @@ const TARGET_SUBMITTED = 2;
 
 type AttentionPick = "interviews" | "tasks" | "waiting" | null;
 
-const DASHBOARD_KEY = "main";
+/** Bumped when the default layout changes so everyone gets the new packed grid once. */
+const DASHBOARD_KEY = "main.v2";
 /** Local cache so the saved layout paints instantly before the server answers. */
-const LAYOUT_CACHE_KEY = "emerge.dashboard.layout.v2";
+const LAYOUT_CACHE_KEY = "emerge.dashboard.layout.v3";
 
 function readCache(): CardInstance[] | null {
   try {

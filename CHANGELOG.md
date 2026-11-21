@@ -3,6 +3,18 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.52.1 - Dashboard polish after live review (2026-11-21)
+
+- Every card except Needs attention, Key numbers and Pipeline keeps the
+  same height, so full-width chart cards like Team this week draw their
+  chart instead of collapsing.
+- Card icons show on hover, so card titles are no longer cut off.
+- Donut cards keep room for their legend labels.
+- Success Rates gauges stack their labels; Response Times labels are
+  shorter and no longer truncate.
+- The dashboard layout key moved to a new version so everyone gets the
+  new packed default layout once.
+
 ## v0.52.0 - Dashboard: compact cards on Recharts (2026-11-21)
 
 - Dashboard charts now use Recharts (3.10.1): area and line charts with
