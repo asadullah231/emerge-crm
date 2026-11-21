@@ -137,7 +137,7 @@ export function LineChart({
           </g>
         ))}
         {xLabels.map((l, i) =>
-          i % every === 0 || i === n - 1 ? (
+          (n - 1 - i) % every === 0 ? (
             <text
               key={i}
               x={x(i)}

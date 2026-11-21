@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 import {
+  applicationStatusHistory,
   applications,
   candidates,
   companies,
@@ -23,9 +24,9 @@ import {
   jobEmploymentType,
   jobs,
   placements,
-  submissions,
   userDashboards,
-  users
+  users,
+  type Transaction
 } from "@emerge/db";
 import { router, workspaceProcedure } from "../trpc";
 
@@ -176,6 +177,34 @@ function days(from: Date, to: Date | null | undefined): number | null {
   return d >= 0 ? d : null;
 }
 
+type Tx = Transaction;
+
+/** Earliest moment each job had an application move into `stage`. */
+function firstStage(ctx: { tx: Tx }, jobIds: string[], stage: "submitted" | "hired") {
+  return ctx.tx
+    .select({ jobId: applications.jobId, at: min(applicationStatusHistory.createdAt) })
+    .from(applicationStatusHistory)
+    .innerJoin(applications, eq(applications.id, applicationStatusHistory.applicationId))
+    .where(
+      and(
+        inArray(applications.jobId, jobIds),
+        isNull(applications.deletedAt),
+        eq(applicationStatusHistory.toStage, stage)
+      )
+    )
+    .groupBy(applications.jobId);
+}
+
+/** Hires (moves into Hired) joined to their job, for hire-based cards. */
+function hiresQuery(ctx: Ctx & { tx: Tx }, f: CardFilter | undefined, extra?: SQL) {
+  return and(
+    jobWhere(ctx, f),
+    isNull(applications.deletedAt),
+    eq(applicationStatusHistory.toStage, "hired"),
+    extra
+  );
+}
+
 export const dashboardCardsRouter = router({
   /** The signed-in user's saved card layout for one dashboard (null = default). */
   layout: workspaceProcedure
@@ -224,27 +253,36 @@ export const dashboardCardsRouter = router({
     const historyFrom = buckets[0]!;
 
     const closedRows = await ctx.tx
-      .select({ status: jobs.status, closedAt: jobs.closedAt })
+      .select({
+        status: jobs.status,
+        closedAt: sql<string>`coalesce(${jobs.closedAt}, ${jobs.updatedAt})`
+      })
       .from(jobs)
-      .where(jobWhere(ctx, f, and(inArray(jobs.status, [...CLOSED]), isNotNull(jobs.closedAt))));
+      .where(jobWhere(ctx, f, inArray(jobs.status, [...CLOSED])))
+      .then((rows) => rows.map((r) => ({ status: r.status, closedAt: new Date(r.closedAt) })));
 
     const { from, to } = presetRange(f?.datePreset);
     const inRange = (d: Date) => (!from || d >= from) && (!to || d < to);
     const scoped = closedRows.filter((r) => r.closedAt && inRange(r.closedAt));
     const filled = scoped.filter((r) => r.status === "filled").length;
 
-    const [subs, places] = await Promise.all([
+    // Hit ratio from pipeline stage moves: the team logs CV sends and hires as
+    // stage changes (Submitted / Hired), not as share links or placement rows.
+    const reached = (stage: "submitted" | "hired") =>
       ctx.tx
-        .select({ c: count() })
-        .from(submissions)
-        .innerJoin(jobs, eq(jobs.id, submissions.jobId))
-        .where(and(jobWhere(ctx, f), dateWhere(submissions.sentAt, f))),
-      ctx.tx
-        .select({ c: count() })
-        .from(placements)
-        .innerJoin(jobs, eq(jobs.id, placements.jobId))
-        .where(and(jobWhere(ctx, f), dateWhere(placements.createdAt, f)))
-    ]);
+        .select({ c: sql<number>`count(distinct ${applicationStatusHistory.applicationId})` })
+        .from(applicationStatusHistory)
+        .innerJoin(applications, eq(applications.id, applicationStatusHistory.applicationId))
+        .innerJoin(jobs, eq(jobs.id, applications.jobId))
+        .where(
+          and(
+            jobWhere(ctx, f),
+            isNull(applications.deletedAt),
+            eq(applicationStatusHistory.toStage, stage),
+            dateWhere(applicationStatusHistory.createdAt, f)
+          )
+        );
+    const [subs, places] = await Promise.all([reached("submitted"), reached("hired")]);
     const submitted = Number(subs[0]?.c ?? 0);
     const placed = Number(places[0]?.c ?? 0);
 
@@ -289,7 +327,7 @@ export const dashboardCardsRouter = router({
     const jobRows = await ctx.tx
       .select({ id: jobs.id, openedAt: opened })
       .from(jobs)
-      .where(jobWhere(ctx, f, gte(opened, windowFrom)));
+      .where(jobWhere(ctx, f, sql`${opened} >= ${windowFrom.toISOString()}::timestamptz`));
     const ids = jobRows.map((j) => j.id);
     if (ids.length === 0) {
       return {
@@ -312,16 +350,8 @@ export const dashboardCardsRouter = router({
         .from(applications)
         .where(and(inArray(applications.jobId, ids), isNull(applications.deletedAt)))
         .groupBy(applications.jobId),
-      ctx.tx
-        .select({ jobId: submissions.jobId, at: min(submissions.sentAt) })
-        .from(submissions)
-        .where(inArray(submissions.jobId, ids))
-        .groupBy(submissions.jobId),
-      ctx.tx
-        .select({ jobId: placements.jobId, at: min(placements.createdAt) })
-        .from(placements)
-        .where(inArray(placements.jobId, ids))
-        .groupBy(placements.jobId)
+      firstStage(ctx, ids, "submitted"),
+      firstStage(ctx, ids, "hired")
     ]);
     const toMap = (rows: { jobId: string | null; at: Date | null }[]) =>
       new Map(rows.filter((r) => r.jobId).map((r) => [r.jobId as string, r.at]));
@@ -528,17 +558,19 @@ export const dashboardCardsRouter = router({
     return rows.map((r) => ({ id: r.id, label: r.label, count: Number(r.count) }));
   }),
 
-  /** Companies ranked by placements in the date window. */
+  /** Companies ranked by hires (moves into Hired) in the date window. */
   companiesByPlacements: workspaceProcedure.input(filterInput).query(async ({ ctx, input }) => {
     const f = input.filter;
+    const n = sql<number>`count(distinct ${applicationStatusHistory.applicationId})`;
     const rows = await ctx.tx
-      .select({ id: companies.id, label: companies.name, count: count() })
-      .from(placements)
-      .innerJoin(jobs, eq(jobs.id, placements.jobId))
+      .select({ id: companies.id, label: companies.name, count: n })
+      .from(applicationStatusHistory)
+      .innerJoin(applications, eq(applications.id, applicationStatusHistory.applicationId))
+      .innerJoin(jobs, eq(jobs.id, applications.jobId))
       .innerJoin(companies, eq(companies.id, jobs.companyId))
-      .where(and(jobWhere(ctx, f), dateWhere(placements.createdAt, f)))
+      .where(hiresQuery(ctx, f, dateWhere(applicationStatusHistory.createdAt, f)))
       .groupBy(companies.id, companies.name)
-      .orderBy(desc(count()))
+      .orderBy(desc(n))
       .limit(12);
     return rows.map((r) => ({ id: r.id, label: r.label, count: Number(r.count) }));
   }),
@@ -615,10 +647,11 @@ export const dashboardCardsRouter = router({
         dates = r.map((x) => x.at);
       } else if (input.entity === "placements") {
         const r = await ctx.tx
-          .select({ at: placements.createdAt })
-          .from(placements)
-          .innerJoin(jobs, eq(jobs.id, placements.jobId))
-          .where(and(jobWhere(ctx, f), gte(placements.createdAt, since)));
+          .select({ at: applicationStatusHistory.createdAt })
+          .from(applicationStatusHistory)
+          .innerJoin(applications, eq(applications.id, applicationStatusHistory.applicationId))
+          .innerJoin(jobs, eq(jobs.id, applications.jobId))
+          .where(hiresQuery(ctx, f, gte(applicationStatusHistory.createdAt, since)));
         dates = r.map((x) => x.at);
       } else {
         const t =

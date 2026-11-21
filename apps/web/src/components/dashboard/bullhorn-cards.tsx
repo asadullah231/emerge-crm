@@ -393,7 +393,9 @@ function Starts({ card }: { card: CardInstance }) {
         {q.isLoading ? (
           <Loading />
         ) : (q.data ?? []).length === 0 ? (
-          <CardEmpty>No placements start this month.</CardEmpty>
+          <CardEmpty>
+            No placement start dates this month. Start dates come from placement records.
+          </CardEmpty>
         ) : (
           <ul className="divide-y divide-[var(--border)]">
             {(q.data ?? []).map((r) => (
@@ -439,7 +441,12 @@ function JobsBySkill({ card }: { card: CardInstance }) {
   const q = trpc.dashboardCards.jobsBySkill.useQuery({ filter: card.filter }, REFRESH);
   if (q.isLoading) return <Loading />;
   const rows = q.data ?? [];
-  if (rows.length === 0) return <CardEmpty>No jobs have required skills filled in.</CardEmpty>;
+  if (rows.length === 0)
+    return (
+      <CardEmpty>
+        No jobs have required skills filled in yet. Add skills on the job page to use this card.
+      </CardEmpty>
+    );
   if (viewOf(card) === "list") {
     return (
       <table className="w-full text-xs">
@@ -525,9 +532,7 @@ function CompaniesRanked({ card, by }: { card: CardInstance; by: "open-jobs" | "
   }));
   if (rows.length === 0)
     return (
-      <CardEmpty>
-        {by === "open-jobs" ? "No open jobs." : "No placements in this period."}
-      </CardEmpty>
+      <CardEmpty>{by === "open-jobs" ? "No open jobs." : "No hires in this period."}</CardEmpty>
     );
   return (
     <CountTable rows={rows} head={["Company", by === "open-jobs" ? "Open jobs" : "Placements"]} />
