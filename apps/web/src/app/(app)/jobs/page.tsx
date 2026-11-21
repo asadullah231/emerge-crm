@@ -1,5 +1,7 @@
 "use client";
 
+import { ListDashboardSwitch } from "@/components/dashboard/list-dashboard-switch";
+
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -39,6 +41,13 @@ type JobFilters = {
   recent: boolean;
 };
 
+/** Filters passed in the URL (dashboard cards link here with ?status=, ?industry= ...). */
+function urlFilters(keys: string[]): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const sp = new URLSearchParams(window.location.search);
+  return Object.fromEntries(keys.flatMap((k) => (sp.get(k) ? [[k, sp.get(k) as string]] : [])));
+}
+
 const EMPTY_FILTERS: JobFilters = {
   status: "",
   ownerId: "",
@@ -69,7 +78,7 @@ const CHOOSABLE_COLUMNS: { key: string; label: string; defaultHidden: boolean }[
 const DEFAULT_HIDDEN = CHOOSABLE_COLUMNS.filter((c) => c.defaultHidden).map((c) => c.key);
 const HIDDEN_COLS_KEY = "emerge.jobs.hiddenColumns";
 
-export default function JobsPage() {
+function JobsList() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const me = trpc.auth.me.useQuery();
@@ -82,7 +91,10 @@ export default function JobsPage() {
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
-  const [filters, setFilters] = useState<JobFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<JobFilters>(() => ({
+    ...EMPTY_FILTERS,
+    ...urlFilters(["status", "ownerId", "companyId", "industry", "employmentType"])
+  }));
   const [exporting, setExporting] = useState(false);
   const [hiddenCols, setHiddenCols] = useState<string[]>(DEFAULT_HIDDEN);
   const [colsOpen, setColsOpen] = useState(false);
@@ -746,5 +758,14 @@ function PeekNotes({ entityId }: { entityId: string }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Job openings list with Bullhorn's List / Dashboard switch. */
+export default function JobsPage() {
+  return (
+    <ListDashboardSwitch entity="jobs">
+      <JobsList />
+    </ListDashboardSwitch>
   );
 }

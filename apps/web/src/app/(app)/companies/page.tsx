@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@emerge/ui";
 import { ClientsView } from "@/components/clients-view";
 import { ContactsView } from "@/components/contacts-view";
+import { ListDashboardSwitch } from "@/components/dashboard/list-dashboard-switch";
 
 /**
  * Clients and Contacts share one page (client request 29 Aug); /contacts
@@ -37,7 +38,15 @@ export default function CompaniesPage() {
           </button>
         ))}
       </div>
-      {tab === "clients" ? <ClientsView /> : <ContactsView />}
+      {tab === "clients" ? (
+        <ListDashboardSwitch key="clients" entity="clients">
+          <ClientsView />
+        </ListDashboardSwitch>
+      ) : (
+        <ListDashboardSwitch key="contacts" entity="contacts">
+          <ContactsView />
+        </ListDashboardSwitch>
+      )}
     </div>
   );
 }

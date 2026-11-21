@@ -99,6 +99,19 @@ export const overviewReportsRouter = router({
       .groupBy(sql`to_char(${applicationStatusHistory.createdAt}, 'YYYY-MM')`);
 
     // Open jobs count gives the "how much work is on the desk" context line.
+    // Hires this month as the team logs them: candidates moved into Hired.
+    const [hiredThisMonth] = await ctx.tx
+      .select({
+        c: sql<number>`count(distinct ${applicationStatusHistory.applicationId})`
+      })
+      .from(applicationStatusHistory)
+      .where(
+        and(
+          eq(applicationStatusHistory.toStage, "hired"),
+          gte(applicationStatusHistory.createdAt, monthStart)
+        )
+      );
+
     const [openJobs] = await ctx.tx
       .select({ c: sql<number>`count(*)` })
       .from(jobs)
@@ -149,6 +162,7 @@ export const overviewReportsRouter = router({
       actual: {
         placements: placementRows.length,
         submissions: submissionEvents.length,
+        hires: Number(hiredThisMonth?.c ?? 0),
         revenue: [...revenue.entries()].map(([currency, amount]) => ({ currency, amount }))
       },
       openJobs: Number(openJobs?.c ?? 0),

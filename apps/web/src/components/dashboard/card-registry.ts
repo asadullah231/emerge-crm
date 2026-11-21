@@ -74,7 +74,12 @@ export type CardType =
   | "contacts-over-time"
   | "candidates-by-owner"
   | "candidates-by-source"
-  | "candidates-over-time";
+  | "candidates-over-time"
+  // Report cards (replace the Reports section, reuse the report queries).
+  | "monthly-pacing"
+  | "rejection-reasons"
+  | "daily-activity"
+  | "am-scoreboard";
 
 export type CardMeta = {
   title: string;
@@ -102,6 +107,34 @@ export type CardMeta = {
 const JOB_FILTERS: FilterKey[] = ["user", "date", "company", "industry", "jobType", "skill"];
 
 export const CARD_META: Record<CardType, CardMeta> = {
+  "monthly-pacing": {
+    title: "Monthly pacing",
+    category: "Overview",
+    description: "Hires, submissions and revenue this month against targets",
+    size: "s",
+    filters: []
+  },
+  "rejection-reasons": {
+    title: "Rejection reasons",
+    category: "Team",
+    description: "Top reasons candidates were rejected, last 4 weeks",
+    size: "s",
+    filters: []
+  },
+  "daily-activity": {
+    title: "Daily activity",
+    category: "Team",
+    description: "Candidates added, calls, status changes and tasks done per day",
+    size: "m",
+    filters: ["date"]
+  },
+  "am-scoreboard": {
+    title: "AM scoreboard",
+    category: "Team",
+    description: "New clients, jobs, terms, meetings and placements per account manager",
+    size: "m",
+    filters: ["date"]
+  },
   attention: {
     title: "Needs attention today",
     category: "Overview",
@@ -382,6 +415,9 @@ export const DEFAULT_LAYOUT: CardInstance[] = [
   inst("team-week"),
   inst("companies-by-status"),
   inst("candidates-by-source"),
+  inst("monthly-pacing"),
+  inst("rejection-reasons"),
+  inst("daily-activity"),
   inst("kpis"),
   inst("funnel"),
   inst("trends"),
@@ -393,11 +429,44 @@ export const DEFAULT_LAYOUT: CardInstance[] = [
   inst("recruiters"),
   inst("interviews"),
   inst("tasks"),
+  inst("am-scoreboard"),
   inst("activity"),
+  inst("recent-jobs"),
   inst("jobs-over-time"),
   inst("candidates-over-time"),
-  inst("recent-jobs")
+  inst("contacts-by-owner"),
+  inst("candidates-by-owner")
 ];
+
+/** [from, to) window for a preset in the browser (mirrors the server helper). */
+export function clientRange(preset: DatePreset | undefined, now = new Date()) {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const q = Math.floor(m / 3) * 3;
+  const day = 24 * 60 * 60 * 1000;
+  switch (preset) {
+    case "7d":
+      return { from: new Date(now.getTime() - 7 * day), to: undefined };
+    case "30d":
+      return { from: new Date(now.getTime() - 30 * day), to: undefined };
+    case "90d":
+      return { from: new Date(now.getTime() - 90 * day), to: undefined };
+    case "this_month":
+      return { from: new Date(y, m, 1), to: undefined };
+    case "last_month":
+      return { from: new Date(y, m - 1, 1), to: new Date(y, m, 1) };
+    case "this_quarter":
+      return { from: new Date(y, q, 1), to: undefined };
+    case "last_quarter":
+      return { from: new Date(y, q - 3, 1), to: new Date(y, q, 1) };
+    case "this_year":
+      return { from: new Date(y, 0, 1), to: undefined };
+    case "last_year":
+      return { from: new Date(y - 1, 0, 1), to: new Date(y, 0, 1) };
+    default:
+      return { from: undefined, to: undefined };
+  }
+}
 
 export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   all: "All time",
@@ -412,6 +481,18 @@ export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   last_year: "Last year"
 };
 
+/** Emerge cards that follow the page-level date range and recruiter filters. */
+export const PAGE_FILTER_TYPES = new Set<CardType>([
+  "kpis",
+  "funnel",
+  "trends",
+  "recruiters",
+  "interviews",
+  "recent-candidates",
+  "recent-jobs",
+  "tasks"
+]);
+
 /** Toggle cards that open in list (table) view, like Bullhorn's status tables. */
 const LIST_FIRST = new Set<CardType>([
   "companies-by-status",
@@ -422,3 +503,70 @@ const LIST_FIRST = new Set<CardType>([
 export function viewOf(card: Pick<CardInstance, "type" | "view">): "chart" | "list" {
   return card.view ?? (LIST_FIRST.has(card.type) ? "list" : "chart");
 }
+
+/** Entity dashboards behind the List / Dashboard switch (Bullhorn: per-list dashboards). */
+export type EntityKey = "candidates" | "jobs" | "clients" | "contacts";
+
+function card(type: CardType, id: string, view?: "chart" | "list"): CardInstance {
+  return { id, type, size: CARD_META[type].size, ...(view ? { view } : {}) };
+}
+
+export const ENTITY_DASHBOARDS: Record<
+  EntityKey,
+  { key: string; title: string; categories: CardMeta["category"][]; defaults: CardInstance[] }
+> = {
+  candidates: {
+    key: "entity.candidates.v1",
+    title: "Candidates dashboard",
+    categories: ["Candidates", "Team"],
+    defaults: [
+      card("candidates-by-source", "e-cand-source"),
+      card("candidates-by-owner", "e-cand-owner"),
+      card("candidates-over-time", "e-cand-time"),
+      card("candidates-over-time", "e-cand-newest", "list"),
+      card("daily-activity", "e-cand-activity"),
+      card("rejection-reasons", "e-cand-reject"),
+      card("jobs-without-coverage", "e-cand-coverage")
+    ]
+  },
+  jobs: {
+    key: "entity.jobs.v1",
+    title: "Job openings dashboard",
+    categories: ["Jobs", "Placements", "Companies"],
+    defaults: [
+      card("success-rates", "e-job-success"),
+      card("response-times", "e-job-response"),
+      card("jobs-without-coverage", "e-job-coverage"),
+      card("jobs-by-age", "e-job-age"),
+      card("jobs-by-industry", "e-job-industry"),
+      card("jobs-over-time", "e-job-time"),
+      card("placements-over-time", "e-job-hires"),
+      card("companies-by-open-jobs", "e-job-companies")
+    ]
+  },
+  clients: {
+    key: "entity.clients.v1",
+    title: "Clients dashboard",
+    categories: ["Companies", "Placements", "Team"],
+    defaults: [
+      card("companies-by-status", "e-co-status"),
+      card("companies-by-open-jobs", "e-co-open"),
+      card("companies-by-placements", "e-co-hires"),
+      card("companies-over-time", "e-co-time"),
+      card("am-scoreboard", "e-co-am"),
+      card("companies-over-time", "e-co-newest", "list"),
+      card("jobs-by-industry", "e-co-industry")
+    ]
+  },
+  contacts: {
+    key: "entity.contacts.v1",
+    title: "Contacts dashboard",
+    categories: ["Contacts", "Companies"],
+    defaults: [
+      card("contacts-by-owner", "e-ct-owner"),
+      card("contacts-over-time", "e-ct-time"),
+      card("contacts-over-time", "e-ct-newest", "list"),
+      card("companies-by-status", "e-ct-co-status")
+    ]
+  }
+};

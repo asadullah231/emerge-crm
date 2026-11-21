@@ -9,6 +9,7 @@
  */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   Area,
@@ -213,7 +214,12 @@ export function RankChart({
   color?: string;
   name?: string;
 }) {
+  const router = useRouter();
   const top = rows.slice(0, 8);
+  const go = (d: unknown) => {
+    const href = (d as { payload?: BarRow } | undefined)?.payload?.href;
+    if (href) router.push(href);
+  };
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={top} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
@@ -234,6 +240,8 @@ export function RankChart({
           fill={color}
           radius={[0, 4, 4, 0]}
           maxBarSize={16}
+          cursor={top.some((r) => r.href) ? "pointer" : undefined}
+          onClick={go}
           label={{ position: "right", fontSize: 10, fill: "var(--foreground)" }}
         />
       </BarChart>
@@ -283,7 +291,7 @@ export function GroupedColumns({
 /* Donuts                                                                    */
 /* ------------------------------------------------------------------------- */
 
-export type Slice = { label: string; value: number };
+export type Slice = { label: string; value: number; href?: string };
 
 /** Top 4 slices keep their palette color; the rest fold into "Other". */
 export function foldSlices(rows: Slice[]): (Slice & { color: string })[] {
@@ -333,7 +341,16 @@ export function DonutChart({ slices }: { slices: (Slice & { color: string })[] }
               className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
               style={{ background: s.color }}
             />
-            <span className="min-w-0 flex-1 truncate text-[var(--foreground)]">{s.label}</span>
+            {s.href ? (
+              <Link
+                href={s.href}
+                className="min-w-0 flex-1 truncate text-[var(--foreground)] hover:text-[var(--accent)] hover:underline"
+              >
+                {s.label}
+              </Link>
+            ) : (
+              <span className="min-w-0 flex-1 truncate text-[var(--foreground)]">{s.label}</span>
+            )}
             <span className="tabular-nums text-[var(--foreground)]">{s.value}</span>
             <span className="w-9 text-right text-[10px] tabular-nums text-[var(--muted)]">
               {total ? Math.round((s.value / total) * 100) : 0}%

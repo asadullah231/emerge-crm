@@ -29,7 +29,11 @@ export function ClientsView() {
   const [showTrash, setShowTrash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : (new URLSearchParams(window.location.search).get("status") ?? "")
+  );
   const debouncedSearch = useDebounced(search.trim());
   const sel = useRowSelection();
 
