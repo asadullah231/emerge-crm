@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   BigNumber,
   FunnelChart,
@@ -14,7 +14,17 @@ import { isPositionFlagged, weekStart } from "@/components/reports-shared";
 import { PipelineView } from "@/components/pipeline-view";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, ExternalLink, RotateCcw } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  ExternalLink,
+  LayoutGrid,
+  Plus,
+  RotateCcw,
+  X
+} from "lucide-react";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
 
@@ -46,6 +56,122 @@ const TARGET_SUBMITTED = 2;
 
 type AttentionPick = "interviews" | "tasks" | "waiting" | null;
 
+/* --------------------------------------------------------------------------- */
+/* Bullhorn-style card system: every dashboard section is a card the user can  */
+/* add, remove and reorder from a card library. Layout persists per browser.   */
+/* --------------------------------------------------------------------------- */
+
+type CardKey =
+  | "attention"
+  | "team-week"
+  | "pipeline"
+  | "kpis"
+  | "funnel"
+  | "trends"
+  | "recruiters"
+  | "interviews"
+  | "recent-candidates"
+  | "recent-jobs"
+  | "tasks"
+  | "activity";
+
+const CARD_META: Record<
+  CardKey,
+  { title: string; category: string; description: string; span: "full" | "half" }
+> = {
+  attention: {
+    title: "Needs attention today",
+    category: "Overview",
+    description: "Red-flag jobs, interviews today, overdue tasks, waiting on client",
+    span: "full"
+  },
+  kpis: {
+    title: "Key numbers",
+    category: "Overview",
+    description: "Jobs, candidates, applications, interviews and hires with trends",
+    span: "full"
+  },
+  trends: {
+    title: "Trends",
+    category: "Overview",
+    description: "New records per week as a line chart",
+    span: "half"
+  },
+  pipeline: {
+    title: "Pipeline by job",
+    category: "Pipeline",
+    description: "One row per job, candidate counts per stage",
+    span: "full"
+  },
+  funnel: {
+    title: "Recruitment funnel",
+    category: "Pipeline",
+    description: "Applications that reached each stage, with drill-down",
+    span: "half"
+  },
+  "team-week": {
+    title: "Team this week",
+    category: "Team",
+    description: "Shortlisted vs submitted per recruiter against targets",
+    span: "full"
+  },
+  recruiters: {
+    title: "Recruiter performance",
+    category: "Team",
+    description: "Totals by application owner",
+    span: "half"
+  },
+  "recent-jobs": {
+    title: "Recent job openings",
+    category: "Jobs",
+    description: "Latest jobs with status",
+    span: "half"
+  },
+  "recent-candidates": {
+    title: "Recent candidates",
+    category: "Candidates",
+    description: "Latest candidates added",
+    span: "half"
+  },
+  interviews: {
+    title: "Upcoming interviews",
+    category: "Activity",
+    description: "Interviews scheduled in the next 14 days",
+    span: "half"
+  },
+  tasks: {
+    title: "Tasks & follow-ups",
+    category: "Activity",
+    description: "Open tasks with due dates",
+    span: "half"
+  },
+  activity: {
+    title: "Recent activity",
+    category: "Activity",
+    description: "Latest notes and record changes",
+    span: "half"
+  }
+};
+
+const CARD_CATEGORIES = ["Overview", "Pipeline", "Team", "Jobs", "Candidates", "Activity"];
+
+const DEFAULT_LAYOUT: CardKey[] = [
+  "attention",
+  "team-week",
+  "pipeline",
+  "kpis",
+  "funnel",
+  "trends",
+  "recruiters",
+  "interviews",
+  "recent-candidates",
+  "recent-jobs",
+  "tasks",
+  "activity"
+];
+
+const LAYOUT_LS_KEY = "emerge.dashboard.cards.v1";
+
 export default function DashboardPage() {
   const router = useRouter();
   const me = trpc.auth.me.useQuery();
@@ -55,6 +181,43 @@ export default function DashboardPage() {
   const [ownerId, setOwnerId] = useState<string>("");
   const [activeStage, setActiveStage] = useState<string | null>(null);
   const [attentionPick, setAttentionPick] = useState<AttentionPick>(null);
+
+  // Card layout (Bullhorn-style): order + membership, persisted per browser.
+  const [layout, setLayout] = useState<CardKey[]>(DEFAULT_LAYOUT);
+  const [customize, setCustomize] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LAYOUT_LS_KEY);
+      if (!raw) return;
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const valid = parsed.filter((k): k is CardKey => typeof k === "string" && k in CARD_META);
+        if (valid.length > 0) setLayout(valid);
+      }
+    } catch {
+      // Ignore unreadable storage; keep the default layout.
+    }
+  }, []);
+  const persistLayout = (next: CardKey[]) => {
+    setLayout(next);
+    try {
+      localStorage.setItem(LAYOUT_LS_KEY, JSON.stringify(next));
+    } catch {
+      // Storage may be unavailable; layout still applies for this session.
+    }
+  };
+  const moveCard = (key: CardKey, dir: -1 | 1) => {
+    const i = layout.indexOf(key);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= layout.length) return;
+    const next = [...layout];
+    next.splice(i, 1);
+    next.splice(j, 0, key);
+    persistLayout(next);
+  };
+  const removeCard = (key: CardKey) => persistLayout(layout.filter((k) => k !== key));
+  const addCard = (key: CardKey) =>
+    layout.includes(key) ? removeCard(key) : persistLayout([...layout, key]);
 
   // "Needs attention today" + "Team this week" + BD strip (Mo's morning view).
   const attention = trpc.dashboard.attentionToday.useQuery(undefined, {
@@ -153,6 +316,257 @@ export default function DashboardPage() {
     downloadCsv("dashboard.csv", toCsv(rows, cols));
   };
 
+  /** Render one dashboard card's content by key (Bullhorn-style card grid). */
+  const cardNode = (key: CardKey): ReactNode => {
+    switch (key) {
+      case "attention":
+        return (
+          <div className="space-y-4">
+            <StatGrid>
+              <StatTile
+                label="Red-flag positions"
+                value={positions.data ? flaggedCount : "-"}
+                color="#ef4444"
+                status
+                sublabel="stuck jobs - click to review"
+                onClick={() => router.push("/reports/positions?flagged=1")}
+              />
+              <StatTile
+                label="Interviews today"
+                value={attention.data?.interviewsToday.count ?? "-"}
+                color={CHART.blue}
+                sublabel="scheduled for today"
+                onClick={() => setAttentionPick((c) => (c === "interviews" ? null : "interviews"))}
+              />
+              <StatTile
+                label="Overdue tasks"
+                value={attention.data?.overdueTasks.count ?? "-"}
+                color={CHART.amber}
+                status
+                sublabel="past their due date"
+                onClick={() => setAttentionPick((c) => (c === "tasks" ? null : "tasks"))}
+              />
+              <StatTile
+                label="Waiting on client"
+                value={attention.data?.waitingOnClient.count ?? "-"}
+                color={CHART.teal}
+                sublabel="submitted 3+ days ago, no response"
+                onClick={() => setAttentionPick((c) => (c === "waiting" ? null : "waiting"))}
+              />
+            </StatGrid>
+            {attentionPick && attention.data ? (
+              <AttentionDetail
+                pick={attentionPick}
+                data={attention.data}
+                onClose={() => setAttentionPick(null)}
+              />
+            ) : null}
+          </div>
+        );
+      case "team-week":
+        return (
+          <Panel
+            title="Team this week"
+            subtitle={`Shortlisted vs submitted per recruiter - target ${TARGET_SHORTLISTED} / ${TARGET_SUBMITTED} each`}
+            action={<PanelLink href="/reports/recruiters">Full report</PanelLink>}
+          >
+            {team.isLoading ? (
+              <RowsSkeleton />
+            ) : (
+              <>
+                <p className="mb-2 text-xs text-[var(--muted)]">
+                  {teamRows.busy.length} of {teamRows.all} recruiters have logged activity this
+                  week.
+                </p>
+                <PeopleBars
+                  rows={teamRows.busy.map((r) => ({
+                    key: r.userId,
+                    name: r.name,
+                    values: [r.week.shortlisted, r.week.submitted]
+                  }))}
+                  series={[
+                    { label: "Shortlisted", color: CHART.teal },
+                    { label: "Submitted", color: CHART.blue }
+                  ]}
+                  onRowClick={() => router.push("/reports/recruiters")}
+                />
+              </>
+            )}
+          </Panel>
+        );
+      case "pipeline":
+        return <PipelineView />;
+      case "kpis":
+        return (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <BigNumber
+              label="Active Jobs"
+              value={data?.kpis.activeJobs}
+              href="/jobs"
+              sublabel={data ? `${data.kpis.totalJobs} total` : undefined}
+              loading={overview.isLoading}
+              trend={spark.jobs}
+            />
+            <BigNumber
+              label="Candidates"
+              value={data?.kpis.totalCandidates}
+              href="/candidates"
+              loading={overview.isLoading}
+              trend={spark.candidates}
+            />
+            <BigNumber
+              label="Applications"
+              value={data?.kpis.totalApplications}
+              href="/pipeline"
+              loading={overview.isLoading}
+              trend={spark.applications}
+            />
+            <BigNumber
+              label="Submissions"
+              value={data?.kpis.submissions}
+              href="/pipeline"
+              loading={overview.isLoading}
+            />
+            <BigNumber
+              label="Interviews"
+              value={data?.kpis.interviews}
+              href="/tasks?tab=interviews"
+              loading={overview.isLoading}
+              trend={spark.interviews}
+            />
+            <BigNumber
+              label="Offers"
+              value={data?.kpis.offers}
+              href="/pipeline"
+              loading={overview.isLoading}
+            />
+            <BigNumber
+              label="Hires"
+              value={data?.kpis.hires}
+              href="/tasks?tab=reports"
+              tone="positive"
+              loading={overview.isLoading}
+            />
+            <BigNumber
+              label="Rejections"
+              value={data?.kpis.rejected}
+              href="/pipeline"
+              tone="negative"
+              loading={overview.isLoading}
+            />
+            <BigNumber
+              label="Time to Hire"
+              value={data?.kpis.timeToHireDays}
+              unit="d"
+              emptyHint="No hires yet"
+              loading={overview.isLoading}
+            />
+            <BigNumber
+              label="Time to Fill"
+              value={data?.kpis.timeToFillDays}
+              unit="d"
+              emptyHint="No fills yet"
+              loading={overview.isLoading}
+            />
+          </div>
+        );
+      case "funnel":
+        return (
+          <Panel
+            title="Recruitment Funnel"
+            subtitle="Applications that ever reached each stage · click a stage to drill in"
+            action={<PanelLink href="/pipeline">Open board</PanelLink>}
+          >
+            {data && data.kpis.totalApplications === 0 ? (
+              <Empty>
+                No applications in the pipeline yet. Associate a candidate with a job to start.
+              </Empty>
+            ) : (
+              <FunnelChart
+                data={data?.funnel}
+                activeStage={activeStage}
+                onSelect={(s) => setActiveStage((cur) => (cur === s ? null : s))}
+                loading={overview.isLoading}
+              />
+            )}
+            {activeStage ? (
+              <StageDrill
+                label={data?.funnel.find((f) => f.stage === activeStage)?.label ?? activeStage}
+                rows={drill.data}
+                loading={drill.isLoading}
+                onClose={() => setActiveStage(null)}
+              />
+            ) : null}
+          </Panel>
+        );
+      case "trends":
+        return (
+          <Panel
+            title="Trends"
+            subtitle="New records per week"
+            action={ownerName ? <FilterTag>{ownerName}</FilterTag> : undefined}
+          >
+            <MultiTrendChart
+              data={data?.trends}
+              series={TREND_SERIES}
+              loading={overview.isLoading}
+            />
+          </Panel>
+        );
+      case "recruiters":
+        return (
+          <Panel title="Recruiter Performance" subtitle="By application owner · click to filter">
+            <Recruiters
+              rows={data?.recruiterPerformance}
+              loading={overview.isLoading}
+              activeOwner={ownerId}
+              onSelect={(id) => setOwnerId((cur) => (cur === id ? "" : id))}
+            />
+          </Panel>
+        );
+      case "interviews":
+        return (
+          <Panel
+            title="Upcoming Interviews"
+            subtitle="Next 14 days"
+            action={<PanelLink href="/tasks?tab=interviews">View all</PanelLink>}
+          >
+            <UpcomingInterviews rows={data?.upcomingInterviews} loading={overview.isLoading} />
+          </Panel>
+        );
+      case "recent-candidates":
+        return (
+          <Panel
+            title="Recent Candidates"
+            action={<PanelLink href="/candidates">View all</PanelLink>}
+          >
+            <RecentCandidates rows={data?.recentCandidates} loading={overview.isLoading} />
+          </Panel>
+        );
+      case "recent-jobs":
+        return (
+          <Panel title="Recent Job Openings" action={<PanelLink href="/jobs">View all</PanelLink>}>
+            <RecentJobs rows={data?.recentJobs} loading={overview.isLoading} />
+          </Panel>
+        );
+      case "tasks":
+        return (
+          <Panel title="Tasks & Follow-ups" action={<PanelLink href="/tasks">View all</PanelLink>}>
+            <OpenTasks rows={data?.openTasks} loading={overview.isLoading} />
+          </Panel>
+        );
+      case "activity":
+        return (
+          <Panel
+            title="Recent Activity"
+            action={<PanelLink href="/tasks?tab=activity">View all</PanelLink>}
+          >
+            <Activity events={activity.data} loading={activity.isLoading} />
+          </Panel>
+        );
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
@@ -216,6 +630,14 @@ export default function DashboardPage() {
             <Button type="button" variant="outline" size="sm" onClick={exportCsv} disabled={!data}>
               <Download /> Export CSV
             </Button>
+            <Button
+              type="button"
+              variant={customize ? "default" : "outline"}
+              size="sm"
+              onClick={() => setCustomize((c) => !c)}
+            >
+              <LayoutGrid /> {customize ? "Done" : "Customize"}
+            </Button>
             {me.data?.workspace?.bdOutreach ? (
               <a
                 href="https://bd.187-127-75-106.sslip.io/dashboard"
@@ -236,233 +658,40 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      {/* Needs attention today: the four things Mo acts on first */}
-      <StatGrid>
-        <StatTile
-          label="Red-flag positions"
-          value={positions.data ? flaggedCount : "-"}
-          color="#ef4444"
-          status
-          sublabel="stuck jobs - click to review"
-          onClick={() => router.push("/reports/positions?flagged=1")}
-        />
-        <StatTile
-          label="Interviews today"
-          value={attention.data?.interviewsToday.count ?? "-"}
-          color={CHART.blue}
-          sublabel="scheduled for today"
-          onClick={() => setAttentionPick((c) => (c === "interviews" ? null : "interviews"))}
-        />
-        <StatTile
-          label="Overdue tasks"
-          value={attention.data?.overdueTasks.count ?? "-"}
-          color={CHART.amber}
-          status
-          sublabel="past their due date"
-          onClick={() => setAttentionPick((c) => (c === "tasks" ? null : "tasks"))}
-        />
-        <StatTile
-          label="Waiting on client"
-          value={attention.data?.waitingOnClient.count ?? "-"}
-          color={CHART.teal}
-          sublabel="submitted 3+ days ago, no response"
-          onClick={() => setAttentionPick((c) => (c === "waiting" ? null : "waiting"))}
-        />
-      </StatGrid>
-      {attentionPick && attention.data ? (
-        <AttentionDetail
-          pick={attentionPick}
-          data={attention.data}
-          onClose={() => setAttentionPick(null)}
+      {/* Bullhorn-style card grid: the layout array decides which cards show and in what order */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {layout.map((key, i) => (
+          <section
+            key={key}
+            className={`relative min-w-0 ${CARD_META[key].span === "full" ? "lg:col-span-2" : ""}`}
+          >
+            {customize ? (
+              <CardControls
+                title={CARD_META[key].title}
+                canUp={i > 0}
+                canDown={i < layout.length - 1}
+                onUp={() => moveCard(key, -1)}
+                onDown={() => moveCard(key, 1)}
+                onRemove={() => removeCard(key)}
+              />
+            ) : null}
+            {cardNode(key)}
+          </section>
+        ))}
+      </div>
+      {layout.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-10 text-center text-sm text-[var(--muted)]">
+          No cards on your dashboard. Click Customize to add cards from the library.
+        </div>
+      ) : null}
+      {customize ? (
+        <CardLibrary
+          layout={layout}
+          onToggle={addCard}
+          onReset={() => persistLayout([...DEFAULT_LAYOUT])}
+          onClose={() => setCustomize(false)}
         />
       ) : null}
-
-      {/* Team this week vs targets */}
-      <Panel
-        title="Team this week"
-        subtitle={`Shortlisted vs submitted per recruiter - target ${TARGET_SHORTLISTED} / ${TARGET_SUBMITTED} each`}
-        action={<PanelLink href="/reports/recruiters">Full report</PanelLink>}
-      >
-        {team.isLoading ? (
-          <RowsSkeleton />
-        ) : (
-          <>
-            <p className="mb-2 text-xs text-[var(--muted)]">
-              {teamRows.busy.length} of {teamRows.all} recruiters have logged activity this week.
-            </p>
-            <PeopleBars
-              rows={teamRows.busy.map((r) => ({
-                key: r.userId,
-                name: r.name,
-                values: [r.week.shortlisted, r.week.submitted]
-              }))}
-              series={[
-                { label: "Shortlisted", color: CHART.teal },
-                { label: "Submitted", color: CHART.blue }
-              ]}
-              onRowClick={() => router.push("/reports/recruiters")}
-            />
-          </>
-        )}
-      </Panel>
-
-      {/* Zoho-style pipeline matrix (job x stage) */}
-      <PipelineView />
-
-      {/* KPI grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <BigNumber
-          label="Active Jobs"
-          value={data?.kpis.activeJobs}
-          href="/jobs"
-          sublabel={data ? `${data.kpis.totalJobs} total` : undefined}
-          loading={overview.isLoading}
-          trend={spark.jobs}
-        />
-        <BigNumber
-          label="Candidates"
-          value={data?.kpis.totalCandidates}
-          href="/candidates"
-          loading={overview.isLoading}
-          trend={spark.candidates}
-        />
-        <BigNumber
-          label="Applications"
-          value={data?.kpis.totalApplications}
-          href="/pipeline"
-          loading={overview.isLoading}
-          trend={spark.applications}
-        />
-        <BigNumber
-          label="Submissions"
-          value={data?.kpis.submissions}
-          href="/pipeline"
-          loading={overview.isLoading}
-        />
-        <BigNumber
-          label="Interviews"
-          value={data?.kpis.interviews}
-          href="/tasks?tab=interviews"
-          loading={overview.isLoading}
-          trend={spark.interviews}
-        />
-        <BigNumber
-          label="Offers"
-          value={data?.kpis.offers}
-          href="/pipeline"
-          loading={overview.isLoading}
-        />
-        <BigNumber
-          label="Hires"
-          value={data?.kpis.hires}
-          href="/tasks?tab=reports"
-          tone="positive"
-          loading={overview.isLoading}
-        />
-        <BigNumber
-          label="Rejections"
-          value={data?.kpis.rejected}
-          href="/pipeline"
-          tone="negative"
-          loading={overview.isLoading}
-        />
-        <BigNumber
-          label="Time to Hire"
-          value={data?.kpis.timeToHireDays}
-          unit="d"
-          emptyHint="No hires yet"
-          loading={overview.isLoading}
-        />
-        <BigNumber
-          label="Time to Fill"
-          value={data?.kpis.timeToFillDays}
-          unit="d"
-          emptyHint="No fills yet"
-          loading={overview.isLoading}
-        />
-      </div>
-
-      {/* Funnel + trends */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel
-          title="Recruitment Funnel"
-          subtitle="Applications that ever reached each stage · click a stage to drill in"
-          action={<PanelLink href="/pipeline">Open board</PanelLink>}
-        >
-          {data && data.kpis.totalApplications === 0 ? (
-            <Empty>
-              No applications in the pipeline yet. Associate a candidate with a job to start.
-            </Empty>
-          ) : (
-            <FunnelChart
-              data={data?.funnel}
-              activeStage={activeStage}
-              onSelect={(s) => setActiveStage((cur) => (cur === s ? null : s))}
-              loading={overview.isLoading}
-            />
-          )}
-          {activeStage ? (
-            <StageDrill
-              label={data?.funnel.find((f) => f.stage === activeStage)?.label ?? activeStage}
-              rows={drill.data}
-              loading={drill.isLoading}
-              onClose={() => setActiveStage(null)}
-            />
-          ) : null}
-        </Panel>
-        <Panel
-          title="Trends"
-          subtitle="New records per week"
-          action={ownerName ? <FilterTag>{ownerName}</FilterTag> : undefined}
-        >
-          <MultiTrendChart data={data?.trends} series={TREND_SERIES} loading={overview.isLoading} />
-        </Panel>
-      </div>
-
-      {/* Recruiter performance + upcoming interviews */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Recruiter Performance" subtitle="By application owner · click to filter">
-          <Recruiters
-            rows={data?.recruiterPerformance}
-            loading={overview.isLoading}
-            activeOwner={ownerId}
-            onSelect={(id) => setOwnerId((cur) => (cur === id ? "" : id))}
-          />
-        </Panel>
-        <Panel
-          title="Upcoming Interviews"
-          subtitle="Next 14 days"
-          action={<PanelLink href="/tasks?tab=interviews">View all</PanelLink>}
-        >
-          <UpcomingInterviews rows={data?.upcomingInterviews} loading={overview.isLoading} />
-        </Panel>
-      </div>
-
-      {/* Recents */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel
-          title="Recent Candidates"
-          action={<PanelLink href="/candidates">View all</PanelLink>}
-        >
-          <RecentCandidates rows={data?.recentCandidates} loading={overview.isLoading} />
-        </Panel>
-        <Panel title="Recent Job Openings" action={<PanelLink href="/jobs">View all</PanelLink>}>
-          <RecentJobs rows={data?.recentJobs} loading={overview.isLoading} />
-        </Panel>
-      </div>
-
-      {/* Tasks + activity */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Tasks & Follow-ups" action={<PanelLink href="/tasks">View all</PanelLink>}>
-          <OpenTasks rows={data?.openTasks} loading={overview.isLoading} />
-        </Panel>
-        <Panel
-          title="Recent Activity"
-          action={<PanelLink href="/tasks?tab=activity">View all</PanelLink>}
-        >
-          <Activity events={activity.data} loading={activity.isLoading} />
-        </Panel>
-      </div>
     </div>
   );
 }
@@ -496,6 +725,134 @@ function Panel({
       </CardHeader>
       <CardContent className="pt-4">{children}</CardContent>
     </Card>
+  );
+}
+
+/** Per-card controls shown in customize mode: move up / move down / remove. */
+function CardControls({
+  title,
+  canUp,
+  canDown,
+  onUp,
+  onDown,
+  onRemove
+}: {
+  title: string;
+  canUp: boolean;
+  canDown: boolean;
+  onUp: () => void;
+  onDown: () => void;
+  onRemove: () => void;
+}) {
+  const btn =
+    "rounded p-1 text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)] disabled:opacity-30 disabled:hover:bg-transparent";
+  return (
+    <div className="absolute -top-2.5 right-3 z-20 flex items-center gap-0.5 rounded-md border border-[var(--border)] bg-[var(--card)] px-1 py-0.5 shadow-sm">
+      <span className="max-w-40 truncate px-1 text-[11px] font-medium text-[var(--muted)]">
+        {title}
+      </span>
+      <button type="button" className={btn} onClick={onUp} disabled={!canUp} aria-label="Move up">
+        <ChevronUp className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        className={btn}
+        onClick={onDown}
+        disabled={!canDown}
+        aria-label="Move down"
+      >
+        <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+      <button type="button" className={btn} onClick={onRemove} aria-label="Remove card">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+/** Bullhorn-style card library: right-side panel to add or remove dashboard cards. */
+function CardLibrary({
+  layout,
+  onToggle,
+  onReset,
+  onClose
+}: {
+  layout: CardKey[];
+  onToggle: (key: CardKey) => void;
+  onReset: () => void;
+  onClose: () => void;
+}) {
+  const allKeys = Object.keys(CARD_META) as CardKey[];
+  return (
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-[var(--border)] bg-[var(--card)] shadow-2xl">
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-[var(--foreground)]">Card library</p>
+          <p className="text-xs text-[var(--muted)]">
+            Click a card to add or remove it from your dashboard.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded p-1 text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)]"
+          aria-label="Close card library"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="flex-1 space-y-5 overflow-y-auto p-4">
+        {CARD_CATEGORIES.map((cat) => (
+          <div key={cat}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              {cat}
+            </p>
+            <ul className="space-y-1.5">
+              {allKeys
+                .filter((k) => CARD_META[k].category === cat)
+                .map((k) => {
+                  const added = layout.includes(k);
+                  return (
+                    <li key={k}>
+                      <button
+                        type="button"
+                        onClick={() => onToggle(k)}
+                        className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                          added
+                            ? "border-[var(--brand-secondary)] bg-[var(--brand-secondary-soft)]"
+                            : "border-[var(--border)] hover:bg-[var(--background)]"
+                        }`}
+                      >
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-[var(--foreground)]">
+                            {CARD_META[k].title}
+                          </span>
+                          {added ? (
+                            <Check className="h-4 w-4 shrink-0 text-[var(--brand-secondary)]" />
+                          ) : (
+                            <Plus className="h-4 w-4 shrink-0 text-[var(--muted)]" />
+                          )}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                          {CARD_META[k].description}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] px-4 py-3">
+        <Button type="button" variant="ghost" size="sm" onClick={onReset}>
+          <RotateCcw /> Reset layout
+        </Button>
+        <Button type="button" size="sm" onClick={onClose}>
+          Done
+        </Button>
+      </div>
+    </div>
   );
 }
 
