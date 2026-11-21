@@ -1,5 +1,7 @@
 "use client";
 
+import { ListDashboardSwitch } from "@/components/dashboard/list-dashboard-switch";
+
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -39,6 +41,13 @@ const EMPTY_FILTERS: CandidateFilters = {
 
 const RECENT_DAYS = 30;
 
+/** Filters passed in the URL (dashboard cards link here with ?source= or ?ownerId=). */
+function urlFilters(keys: string[]): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const sp = new URLSearchParams(window.location.search);
+  return Object.fromEntries(keys.flatMap((k) => (sp.get(k) ? [[k, sp.get(k) as string]] : [])));
+}
+
 /** Optional columns the chooser can hide (CP-02); key must match `columns`. */
 const CHOOSABLE_COLUMNS: { key: string; label: string; defaultHidden: boolean }[] = [
   { key: "humanId", label: "ID", defaultHidden: false },
@@ -52,7 +61,7 @@ const CHOOSABLE_COLUMNS: { key: string; label: string; defaultHidden: boolean }[
 const DEFAULT_HIDDEN = CHOOSABLE_COLUMNS.filter((c) => c.defaultHidden).map((c) => c.key);
 const HIDDEN_COLS_KEY = "emerge.candidates.hiddenColumns";
 
-export default function CandidatesPage() {
+function CandidatesList() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const me = trpc.auth.me.useQuery();
@@ -67,7 +76,10 @@ export default function CandidatesPage() {
   const [creating, setCreating] = useState(false);
   const [merging, setMerging] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
-  const [filters, setFilters] = useState<CandidateFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<CandidateFilters>(() => ({
+    ...EMPTY_FILTERS,
+    ...urlFilters(["source", "ownerId"])
+  }));
   const [hiddenCols, setHiddenCols] = useState<string[]>(DEFAULT_HIDDEN);
   const [colsOpen, setColsOpen] = useState(false);
   const [peekId, setPeekId] = useState<string | null>(null);
@@ -687,5 +699,14 @@ function PeekNotes({ entityId }: { entityId: string }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Candidates list with Bullhorn's List / Dashboard switch. */
+export default function CandidatesPage() {
+  return (
+    <ListDashboardSwitch entity="candidates">
+      <CandidatesList />
+    </ListDashboardSwitch>
   );
 }
