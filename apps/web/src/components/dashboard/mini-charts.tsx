@@ -1,226 +1,286 @@
 "use client";
 
 /*
- * Small SVG charts for Bullhorn-style dashboard cards. Palette follows the
- * report charts (fixed order, CVD-checked): blue, teal, amber, purple; extra
- * categories fold into a gray "Other". Values and labels use ink tokens; every
- * chart sits next to its numbers so color is never the only signal.
+ * Recharts building blocks for the Bullhorn-style dashboard cards. Every chart
+ * fills its card (the parent sets the height) and shows a hover tooltip.
+ * Palette follows the report charts (fixed order, CVD-checked): blue, teal,
+ * amber, purple; extra categories fold into a gray "Other". Text uses ink
+ * tokens, never the series color.
  */
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 import { CHART } from "@/components/report-charts";
 
 export const SERIES = [CHART.blue, CHART.teal, CHART.amber, CHART.purple] as const;
 export const OTHER = "#a1a1aa";
 
+const AXIS = { fontSize: 10, fill: "var(--muted)" } as const;
+const GRID = { stroke: "var(--border)", strokeDasharray: "3 3", vertical: false } as const;
+
 /* ------------------------------------------------------------------------- */
-/* Donut gauge (Success Rates: fill ratio / hit ratio)                       */
+/* Tooltip                                                                   */
 /* ------------------------------------------------------------------------- */
 
-export function Donut({
-  value,
-  color,
+type TipItem = { name?: string | number; value?: unknown; color?: string };
+
+function Tip({
+  active,
   label,
-  sub
+  payload,
+  format
 }: {
-  value: number | null;
-  color: string;
-  label: string;
-  sub?: string;
-}) {
-  const r = 26;
-  const c = 2 * Math.PI * r;
-  const pct = value == null ? 0 : Math.max(0, Math.min(1, value));
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <svg
-        width="72"
-        height="72"
-        viewBox="0 0 72 72"
-        role="img"
-        aria-label={`${label} ${fmtPct(value)}`}
-      >
-        <circle cx="36" cy="36" r={r} fill="none" stroke="var(--border)" strokeWidth="7" />
-        <circle
-          cx="36"
-          cy="36"
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth="7"
-          strokeLinecap="round"
-          strokeDasharray={`${pct * c} ${c}`}
-          transform="rotate(-90 36 36)"
-        />
-        <text
-          x="36"
-          y="40"
-          textAnchor="middle"
-          className="fill-[var(--foreground)] text-[13px] font-semibold tabular-nums"
-        >
-          {fmtPct(value)}
-        </text>
-      </svg>
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-        {label}
-      </span>
-      {sub ? <span className="text-[11px] text-[var(--muted)]">{sub}</span> : null}
-    </div>
-  );
-}
-
-export function fmtPct(v: number | null | undefined): string {
-  if (v == null) return "-";
-  const p = v * 100;
-  return `${p >= 10 || p === 0 ? Math.round(p) : p.toFixed(1)}%`;
-}
-
-/* ------------------------------------------------------------------------- */
-/* Line / area chart with hover tooltip                                      */
-/* ------------------------------------------------------------------------- */
-
-export type LineSeries = { label: string; color: string; values: (number | null)[] };
-
-export function LineChart({
-  series,
-  xLabels,
-  area,
-  height = 130,
-  format = (v) => String(v)
-}: {
-  series: LineSeries[];
-  xLabels: string[];
-  area?: boolean;
-  height?: number;
+  active?: boolean;
+  label?: string | number;
+  payload?: readonly TipItem[];
   format?: (v: number) => string;
 }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const W = 320;
-  const H = height;
-  const pad = { l: 30, r: 8, t: 8, b: 20 };
-  const n = xLabels.length;
-  const all = series.flatMap((s) => s.values.filter((v): v is number => v != null));
-  const max = Math.max(1, ...all);
-  const x = (i: number) => pad.l + (n <= 1 ? 0 : (i * (W - pad.l - pad.r)) / (n - 1));
-  const y = (v: number) => pad.t + (1 - v / max) * (H - pad.t - pad.b);
-  const ticks = [0, max / 2, max];
-  const every = Math.max(1, Math.ceil(n / 6));
-
+  if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="relative">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full"
-        role="img"
-        aria-label={series.map((s) => s.label).join(", ")}
-        onMouseLeave={() => setHover(null)}
-      >
-        {ticks.map((t) => (
-          <g key={t}>
-            <line
-              x1={pad.l}
-              x2={W - pad.r}
-              y1={y(t)}
-              y2={y(t)}
-              stroke="var(--border)"
-              strokeWidth="1"
-            />
-            <text
-              x={pad.l - 4}
-              y={y(t) + 3}
-              textAnchor="end"
-              className="fill-[var(--muted)] text-[9px]"
-            >
-              {format(Math.round(t * 10) / 10)}
-            </text>
-          </g>
-        ))}
-        {xLabels.map((l, i) =>
-          (n - 1 - i) % every === 0 ? (
-            <text
-              key={i}
-              x={x(i)}
-              y={H - 5}
-              textAnchor="middle"
-              className="fill-[var(--muted)] text-[9px]"
-            >
-              {l}
-            </text>
-          ) : null
-        )}
-        {series.map((s) => {
-          const pts = s.values
-            .map((v, i) => (v == null ? null : ([x(i), y(v)] as const)))
-            .filter((p): p is readonly [number, number] => p != null);
-          if (pts.length === 0) return null;
-          const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0]},${p[1]}`).join(" ");
-          return (
-            <g key={s.label}>
-              {area && pts.length > 1 ? (
-                <path
-                  d={`${d} L${pts[pts.length - 1]![0]},${y(0)} L${pts[0]![0]},${y(0)} Z`}
-                  fill={s.color}
-                  opacity="0.15"
-                />
-              ) : null}
-              <path d={d} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" />
-              {pts.map((p, i) => (
-                <circle
-                  key={i}
-                  cx={p[0]}
-                  cy={p[1]}
-                  r="3"
-                  fill={s.color}
-                  stroke="var(--card)"
-                  strokeWidth="1.5"
-                />
-              ))}
-            </g>
-          );
-        })}
-        {hover != null ? (
-          <line
-            x1={x(hover)}
-            x2={x(hover)}
-            y1={pad.t}
-            y2={H - pad.b}
-            stroke="var(--muted)"
-            strokeDasharray="3 3"
-          />
-        ) : null}
-        {xLabels.map((_, i) => (
-          <rect
-            key={i}
-            x={x(i) - (W - pad.l - pad.r) / Math.max(1, n - 1) / 2}
-            y={0}
-            width={(W - pad.l - pad.r) / Math.max(1, n - 1)}
-            height={H}
-            fill="transparent"
-            onMouseEnter={() => setHover(i)}
-          />
-        ))}
-      </svg>
-      {hover != null ? (
-        <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-[11px] shadow-sm">
-          <p className="font-medium text-[var(--foreground)]">{xLabels[hover]}</p>
-          {series.map((s) => (
-            <p key={s.label} className="flex items-center gap-1.5 text-[var(--muted)]">
-              <span className="inline-block h-2 w-2 rounded-full" style={{ background: s.color }} />
-              {s.label}:{" "}
-              <span className="font-medium tabular-nums text-[var(--foreground)]">
-                {s.values[hover] == null ? "-" : format(s.values[hover] as number)}
-              </span>
-            </p>
-          ))}
-        </div>
+    <div className="rounded-md border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5 text-[11px] shadow-md">
+      {label != null && label !== "" ? (
+        <p className="mb-0.5 font-medium text-[var(--foreground)]">{label}</p>
       ) : null}
+      {payload.map((p, i) => (
+        <p key={i} className="flex items-center gap-1.5 text-[var(--muted)]">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: p.color }} />
+          {p.name}:{" "}
+          <span className="font-medium tabular-nums text-[var(--foreground)]">
+            {p.value == null
+              ? "-"
+              : format && typeof p.value === "number"
+                ? format(p.value)
+                : String(p.value)}
+          </span>
+        </p>
+      ))}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------------- */
-/* Pie with direct labels (Jobs by Required Skills)                          */
+/* Time series (area or line), fills the parent                              */
+/* ------------------------------------------------------------------------- */
+
+export type Series = { key: string; label: string; color: string };
+
+export function TimeChart({
+  data,
+  series,
+  area,
+  format
+}: {
+  data: Record<string, string | number | null>[];
+  series: Series[];
+  area?: boolean;
+  format?: (v: number) => string;
+}) {
+  const axes = [
+    <CartesianGrid key="g" {...GRID} />,
+    <XAxis
+      key="x"
+      dataKey="x"
+      tick={AXIS}
+      tickLine={false}
+      axisLine={false}
+      interval="preserveStartEnd"
+      minTickGap={12}
+    />,
+    <YAxis
+      key="y"
+      tick={AXIS}
+      tickLine={false}
+      axisLine={false}
+      width={32}
+      allowDecimals={false}
+      tickFormatter={format ? (v: number) => format(v) : undefined}
+    />,
+    <Tooltip
+      key="t"
+      content={<Tip format={format} />}
+      cursor={{ stroke: "var(--muted)", strokeDasharray: "3 3" }}
+    />
+  ];
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      {area ? (
+        <AreaChart data={data} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
+          <defs>
+            {series.map((s) => (
+              <linearGradient key={s.key} id={`fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={s.color} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={s.color} stopOpacity={0.03} />
+              </linearGradient>
+            ))}
+          </defs>
+          {axes}
+          {series.map((s) => (
+            <Area
+              key={s.key}
+              type="monotone"
+              dataKey={s.key}
+              name={s.label}
+              stroke={s.color}
+              strokeWidth={2}
+              fill={`url(#fill-${s.key})`}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }}
+              connectNulls
+            />
+          ))}
+        </AreaChart>
+      ) : (
+        <LineChart data={data} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
+          {axes}
+          {series.map((s) => (
+            <Line
+              key={s.key}
+              type="monotone"
+              dataKey={s.key}
+              name={s.label}
+              stroke={s.color}
+              strokeWidth={2}
+              dot={{ r: 2.5, strokeWidth: 0, fill: s.color }}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }}
+              connectNulls
+            />
+          ))}
+        </LineChart>
+      )}
+    </ResponsiveContainer>
+  );
+}
+
+/* ------------------------------------------------------------------------- */
+/* Bars                                                                      */
+/* ------------------------------------------------------------------------- */
+
+export type BarRow = { label: string; count: number; href?: string };
+
+/** Vertical bars for a handful of ordered buckets (e.g. Jobs by Age). */
+export function ColumnChart({
+  rows,
+  color = CHART.blue,
+  name = "Count"
+}: {
+  rows: BarRow[];
+  color?: string;
+  name?: string;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={rows} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
+        <CartesianGrid {...GRID} />
+        <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} interval={0} />
+        <YAxis tick={AXIS} tickLine={false} axisLine={false} width={26} allowDecimals={false} />
+        <Tooltip content={<Tip />} cursor={{ fill: "var(--background)" }} />
+        <Bar
+          dataKey="count"
+          name={name}
+          fill={color}
+          radius={[4, 4, 0, 0]}
+          maxBarSize={36}
+          label={{ position: "top", fontSize: 10, fill: "var(--foreground)" }}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Horizontal ranked bars (owners, companies), top 8. */
+export function RankChart({
+  rows,
+  color = CHART.teal,
+  name = "Count"
+}: {
+  rows: BarRow[];
+  color?: string;
+  name?: string;
+}) {
+  const top = rows.slice(0, 8);
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={top} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
+        <XAxis type="number" hide allowDecimals={false} />
+        <YAxis
+          type="category"
+          dataKey="label"
+          tick={AXIS}
+          tickLine={false}
+          axisLine={false}
+          width={104}
+          tickFormatter={(v: string) => (v.length > 16 ? `${v.slice(0, 15)}...` : v)}
+        />
+        <Tooltip content={<Tip />} cursor={{ fill: "var(--background)" }} />
+        <Bar
+          dataKey="count"
+          name={name}
+          fill={color}
+          radius={[0, 4, 4, 0]}
+          maxBarSize={16}
+          label={{ position: "right", fontSize: 10, fill: "var(--foreground)" }}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Grouped vertical bars, two or more series per person. */
+export function GroupedColumns({
+  data,
+  series
+}: {
+  data: Record<string, string | number>[];
+  series: Series[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barGap={2}>
+        <CartesianGrid {...GRID} />
+        <XAxis
+          dataKey="x"
+          tick={AXIS}
+          tickLine={false}
+          axisLine={false}
+          interval={0}
+          tickFormatter={(v: string) => v.split(" ")[0] ?? v}
+        />
+        <YAxis tick={AXIS} tickLine={false} axisLine={false} width={24} allowDecimals={false} />
+        <Tooltip content={<Tip />} cursor={{ fill: "var(--background)" }} />
+        {series.map((s) => (
+          <Bar
+            key={s.key}
+            dataKey={s.key}
+            name={s.label}
+            fill={s.color}
+            radius={[4, 4, 0, 0]}
+            maxBarSize={22}
+            label={{ position: "top", fontSize: 9, fill: "var(--muted)" }}
+          />
+        ))}
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* ------------------------------------------------------------------------- */
+/* Donuts                                                                    */
 /* ------------------------------------------------------------------------- */
 
 export type Slice = { label: string; value: number };
@@ -233,31 +293,40 @@ export function foldSlices(rows: Slice[]): (Slice & { color: string })[] {
   return rest > 0 ? [...top, { label: "Other", value: rest, color: OTHER }] : top;
 }
 
-export function PieChart({ slices }: { slices: (Slice & { color: string })[] }) {
-  const total = slices.reduce((a, s) => a + s.value, 0) || 1;
-  let acc = 0;
-  const R = 52;
+/** Donut with the total in the middle and a labelled legend beside it. */
+export function DonutChart({ slices }: { slices: (Slice & { color: string })[] }) {
+  const total = slices.reduce((a, s) => a + s.value, 0);
   return (
-    <div className="flex items-center gap-4">
-      <svg
-        width="124"
-        height="124"
-        viewBox="-62 -62 124 124"
-        role="img"
-        aria-label="Pie chart"
-        className="shrink-0"
-      >
-        {slices.map((s) => {
-          const a0 = (acc / total) * 2 * Math.PI - Math.PI / 2;
-          acc += s.value;
-          const a1 = (acc / total) * 2 * Math.PI - Math.PI / 2;
-          if (slices.length === 1) return <circle key={s.label} r={R} fill={s.color} />;
-          const large = a1 - a0 > Math.PI ? 1 : 0;
-          const d = `M0,0 L${R * Math.cos(a0)},${R * Math.sin(a0)} A${R},${R} 0 ${large} 1 ${R * Math.cos(a1)},${R * Math.sin(a1)} Z`;
-          return <path key={s.label} d={d} fill={s.color} stroke="var(--card)" strokeWidth="2" />;
-        })}
-      </svg>
-      <ul className="min-w-0 flex-1 space-y-1.5">
+    <div className="flex h-full items-center gap-4">
+      <div className="relative aspect-square h-full max-h-[190px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={slices}
+              dataKey="value"
+              nameKey="label"
+              innerRadius="60%"
+              outerRadius="95%"
+              paddingAngle={slices.length > 1 ? 2 : 0}
+              stroke="var(--card)"
+              strokeWidth={2}
+              isAnimationActive={false}
+            >
+              {slices.map((s) => (
+                <Cell key={s.label} fill={s.color} />
+              ))}
+            </Pie>
+            <Tooltip content={<Tip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-semibold tabular-nums text-[var(--foreground)]">
+            {total}
+          </span>
+          <span className="text-[10px] text-[var(--muted)]">total</span>
+        </div>
+      </div>
+      <ul className="min-w-0 flex-1 space-y-2">
         {slices.map((s) => (
           <li key={s.label} className="flex items-center gap-2 text-xs">
             <span
@@ -265,8 +334,9 @@ export function PieChart({ slices }: { slices: (Slice & { color: string })[] }) 
               style={{ background: s.color }}
             />
             <span className="min-w-0 flex-1 truncate text-[var(--foreground)]">{s.label}</span>
-            <span className="tabular-nums text-[var(--muted)]">
-              {s.value} · {Math.round((s.value / total) * 100)}%
+            <span className="tabular-nums text-[var(--foreground)]">{s.value}</span>
+            <span className="w-9 text-right text-[10px] tabular-nums text-[var(--muted)]">
+              {total ? Math.round((s.value / total) * 100) : 0}%
             </span>
           </li>
         ))}
@@ -275,59 +345,66 @@ export function PieChart({ slices }: { slices: (Slice & { color: string })[] }) 
   );
 }
 
-/* ------------------------------------------------------------------------- */
-/* Horizontal bar list (status / owner / company counts)                     */
-/* ------------------------------------------------------------------------- */
-
-export type BarRow = { label: string; count: number; href?: string };
-
-export function BarList({
-  rows,
-  color = CHART.blue,
-  unit
+/** Single-value gauge ring with the percentage in the middle. */
+export function Gauge({
+  value,
+  color,
+  label,
+  sub
 }: {
-  rows: BarRow[];
-  color?: string;
-  unit?: string;
+  value: number | null;
+  color: string;
+  label: string;
+  sub?: string;
 }) {
-  const max = Math.max(1, ...rows.map((r) => r.count));
+  const pct = value == null ? 0 : Math.max(0, Math.min(1, value));
+  const data = [
+    { k: "v", v: pct },
+    { k: "r", v: 1 - pct }
+  ];
   return (
-    <ul className="space-y-2">
-      {rows.map((r) => {
-        const inner = (
-          <>
-            <span className="flex items-center justify-between gap-2 text-xs">
-              <span className="min-w-0 truncate text-[var(--foreground)]">{r.label}</span>
-              <span className="shrink-0 font-medium tabular-nums text-[var(--foreground)]">
-                {r.count}
-                {unit ? (
-                  <span className="ml-0.5 font-normal text-[var(--muted)]">{unit}</span>
-                ) : null}
-              </span>
-            </span>
-            <span className="mt-1 block h-1.5 w-full rounded-full bg-[var(--border)]/60">
-              <span
-                className="block h-1.5 rounded-full"
-                style={{ width: `${Math.max(2, (r.count / max) * 100)}%`, background: color }}
-              />
-            </span>
-          </>
-        );
-        return (
-          <li key={r.label}>
-            {r.href ? (
-              <Link href={r.href} className="block rounded hover:bg-[var(--background)]">
-                {inner}
-              </Link>
-            ) : (
-              inner
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <div className="flex min-w-0 items-center gap-2.5">
+      <div className="relative h-[60px] w-[60px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="v"
+              innerRadius={22}
+              outerRadius={29}
+              startAngle={90}
+              endAngle={-270}
+              stroke="none"
+              isAnimationActive={false}
+            >
+              <Cell fill={color} />
+              <Cell fill="var(--border)" />
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <span className="absolute inset-0 flex items-center justify-center text-[12px] font-semibold tabular-nums text-[var(--foreground)]">
+          {fmtPct(value)}
+        </span>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+          {label}
+        </p>
+        {sub ? <p className="text-[11px] leading-tight text-[var(--muted)]">{sub}</p> : null}
+      </div>
+    </div>
   );
 }
+
+export function fmtPct(v: number | null | undefined): string {
+  if (v == null) return "-";
+  const p = v * 100;
+  return `${p >= 10 || p === 0 ? Math.round(p) : p.toFixed(1)}%`;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Tables, switches, labels                                                  */
+/* ------------------------------------------------------------------------- */
 
 /** Bullhorn-style status table: label + clickable number + total row. */
 export function CountTable({
@@ -341,18 +418,18 @@ export function CountTable({
 }) {
   const sum = rows.reduce((a, r) => a + r.count, 0);
   return (
-    <table className="w-full text-xs">
+    <table className="w-full table-fixed text-xs">
       <thead>
         <tr className="border-b border-[var(--border)] text-left text-[var(--muted)]">
           <th className="pb-1.5 font-medium">{head[0]}</th>
-          <th className="pb-1.5 text-right font-medium">{head[1]}</th>
+          <th className="w-20 pb-1.5 text-right font-medium">{head[1]}</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((r) => (
-          <tr key={r.label}>
-            <td className="py-1 pr-2 text-[var(--foreground)]">{r.label}</td>
-            <td className="py-1 text-right tabular-nums">
+          <tr key={r.label} className="border-b border-[var(--border)]/50 last:border-0">
+            <td className="truncate py-1.5 pr-2 text-[var(--foreground)]">{r.label}</td>
+            <td className="py-1.5 text-right tabular-nums">
               {r.href ? (
                 <Link href={r.href} className="font-medium text-[var(--accent)] hover:underline">
                   {r.count}
@@ -378,7 +455,7 @@ export function CountTable({
   );
 }
 
-/** "Graphing data by Week · Month · Year" switch under time charts. */
+/** Compact Week / Month / Year segmented switch for time charts. */
 export function GranularitySwitch({
   value,
   onChange
@@ -388,30 +465,28 @@ export function GranularitySwitch({
 }) {
   const opts = ["week", "month", "year"] as const;
   return (
-    <p className="mt-1 text-center text-[11px] text-[var(--muted)]">
-      Graphing data by{" "}
-      {opts.map((o, i) => (
-        <span key={o}>
-          {i > 0 ? " · " : ""}
-          <button
-            type="button"
-            onClick={() => onChange(o)}
-            className={
-              o === value
-                ? "font-semibold text-[var(--foreground)]"
-                : "text-[var(--accent)] hover:underline"
-            }
-          >
-            {o[0]!.toUpperCase() + o.slice(1)}
-          </button>
-        </span>
+    <div className="inline-flex rounded-md border border-[var(--border)] p-0.5 text-[10px]">
+      {opts.map((o) => (
+        <button
+          key={o}
+          type="button"
+          onClick={() => onChange(o)}
+          aria-pressed={o === value}
+          className={`rounded px-1.5 py-0.5 ${o === value ? "bg-[var(--brand-primary)] font-medium text-white" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
+        >
+          {o[0]!.toUpperCase() + o.slice(1)}
+        </button>
       ))}
-    </p>
+    </div>
   );
 }
 
 export function CardEmpty({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-center text-xs text-[var(--muted)]">{children}</p>;
+  return (
+    <div className="flex h-full items-center justify-center px-4 text-center text-xs text-[var(--muted)]">
+      {children}
+    </div>
+  );
 }
 
 export function bucketLabel(d: Date | string, g: "week" | "month" | "year"): string {
