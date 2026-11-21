@@ -298,7 +298,7 @@ export function DonutChart({ slices }: { slices: (Slice & { color: string })[] }
   const total = slices.reduce((a, s) => a + s.value, 0);
   return (
     <div className="flex h-full items-center gap-4">
-      <div className="relative aspect-square h-full max-h-[190px] shrink-0">
+      <div className="relative aspect-square w-[42%] max-w-[180px] shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -363,8 +363,8 @@ export function Gauge({
     { k: "r", v: 1 - pct }
   ];
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
-      <div className="relative h-[60px] w-[60px] shrink-0">
+    <div className="flex min-w-0 flex-col items-center gap-1 text-center">
+      <div className="relative h-[64px] w-[64px] shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
