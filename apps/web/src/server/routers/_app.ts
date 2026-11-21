@@ -11,6 +11,7 @@ import { companiesRouter } from "./companies";
 import { complianceRouter } from "./compliance";
 import { contactsRouter } from "./contacts";
 import { dashboardRouter } from "./dashboard";
+import { dashboardCardsRouter } from "./dashboard-cards";
 import { emailTemplatesRouter } from "./email-templates";
 import { emailsRouter } from "./emails";
 import { followsRouter } from "./follows";
@@ -66,6 +67,7 @@ export const appRouter = router({
   interviews: interviewsRouter,
   interviewFeedback: interviewFeedbackRouter,
   dashboard: dashboardRouter,
+  dashboardCards: dashboardCardsRouter,
   attachments: attachmentsRouter,
   tags: tagsRouter,
   notes: notesRouter,
