@@ -3,6 +3,19 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.50.0 - Dashboard: customizable card grid (2026-11-21)
+
+- The dashboard is now a grid of cards, modelled on Bullhorn's card
+  dashboards. A new Customize button opens a card library grouped by
+  Overview, Pipeline, Team, Jobs, Candidates and Activity.
+- Each person can add or remove cards and move them up or down; the
+  layout is saved in their browser, and Reset layout restores the
+  default order.
+- All existing sections (attention tiles, team this week, pipeline by
+  job, key numbers, funnel, trends, recruiter performance, interviews,
+  recents, tasks, activity) are available as cards, and the default
+  layout matches the previous page.
+
 ## v0.49.0 - Dashboard: BD outreach strip removed (2026-11-19)
 
 - The BD outreach stat strip left the dashboard: those numbers live on
