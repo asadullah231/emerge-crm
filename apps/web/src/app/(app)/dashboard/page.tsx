@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   BigNumber,
   FunnelChart,
@@ -14,17 +14,9 @@ import { isPositionFlagged, weekStart } from "@/components/reports-shared";
 import { PipelineView } from "@/components/pipeline-view";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BullhornCardBody, BULLHORN_TYPES } from "@/components/dashboard/bullhorn-cards";
-import { CardFrame, CardLibrary, ConfigureDialog } from "@/components/dashboard/card-frame";
+import { CardBoard } from "@/components/dashboard/card-board";
 import { GroupedColumns } from "@/components/dashboard/mini-charts";
-import {
-  CARD_META,
-  DEFAULT_LAYOUT,
-  newCardId,
-  viewOf,
-  type CardInstance,
-  type CardType
-} from "@/components/dashboard/card-registry";
+import { DEFAULT_LAYOUT, viewOf, type CardInstance } from "@/components/dashboard/card-registry";
 import { Download, ExternalLink, Plus, RotateCcw } from "lucide-react";
 import { toCsv, downloadCsv, type CsvColumn } from "@/lib/csv-export";
 import { trpc, type RouterOutputs } from "@/lib/trpc/client";
@@ -58,36 +50,7 @@ const TARGET_SUBMITTED = 2;
 type AttentionPick = "interviews" | "tasks" | "waiting" | null;
 
 /** Bumped when the default layout changes so everyone gets the new packed grid once. */
-const DASHBOARD_KEY = "main.v2";
-/** Local cache so the saved layout paints instantly before the server answers. */
-const LAYOUT_CACHE_KEY = "emerge.dashboard.layout.v3";
-
-function readCache(): CardInstance[] | null {
-  try {
-    const raw = localStorage.getItem(LAYOUT_CACHE_KEY);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    const ok = parsed.filter(
-      (c): c is CardInstance =>
-        !!c &&
-        typeof c === "object" &&
-        typeof (c as CardInstance).id === "string" &&
-        (c as CardInstance).type in CARD_META
-    );
-    return ok.length ? ok : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(cards: CardInstance[]) {
-  try {
-    localStorage.setItem(LAYOUT_CACHE_KEY, JSON.stringify(cards));
-  } catch {
-    // Storage unavailable; the server copy still persists the layout.
-  }
-}
+const DASHBOARD_KEY = "main.v3";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -100,74 +63,7 @@ export default function DashboardPage() {
   const [activeStage, setActiveStage] = useState<string | null>(null);
   const [attentionPick, setAttentionPick] = useState<AttentionPick>(null);
 
-  /* ---- Card layout: per user on the server, cached in the browser ---- */
-  const [layout, setLayout] = useState<CardInstance[]>(DEFAULT_LAYOUT);
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const [configuring, setConfiguring] = useState<string | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
-  const serverLayout = trpc.dashboardCards.layout.useQuery(
-    { key: DASHBOARD_KEY },
-    { staleTime: Infinity, refetchOnWindowFocus: false }
-  );
-  const saveLayout = trpc.dashboardCards.saveLayout.useMutation();
-  const hydrated = useRef(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const cached = readCache();
-    if (cached) setLayout(cached);
-  }, []);
-  useEffect(() => {
-    if (hydrated.current || serverLayout.isLoading) return;
-    hydrated.current = true;
-    const valid = (serverLayout.data ?? []).filter((c) => c.type in CARD_META) as CardInstance[];
-    if (valid.length) {
-      setLayout(valid);
-      writeCache(valid);
-    }
-  }, [serverLayout.isLoading, serverLayout.data]);
-
-  const persist = useCallback(
-    (next: CardInstance[]) => {
-      setLayout(next);
-      writeCache(next);
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(
-        () => saveLayout.mutate({ key: DASHBOARD_KEY, cards: next }),
-        600
-      );
-    },
-    [saveLayout]
-  );
-  const patchCard = (id: string, patch: Partial<CardInstance>) =>
-    persist(layout.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-  const removeCard = (id: string) => persist(layout.filter((c) => c.id !== id));
-  const addCard = (type: CardType) => {
-    persist([{ id: newCardId(), type, size: CARD_META[type].size }, ...layout]);
-    setLibraryOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-  /** Live reorder while dragging: move the dragged card to the hovered slot. */
-  const dragOver = (targetId: string) => {
-    if (!dragId || dragId === targetId) return;
-    setLayout((cur) => {
-      const from = cur.findIndex((c) => c.id === dragId);
-      const to = cur.findIndex((c) => c.id === targetId);
-      if (from < 0 || to < 0) return cur;
-      const next = [...cur];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved!);
-      return next;
-    });
-  };
-  const dragEnd = () => {
-    setDragId(null);
-    persist(layout);
-  };
-  const refreshCard = (type: CardType) => {
-    if (BULLHORN_TYPES.includes(type)) void utils.dashboardCards.invalidate();
-    else void utils.dashboard.invalidate();
-  };
 
   /* ---- Data for the Emerge cards (they follow the page filter bar) ---- */
   const attention = trpc.dashboard.attentionToday.useQuery(undefined, {
@@ -541,8 +437,6 @@ export default function DashboardPage() {
     }
   };
 
-  const configuringCard = layout.find((c) => c.id === configuring) ?? null;
-
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
@@ -629,61 +523,14 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {layout.map((card) => {
-          const isBullhorn = BULLHORN_TYPES.includes(card.type);
-          const emerge = isBullhorn ? null : emergeCard(card);
-          return (
-            <CardFrame
-              key={card.id}
-              card={card}
-              dragging={dragId === card.id}
-              headerExtra={emerge?.extra}
-              onDragStart={() => setDragId(card.id)}
-              onDragEnter={() => dragOver(card.id)}
-              onDragEnd={dragEnd}
-              onPatch={(p) => patchCard(card.id, p)}
-              onRemove={() => removeCard(card.id)}
-              onConfigure={() => setConfiguring(card.id)}
-              onRefresh={() => refreshCard(card.type)}
-            >
-              {isBullhorn ? (
-                <BullhornCardBody card={card} onPatch={(p) => patchCard(card.id, p)} />
-              ) : (
-                emerge?.body
-              )}
-            </CardFrame>
-          );
-        })}
-      </div>
-
-      {layout.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-10 text-center text-sm text-[var(--muted)]">
-          No cards on your dashboard. Click Add card to pick some from the library.
-        </div>
-      ) : null}
-
-      {libraryOpen ? (
-        <CardLibrary
-          layout={layout}
-          onAdd={addCard}
-          onReset={() => {
-            persist(DEFAULT_LAYOUT);
-            setLibraryOpen(false);
-          }}
-          onClose={() => setLibraryOpen(false)}
-        />
-      ) : null}
-      {configuringCard ? (
-        <ConfigureDialog
-          card={configuringCard}
-          onApply={(p) => {
-            patchCard(configuringCard.id, p);
-            setConfiguring(null);
-          }}
-          onClose={() => setConfiguring(null)}
-        />
-      ) : null}
+      <CardBoard
+        dashboardKey={DASHBOARD_KEY}
+        defaults={DEFAULT_LAYOUT}
+        libraryOpen={libraryOpen}
+        onLibraryOpenChange={setLibraryOpen}
+        renderCard={emergeCard}
+        onRefreshOther={() => void utils.dashboard.invalidate()}
+      />
     </div>
   );
 }

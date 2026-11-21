@@ -164,7 +164,11 @@ function dateWhere(col: Parameters<typeof gte>[0], f?: CardFilter): SQL | undefi
   return and(from ? gte(col, from) : undefined, to ? lt(col, to) : undefined);
 }
 
-const CLOSED = ["filled", "cancelled", "inactive", "declined"] as const;
+/**
+ * Closed outcomes that count toward fill ratio. "inactive" is left out: the team
+ * uses it to clear stale roles, which is housekeeping, not a lost job.
+ */
+const CLOSED = ["filled", "cancelled", "declined"] as const;
 
 function avg(values: number[]): number | null {
   if (values.length === 0) return null;
@@ -585,7 +589,7 @@ export const dashboardCardsRouter = router({
         input.entity === "contacts" ? contacts : input.entity === "candidates" ? candidates : jobs;
       const label = sql<string>`coalesce(${users.name}, 'Unassigned')`;
       const rows = await ctx.tx
-        .select({ label, count: count() })
+        .select({ ownerId: t.ownerId, label, count: count() })
         .from(t)
         .leftJoin(users, eq(users.id, t.ownerId))
         .where(
@@ -598,10 +602,14 @@ export const dashboardCardsRouter = router({
             dateWhere(t.createdAt, f)
           )
         )
-        .groupBy(label)
+        .groupBy(t.ownerId, label)
         .orderBy(desc(count()))
         .limit(15);
-      return rows.map((r) => ({ label: r.label, count: Number(r.count) }));
+      return rows.map((r) => ({
+        ownerId: r.ownerId,
+        label: r.label,
+        count: Number(r.count)
+      }));
     }),
 
   /** Candidates grouped by source. */

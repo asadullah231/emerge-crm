@@ -20,8 +20,6 @@ import {
   interviews,
   jobs,
   offers,
-  placements,
-  submissions,
   tasks,
   users
 } from "@emerge/db";
@@ -115,6 +113,24 @@ export const dashboardRouter = router({
         to,
         ownerId
       });
+
+    // Distinct applications that moved into `stage` within the date window.
+    const stageReached = (stage: "submitted" | "hired") =>
+      ctx.tx
+        .select({
+          total: sql<number>`count(distinct ${applicationStatusHistory.applicationId})`
+        })
+        .from(applicationStatusHistory)
+        .innerJoin(applications, eq(applications.id, applicationStatusHistory.applicationId))
+        .where(
+          scoped(and(isNull(applications.deletedAt), eq(applicationStatusHistory.toStage, stage)), {
+            dateCol: applicationStatusHistory.createdAt,
+            ownerCol: applications.ownerId,
+            from,
+            to,
+            ownerId
+          })
+        );
 
     const [
       jobAgg,
@@ -217,19 +233,8 @@ export const dashboardRouter = router({
         .leftJoin(users, eq(users.id, applications.ownerId))
         .where(appScope())
         .groupBy(applications.ownerId, users.name),
-      // Submissions sent in range (+owner = sender).
-      ctx.tx
-        .select({ total: count() })
-        .from(submissions)
-        .where(
-          scoped(undefined, {
-            dateCol: submissions.sentAt,
-            ownerCol: submissions.sentById,
-            from,
-            to,
-            ownerId
-          })
-        ),
+      // Candidates moved into Submitted in range (+owner = application owner).
+      stageReached("submitted"),
       // Offers that left draft (sent onward) in range (+owner = creator).
       ctx.tx
         .select({ total: sql<number>`count(*) filter (where ${offers.status} <> 'draft')` })
@@ -256,19 +261,8 @@ export const dashboardRouter = router({
             ownerId
           })
         ),
-      // Placements (real hires) in range (+owner = placer).
-      ctx.tx
-        .select({ total: count() })
-        .from(placements)
-        .where(
-          scoped(undefined, {
-            dateCol: placements.createdAt,
-            ownerCol: placements.placedById,
-            from,
-            to,
-            ownerId
-          })
-        ),
+      // Candidates moved into Hired in range (+owner = application owner).
+      stageReached("hired"),
       // Recent candidates (current, unfiltered so the panel is never empty by a date filter).
       ctx.tx
         .select({
@@ -583,7 +577,9 @@ export const dashboardRouter = router({
     const waitingWhere = and(
       isNull(applications.deletedAt),
       eq(applications.stage, "submitted"),
-      lte(applications.stageEnteredAt, staleBefore)
+      lte(applications.stageEnteredAt, staleBefore),
+      isNull(jobs.deletedAt),
+      eq(jobs.status, "open")
     );
 
     const [ivRows, ivCount, taskRows, taskCount, waitRows, waitCount] = await Promise.all([
@@ -634,7 +630,11 @@ export const dashboardRouter = router({
         .where(waitingWhere)
         .orderBy(asc(applications.stageEnteredAt))
         .limit(10),
-      ctx.tx.select({ c: count() }).from(applications).where(waitingWhere)
+      ctx.tx
+        .select({ c: count() })
+        .from(applications)
+        .innerJoin(jobs, eq(jobs.id, applications.jobId))
+        .where(waitingWhere)
     ]);
 
     return {

@@ -24,6 +24,7 @@ import {
   RankChart,
   TimeChart
 } from "./mini-charts";
+import { AmScoreboard, DailyActivity, MonthlyPacing, RejectionReasons } from "./report-cards";
 
 const REFRESH = { refetchInterval: 60_000, refetchOnWindowFocus: true } as const;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -51,7 +52,11 @@ export const BULLHORN_TYPES: CardType[] = [
   "contacts-over-time",
   "candidates-by-owner",
   "candidates-by-source",
-  "candidates-over-time"
+  "candidates-over-time",
+  "monthly-pacing",
+  "rejection-reasons",
+  "daily-activity",
+  "am-scoreboard"
 ];
 
 export function BullhornCardBody({ card, onPatch }: CardBodyProps) {
@@ -92,6 +97,14 @@ export function BullhornCardBody({ card, onPatch }: CardBodyProps) {
       return <CandidatesBySource card={card} />;
     case "candidates-over-time":
       return <OverTime card={card} onPatch={onPatch} entity="candidates" />;
+    case "monthly-pacing":
+      return <MonthlyPacing />;
+    case "rejection-reasons":
+      return <RejectionReasons />;
+    case "daily-activity":
+      return <DailyActivity card={card} />;
+    case "am-scoreboard":
+      return <AmScoreboard card={card} />;
     default:
       return null;
   }
@@ -137,7 +150,7 @@ function SuccessRates({ card, onPatch }: CardBodyProps) {
           value={d.fillRatio}
           color={CHART.teal}
           label="Fill ratio"
-          sub={`${d.filled} of ${d.closed} closed jobs`}
+          sub={`${d.filled} of ${d.closed} closed (inactive not counted)`}
         />
         <Gauge
           value={d.hitRatio}
@@ -503,12 +516,20 @@ function JobsByAge({ card }: { card: CardInstance }) {
 function JobsByIndustry({ card }: { card: CardInstance }) {
   const q = trpc.dashboardCards.jobsByIndustry.useQuery({ filter: card.filter }, REFRESH);
   if (q.isLoading) return <Loading />;
-  const rows = q.data ?? [];
+  const rows = (q.data ?? []).map((r) => ({
+    ...r,
+    href:
+      r.label === "Not set"
+        ? undefined
+        : `/jobs?status=open&industry=${encodeURIComponent(r.label)}`
+  }));
   if (rows.length === 0) return <CardEmpty>No open jobs.</CardEmpty>;
   return viewOf(card) === "list" ? (
     <CountTable rows={rows} head={["Business sector", "Open jobs"]} />
   ) : (
-    <DonutChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
+    <DonutChart
+      slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count, href: r.href })))}
+    />
   );
 }
 
@@ -520,11 +541,13 @@ function CompaniesByStatus({ card }: { card: CardInstance }) {
   const rows = (q.data ?? []).map((r) => ({
     label: cap(r.label),
     count: r.count,
-    href: "/companies"
+    href: `/companies?status=${encodeURIComponent(r.label)}`
   }));
   if (rows.length === 0) return <CardEmpty>No companies yet.</CardEmpty>;
   return viewOf(card) === "chart" ? (
-    <DonutChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
+    <DonutChart
+      slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count, href: r.href })))}
+    />
   ) : (
     <CountTable rows={rows} head={["Status", "Number"]} />
   );
@@ -561,7 +584,11 @@ function CompaniesRanked({ card, by }: { card: CardInstance; by: "open-jobs" | "
 function ByOwner({ card, entity }: { card: CardInstance; entity: "contacts" | "candidates" }) {
   const q = trpc.dashboardCards.byOwner.useQuery({ filter: card.filter, entity }, REFRESH);
   if (q.isLoading) return <Loading />;
-  const rows = q.data ?? [];
+  const rows = (q.data ?? []).map((r) => ({
+    label: r.label,
+    count: r.count,
+    href: entity === "candidates" && r.ownerId ? `/candidates?ownerId=${r.ownerId}` : undefined
+  }));
   if (rows.length === 0) return <CardEmpty>No records yet.</CardEmpty>;
   return viewOf(card) === "chart" ? (
     <RankChart
@@ -577,12 +604,18 @@ function ByOwner({ card, entity }: { card: CardInstance; entity: "contacts" | "c
 function CandidatesBySource({ card }: { card: CardInstance }) {
   const q = trpc.dashboardCards.candidatesBySource.useQuery({ filter: card.filter }, REFRESH);
   if (q.isLoading) return <Loading />;
-  const rows = (q.data ?? []).map((r) => ({ label: cap(r.label), count: r.count }));
+  const rows = (q.data ?? []).map((r) => ({
+    label: cap(r.label),
+    count: r.count,
+    href: r.label === "Not set" ? undefined : `/candidates?source=${encodeURIComponent(r.label)}`
+  }));
   if (rows.length === 0) return <CardEmpty>No candidates yet.</CardEmpty>;
   return viewOf(card) === "list" ? (
     <CountTable rows={rows} head={["Source", "Candidates"]} />
   ) : (
-    <DonutChart slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count })))} />
+    <DonutChart
+      slices={foldSlices(rows.map((r) => ({ label: r.label, value: r.count, href: r.href })))}
+    />
   );
 }
 

@@ -3,6 +3,26 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.53.0 - Dashboard complete: right numbers, report cards, list dashboards (2026-11-21)
+
+- Key numbers count Submissions and Hires from pipeline stage moves
+  (how the team logs them) instead of the share-link and placement
+  tables, so they no longer show 6 and 0.
+- Waiting on client only counts candidates on jobs that are still open.
+- Fill ratio leaves out jobs closed as inactive (stale-role cleanup);
+  the card says so.
+- Four report cards bring the Reports section onto the dashboard:
+  Monthly pacing (hires, submissions and revenue against this month's
+  targets), Rejection reasons (last 4 weeks), Daily activity and the
+  AM scoreboard. They reuse the report queries, so numbers match.
+- Candidates, Job Openings, Clients and Contacts get a List / Dashboard
+  switch, each with its own card dashboard and library, saved per user.
+- Card numbers open the matching list: companies by status, candidates
+  by source or consultant, and jobs by business sector link to the list
+  with that filter applied; ranked bars open the record.
+- The main dashboard moved to a shared card board component; the
+  default layout includes the new cards (layout key main.v3).
+
 ## v0.52.1 - Dashboard polish after live review (2026-11-21)
 
 - Every card except Needs attention, Key numbers and Pipeline keeps the

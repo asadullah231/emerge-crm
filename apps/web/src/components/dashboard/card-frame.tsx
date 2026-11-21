@@ -26,9 +26,11 @@ import {
   CARD_CATEGORIES,
   CARD_META,
   DATE_PRESET_LABELS,
+  PAGE_FILTER_TYPES,
   viewOf,
   type CardFilter,
   type CardInstance,
+  type CardMeta,
   type CardSize,
   type CardType,
   type DatePreset
@@ -320,7 +322,7 @@ export function ConfigureDialog({
               </>
             ) : (
               <p className="text-xs text-[var(--muted)]">
-                {meta.filters.length === 0
+                {PAGE_FILTER_TYPES.has(card.type)
                   ? "This card follows the date range and recruiter filters at the top of the dashboard."
                   : "No date filter for this card."}
               </p>
@@ -442,11 +444,15 @@ export function ConfigureDialog({
 
 export function CardLibrary({
   layout,
+  categories,
+  isAvailable,
   onAdd,
   onReset,
   onClose
 }: {
   layout: CardInstance[];
+  categories?: CardMeta["category"][];
+  isAvailable?: (type: CardType) => boolean;
   onAdd: (type: CardType) => void;
   onReset: () => void;
   onClose: () => void;
@@ -488,8 +494,10 @@ export function CardLibrary({
         </button>
       </div>
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
-        {CARD_CATEGORIES.map((cat) => {
-          const types = all.filter((t) => CARD_META[t].category === cat && match(t));
+        {CARD_CATEGORIES.filter((c) => !categories || categories.includes(c)).map((cat) => {
+          const types = all.filter(
+            (t) => CARD_META[t].category === cat && match(t) && (!isAvailable || isAvailable(t))
+          );
           if (types.length === 0) return null;
           return (
             <div key={cat}>
