@@ -3,6 +3,28 @@
 All notable changes to Emerge CRM. Format loosely follows Keep a Changelog;
 versions follow semantic versioning (one minor version per completed milestone).
 
+## v0.51.0 - Dashboard: Bullhorn-style card dashboard (2026-11-21)
+
+- Four-column card grid. Every card has a drag handle, a graph/list
+  toggle where it applies, a gear to configure it, refresh and remove.
+  Drag a card by its handle to reorder.
+- Add card opens a searchable card library grouped by Jobs, Placements,
+  Companies, Contacts, Candidates, Team and Activity. The same card can
+  be added more than once with different filters.
+- Configure card: rename, size (small, wide, full width), user (everyone,
+  mine, selected users), date added preset, and card filters for client,
+  business sector, job type, required skill and source.
+- New cards on live data: Success Rates (fill ratio, hit ratio, historic
+  fill ratio), Response Times (days to first candidate, to send CVs, to
+  fill, with history), Jobs without Coverage (assign or close from the
+  card), Starts calendar, Jobs by Required Skills, Jobs by Age, Jobs by
+  Business Sector, Jobs and Placements over Time, Companies by Status,
+  Open Jobs, Placements and over Time, Contacts by Consultant and over
+  Time, Candidates by Consultant, by Source and over Time.
+- Week, month and year switch on every time chart.
+- Each person's layout is saved to their account (migration 0043,
+  `user_dashboards`), so it follows them across browsers.
+
 ## v0.50.0 - Dashboard: customizable card grid (2026-11-21)
 
 - The dashboard is now a grid of cards, modelled on Bullhorn's card
